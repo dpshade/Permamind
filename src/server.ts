@@ -1,13 +1,34 @@
 import { FastMCP } from "fastmcp";
 import { z } from "zod";
-import { add } from "./add.js";
+import { memoryService } from "./services/memory.js";
 import { generateMnemonic, getKeyFromMnemonic } from "./mnemonic.js"
 import Arweave from 'arweave';
+import { JWKInterface } from "arweave/node/lib/wallet.js";
+import { Tag } from "./models/Tag.js";
+import { hubRegistryService } from "./services/registry.js";
+import { HUB_REGISTRY_ID } from "./constants.js";
 
-// Since v1.5.1 you're now able to call the init function for the web version without options. The current URL path will be used by default. This is recommended when running from a gateway.
-const arweave = Arweave.init({});
+let keyPair: JWKInterface;
+let publicKey: string;
+let hubId: string;
 
-let seed = process.env.SEED_PHRASE
+async function init() {
+  console.log("initiating")
+  const arweave = Arweave.init({});
+  if (process.env.SEED_PHRASE) {
+    keyPair = await getKeyFromMnemonic(process.env.SEED_PHRASE)
+  } else {
+    keyPair = await arweave.wallets.generate()
+  }
+  publicKey = await arweave.wallets.jwkToAddress(keyPair)
+  try {
+    let zone = await hubRegistryService.getZoneById(HUB_REGISTRY_ID(), publicKey)
+    hubId = zone.spec.processId
+    console.log("ready")
+  } catch (e) {
+    console.log(e)
+  }
+}
 
 const server = new FastMCP({
   name: "Addition",
@@ -23,15 +44,31 @@ server.addTool({
   },
   description: "Adds a new memory to the conversation store",
   execute: async (args) => {
-    //let phrase = await generateMnemonic()
-    let keyPair = await getKeyFromMnemonic("just liquid true rely reward chest illegal clump time estate frozen prefer")
-    let publicKey = await arweave.wallets.jwkToAddress(keyPair)
-    return publicKey;
+    let content: Tag = {
+      name: "Content",
+      value: args.content
+    }
+    let role: Tag = {
+      name: "Role",
+      value: args.role
+    }
+    let p: Tag = {
+      name: "p",
+      value: args.p
+    }
+    let tags: Tag[] = [content, role, p]
+    try {
+      await memoryService.createEvent(keyPair, hubId, tags)
+      return 'Added Memory'
+    } catch (e) {
+      return String(e)
+    }
   },
   name: "addMemory",
   parameters: z.object({
-    a: z.number().describe("The first number"),
-    b: z.number().describe("The second number"),
+    content: z.string().describe("The content of the memory"),
+    role: z.string().describe("The role of the author of the memory"),
+    p: z.string().describe("The public key of the other party in the memory"),
   }),
 });
 
@@ -44,17 +81,32 @@ server.addTool({
   },
   description: "Retrieves all memories for a given conversation",
   execute: async (args) => {
-    return String(add(args.a, args.b));
+    let memories = await memoryService.fetchByUser(hubId, args.user)
+    return String(memories);
   },
   name: "getAllMemories",
   parameters: z.object({
-    a: z.number().describe("The first number"),
-    b: z.number().describe("The second number"),
+    user: z.string().describe("The public key of the other party in the memory"),
   }),
 });
 
-// Tool to search memories
+// Tool to get public key
 server.addTool({
+  annotations: {
+    openWorldHint: false, // This tool doesn't interact with external systems
+    readOnlyHint: true, // This tool doesn't modify anything
+    title: "Get Public Key",
+  },
+  description: "gets the public key for the server",
+  parameters: z.object({}), // Empty object
+  execute: async (args) => {
+    return publicKey;
+  },
+  name: "getPublicKey"
+});
+
+// Tool to search memories
+/*server.addTool({
   annotations: {
     openWorldHint: false, // This tool doesn't interact with external systems
     readOnlyHint: true, // This tool doesn't modify anything
@@ -69,7 +121,7 @@ server.addTool({
     a: z.number().describe("The first number"),
     b: z.number().describe("The second number"),
   }),
-});
+});*/
 
 /*server.addResource({
   async load() {
@@ -100,4 +152,6 @@ server.addPrompt({
 
 server.start({
   transportType: "stdio",
+}).then(async (value) => {
+  await init()
 });
