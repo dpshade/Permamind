@@ -37,7 +37,7 @@ async function init() {
         bot: true,
         website: ""
       }
-      hubId = await hubRegistryService.create(keyPair,profile)
+      hubId = await hubRegistryService.create(keyPair, profile)
     }
   }
 }
@@ -56,19 +56,23 @@ server.addTool({
   },
   description: "Adds a new memory to the conversation store",
   execute: async (args) => {
+    let kind: Tag = {
+      name: "Kind",
+      value: "10"
+    }
     let content: Tag = {
       name: "Content",
       value: args.content
     }
     let role: Tag = {
-      name: "Role",
+      name: "r",
       value: args.role
     }
     let p: Tag = {
       name: "p",
       value: args.p
     }
-    let tags: Tag[] = [content, role, p]
+    let tags: Tag[] = [kind, content, role, p]
     try {
       await memoryService.createEvent(keyPair, hubId, tags)
       return 'Added Memory'
@@ -89,17 +93,32 @@ server.addTool({
   annotations: {
     openWorldHint: false, // This tool doesn't interact with external systems
     readOnlyHint: true, // This tool doesn't modify anything
-    title: "Get All Memories",
+    title: "Get All Memories For Conversation",
   },
   description: "Retrieves all memories for a given conversation",
   execute: async (args) => {
     let memories = await memoryService.fetchByUser(hubId, args.user)
-    return String(memories);
+    return JSON.stringify(memories);
   },
-  name: "getAllMemories",
+  name: "getAllMemoriesForConversation",
   parameters: z.object({
     user: z.string().describe("The public key of the other party in the memory"),
   }),
+});
+
+server.addTool({
+  annotations: {
+    openWorldHint: false, // This tool doesn't interact with external systems
+    readOnlyHint: true, // This tool doesn't modify anything
+    title: "Get All Memories",
+  },
+  description: "Retrieves all memories",
+  execute: async (args) => {
+    let memories = await memoryService.fetch(hubId)
+    return JSON.stringify(memories);
+  },
+  name: "getAllMemories",
+  parameters: z.object({}),
 });
 
 // Tool to get public key
@@ -113,8 +132,8 @@ server.addTool({
   parameters: z.object({}), // Empty object
   execute: async (args) => {
     let response = {
-      publicKey : publicKey,
-      hubId : hubId
+      publicKey: publicKey,
+      hubId: hubId
     }
     return JSON.stringify(response);
   },
@@ -166,8 +185,8 @@ server.addPrompt({
   name: "git-commit",
 });*/
 
-server.start({
-  transportType: "stdio",
-}).then(async (value) => {
-  await init()
-});
+init().then((value) => {
+  server.start({
+    transportType: "stdio",
+  })
+})

@@ -8,7 +8,7 @@ export interface MemoryService {
     fetch: (hubId: string) => Promise<Array<Memory>>;
     fetchByUser: (hubId: string, user: string) => Promise<Array<Memory>>;
     get: (hubId: string, id: string) => Promise<Memory>;
-    createEvent: (signer:JWKInterface, hubId: string, tags: Tag[]) => Promise<void>;
+    createEvent: (signer: JWKInterface, hubId: string, tags: Tag[]) => Promise<void>;
 }
 
 const service = (): MemoryService => {
@@ -21,15 +21,14 @@ const service = (): MemoryService => {
                     kinds: ["10"],
                 };
                 const _filters = JSON.stringify([filter]);
-                fetchEvents(hubId, _filters).then(async (events) => {
-                    for (var i = 0; i < events.length; i++) {
-                        //console.log(events[i])
-                        if (events[i].Content) {
-                            let memory = memoryFactory(events[i]);
-                            memories.push(memory)
-                        }
+                let events = await fetchEvents(hubId, _filters)
+                for (var i = 0; i < events.length; i++) {
+                    //console.log(events[i])
+                    if (events[i].Content) {
+                        let memory = memoryFactory(events[i]);
+                        memories.push(memory)
                     }
-                });
+                }
             } catch (error) {
                 throw (error)
             }
@@ -37,24 +36,22 @@ const service = (): MemoryService => {
         },
         fetchByUser: async (hubId: string, user: string): Promise<Array<Memory>> => {
             let memories: Array<Memory> = []
-
             try {
                 const filter = {
                     kinds: ["10"],
                 };
                 const filter2 = {
-                    p: [user],
+                    tags: { p: [user] }
                 };
-                const _filters = JSON.stringify([filter, filter2]);
-                fetchEvents(hubId, _filters).then(async (events) => {
-                    for (var i = 0; i < events.length; i++) {
-                        //console.log(events[i])
-                        if (events[i].Content) {
-                            let memory = memoryFactory(events[i]);
-                            memories.push(memory)
-                        }
+                const _filters = JSON.stringify([filter,filter2]);
+                let events = await fetchEvents(hubId, _filters)
+                for (var i = 0; i < events.length; i++) {
+                    //console.log(events[i])
+                    if (events[i].Content) {
+                        let memory = memoryFactory(events[i]);
+                        memories.push(memory)
                     }
-                });
+                }
             } catch (error) {
                 throw (error)
             }
@@ -76,7 +73,7 @@ const service = (): MemoryService => {
                 throw (error)
             }
         },
-        createEvent: async (signer:JWKInterface, hubId: string, tags: Tag[]): Promise<void> => {
+        createEvent: async (signer: JWKInterface, hubId: string, tags: Tag[]): Promise<void> => {
             try {
                 await event(signer, hubId, tags);
             } catch (e) {
