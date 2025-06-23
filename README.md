@@ -9,7 +9,7 @@ This MCP server uses AO and Arweave also known as the permaweb as the datastore 
 To get started, clone the repository and install the dependencies.
 
 ```bash
-git clone https://github.com/punkpeye/fastmcp-boilerplate.git
+git clone https://github.com/ALLiDoizCode/Permamind.git
 npm install
 npm run dev
 ```
@@ -29,7 +29,7 @@ However, you can also interact with the server using the `dev` script.
 ```bash
 npm run dev
 ```
-Depending on what AO env you are using you will beed to provide your server with AO tokens.
+Depending on what AO env you are using you will need to provide your server with AO tokens.
 To do this simply ask the server for its public key and transfer it some tokens.
 
 The default permaweb env is using the Marshal testnet https://x.com/Marshal_AO so there is currently **NO** cost for storing memories
