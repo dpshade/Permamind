@@ -1,7 +1,11 @@
 import { FastMCP } from "fastmcp";
 import { z } from "zod";
 import { add } from "./add.js";
-import { getKeyFromMnemonic } from "./mnemonic.js"
+import { generateMnemonic, getKeyFromMnemonic } from "./mnemonic.js"
+import Arweave from 'arweave';
+
+// Since v1.5.1 you're now able to call the init function for the web version without options. The current URL path will be used by default. This is recommended when running from a gateway.
+const arweave = Arweave.init({});
 
 let seed = process.env.SEED_PHRASE
 
@@ -19,10 +23,10 @@ server.addTool({
   },
   description: "Adds a new memory to the conversation store",
   execute: async (args) => {
-    let keyPair = await getKeyFromMnemonic("time puzzle delay cement today draw safe sweet leisure sibling kite absorb")
     //let phrase = await generateMnemonic()
-   
-    return JSON.stringify(keyPair);
+    let keyPair = await getKeyFromMnemonic("just liquid true rely reward chest illegal clump time estate frozen prefer")
+    let publicKey = await arweave.wallets.jwkToAddress(keyPair)
+    return publicKey;
   },
   name: "addMemory",
   parameters: z.object({
