@@ -30,4 +30,6 @@ However, you can also interact with the server using the `dev` script.
 npm run dev
 ```
 Depending on what AO env you are using you will beed to provide your server with AO tokens.
-To do this simply ask the server for its public key and transfer it some tokens
+To do this simply ask the server for its public key and transfer it some tokens.
+
+The default permaweb env is using the Marshal testnet https://x.com/Marshal_AO so there is currently **NO** cost for storing memories
