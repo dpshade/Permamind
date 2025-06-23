@@ -8,8 +8,9 @@ function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// @ts-ignore
+
 const { result, results, message, spawn, monitor, unmonitor, dryrun } =
+// @ts-ignore
     connect({
         MU_URL: MU_URL(),
         CU_URL: CU_URL(),

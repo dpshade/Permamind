@@ -1,5 +1,5 @@
 {
-  "name": "fastmcp-boilerplate",
+  "name": "permamind",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
@@ -13,25 +13,29 @@
   "keywords": [
     "fastmcp",
     "mcp",
-    "boilerplate"
+    "permamind"
   ],
   "repository": {
-    "url": "https://github.com/punkpeye/fastmcp-boilerplate"
+    "url": "https://github.com/ALLiDoizCode/Permamind"
   },
-  "author": "Frank Fiegel <frank@glama.ai>",
-  "homepage": "https://glama.ai/mcp",
+  "author": "Jonathan Green <dev.jonathan.green@gmail.com>",
+  "homepage": "https://x.com/allidoizcode",
   "type": "module",
   "license": "MIT",
-  "description": "A boilerplate for FastMCP",
+  "description": "An MCP server that provides an immortal memory layer for AI agents and clients",
   "dependencies": {
+    "@langchain/openai": "^0.5.15",
     "@permaweb/aoconnect": "^0.0.85",
     "@scure/bip39": "^1.6.0",
     "arweave": "^1.15.7",
     "arweave-mnemonic-keys": "^0.0.9",
     "bip39-web-crypto": "^4.0.1",
+    "dotenv": "^16.5.0",
     "fastmcp": "^1.27.3",
     "human-crypto-keys": "^0.1.4",
+    "langchain": "^0.3.29",
     "lodash": "^4.17.21",
+    "mcp-use": "^0.0.8",
     "zod": "^3.24.4"
   },
   "release": {
@@ -55,7 +59,7 @@
     "jiti": "^2.4.2",
     "prettier": "^3.5.3",
     "semantic-release": "^24.2.3",
-    "tsx": "^4.19.4",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.32.0",
     "vitest": "^3.1.3"

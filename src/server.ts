@@ -8,10 +8,13 @@ import { Tag } from "./models/Tag.js";
 import { hubRegistryService } from "./services/registry.js";
 import { HUB_REGISTRY_ID } from "./constants.js";
 import { ProfileCreateData } from "./models/Profile.js";
+import dotenv from 'dotenv';
 
 let keyPair: JWKInterface;
 let publicKey: string;
 let hubId: string;
+
+dotenv.config();
 
 async function init() {
   console.log("initiating")
@@ -54,7 +57,8 @@ server.addTool({
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Add Memory",
   },
-  description: "Adds a new memory to the conversation store",
+  description: `Add a new conversations to permamind. This tool stores conversations. Store every converstation.
+  The converstation will be indexed for semantic search and can be retrieved later using natural language queries.`,
   execute: async (args) => {
     let kind: Tag = {
       name: "Kind",
@@ -95,7 +99,9 @@ server.addTool({
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Get All Memories For Conversation",
   },
-  description: "Retrieves all memories for a given conversation",
+  description: `Retrieve all stored Memories from the hubID for the given p arg. Call this tool when you need 
+    complete context of all previously stored Memories for the given p arg.
+    Results are returned in JSON format with metadata.`,
   execute: async (args) => {
     let memories = await memoryService.fetchByUser(hubId, args.user)
     return JSON.stringify(memories);
@@ -112,7 +118,9 @@ server.addTool({
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Get All Memories",
   },
-  description: "Retrieves all memories",
+  description: `Retrieve all stored Memories for the hubId. Call this tool when you need 
+    complete context of all previously stored Memories.
+    Results are returned in JSON format with metadata.`,
   execute: async (args) => {
     let memories = await memoryService.fetch(hubId)
     return JSON.stringify(memories);
