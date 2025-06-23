@@ -7,6 +7,7 @@ import { JWKInterface } from "arweave/node/lib/wallet.js";
 import { Tag } from "./models/Tag.js";
 import { hubRegistryService } from "./services/registry.js";
 import { HUB_REGISTRY_ID } from "./constants.js";
+import { ProfileCreateData } from "./models/Profile.js";
 
 let keyPair: JWKInterface;
 let publicKey: string;
@@ -26,7 +27,18 @@ async function init() {
     hubId = zone.spec.processId
     console.log("ready")
   } catch (e) {
-    console.log(e)
+    if (e == "TypeError: Cannot read properties of undefined (reading 'processId')") {
+      let profile: ProfileCreateData = {
+        userName: "",
+        displayName: "",
+        description: "",
+        thumbnail: "",
+        coverImage: "",
+        bot: true,
+        website: ""
+      }
+      hubId = await hubRegistryService.create(keyPair,profile)
+    }
   }
 }
 
@@ -95,14 +107,18 @@ server.addTool({
   annotations: {
     openWorldHint: false, // This tool doesn't interact with external systems
     readOnlyHint: true, // This tool doesn't modify anything
-    title: "Get Public Key",
+    title: "Get Server Info",
   },
-  description: "gets the public key for the server",
+  description: "gets the public key hubId for the server",
   parameters: z.object({}), // Empty object
   execute: async (args) => {
-    return publicKey;
+    let response = {
+      publicKey : publicKey,
+      hubId : hubId
+    }
+    return JSON.stringify(response);
   },
-  name: "getPublicKey"
+  name: "getServerInfo"
 });
 
 // Tool to search memories
