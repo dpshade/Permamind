@@ -13,7 +13,6 @@ export const evalProcess = async (signer:JWKInterface, data: string, processId: 
     await send(signer,processId, tags, data);
     ;
   } catch (e) {
-    console.log(e);
   }
 };
 
@@ -29,13 +28,10 @@ export const event = async (signer:JWKInterface, hub: string, tags: Array<Tag>) 
   tags.push(actionTag);
   tags.push(idTag);
   try {
-    console.log("***TAGS***");
-    console.log(tags);
     // @ts-ignore
     let result = await send(signer,hub, tags, null);
     ;
   } catch (e) {
-    console.log(e);
   }
 };
 
@@ -52,7 +48,6 @@ export const info = async (processId: string): Promise<any> => {
       throw ("Not Found")
     }
   } catch (e) {
-    console.log(e);
     throw e;
   }
 };
@@ -71,7 +66,6 @@ export const fetchEvents = async (processId: string, filters: string): Promise<a
       events = json;
     }
   } catch (e) {
-    console.log(e);
     //throw e;
   }
   return events;
@@ -84,7 +78,6 @@ export const register = async (signer:JWKInterface, processId: string, spec: any
     await send(signer, processId, message, JSON.stringify(spec));
 
   } catch (e) {
-    console.log(e);
   }
 };
 
@@ -93,14 +86,12 @@ export const getZones = async (processId: string, filters: string, page: Number,
   try {
     // @ts-ignore
     let message = GetZones(filters, page.toString(), limit.toString());
-    console.log(message)
     let result = await read(processId, message);
     if (result) {
       let json = JSON.parse(result.Data);
       events = json;
     }
   } catch (e) {
-    console.log(e);
     //throw e;
   }
   return events;
@@ -117,7 +108,6 @@ export const getZone = async (processId: string, zoneId: string): Promise<any> =
       events = json;
     }
   } catch (e) {
-    console.log(e);
     //throw e;
   }
   return events;

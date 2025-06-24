@@ -17,7 +17,6 @@ let hubId: string;
 dotenv.config();
 
 async function init() {
-  console.log("initiating")
   const arweave = Arweave.init({});
   if (process.env.SEED_PHRASE) {
     keyPair = await getKeyFromMnemonic(process.env.SEED_PHRASE)
@@ -28,7 +27,6 @@ async function init() {
   try {
     let zone = await hubRegistryService.getZoneById(HUB_REGISTRY_ID(), publicKey)
     hubId = zone.spec.processId
-    console.log("ready")
   } catch (e) {
     if (e == "TypeError: Cannot read properties of undefined (reading 'processId')") {
       let profile: ProfileCreateData = {
@@ -57,8 +55,8 @@ server.addTool({
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Add Memory",
   },
-  description: `Add a new conversations to permamind. This tool stores conversations. Store every converstation.
-  The converstation will be indexed for semantic search and can be retrieved later using natural language queries.`,
+  description: `Add a new memory to permamind. This tool stores converstation as memories. Store every converstation.
+  The memory will be indexed for semantic search and can be retrieved later using natural language queries. when possible use the known public key of the other party for the p arg`,
   execute: async (args) => {
     let kind: Tag = {
       name: "Kind",
@@ -97,9 +95,9 @@ server.addTool({
   annotations: {
     openWorldHint: false, // This tool doesn't interact with external systems
     readOnlyHint: true, // This tool doesn't modify anything
-    title: "Get All Memories For Conversation",
+    title: "Get All Memories For a Conversation",
   },
-  description: `Retrieve all stored Memories from the hubID for the given p arg. Call this tool when you need 
+  description: `Retrieve all stored Memories from the hubId for the given p arg. Call this tool when you need 
     complete context of all previously stored Memories for the given p arg.
     Results are returned in JSON format with metadata.`,
   execute: async (args) => {
@@ -149,22 +147,22 @@ server.addTool({
 });
 
 // Tool to search memories
-/*server.addTool({
+server.addTool({
   annotations: {
     openWorldHint: false, // This tool doesn't interact with external systems
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Search Memories",
   },
-  description: "Searches memories by keywords or content for a conversation",
+  description: "Retrieve all stored Memories for the hubId by keywords or content. Call this tool when you need to search for memories based on a keyword or content",
   execute: async (args) => {
-    return String(add(args.a, args.b));
+    let memories = await memoryService.search(hubId, args.search)
+    return JSON.stringify(memories);
   },
   name: "searchMemories",
   parameters: z.object({
-    a: z.number().describe("The first number"),
-    b: z.number().describe("The second number"),
+    search: z.string().describe("keyword or content"),
   }),
-});*/
+});
 
 /*server.addResource({
   async load() {

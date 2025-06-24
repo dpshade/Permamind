@@ -19,11 +19,8 @@ const { result, results, message, spawn, monitor, unmonitor, dryrun } =
 
 // @ts-ignore
 export async function send(signer:JWKInterface, processId, tags, data: string | null) {
-    console.log("tags");
-    console.log(tags);
     //console.log("data");
     //console.log(data);
-    console.log("Sending message to: " + processId);
     // The only 2 mandatory parameters here are process and signer
     // connect to the extension
     // @ts-ignore
@@ -44,7 +41,6 @@ export async function send(signer:JWKInterface, processId, tags, data: string | 
     };
     if (data) _message.data = data;
     let messageId = await message(_message);
-    console.log(messageId);
     return await readMessage(messageId, processId);
     //return result
 }
@@ -88,7 +84,6 @@ export const createProcess = async (signer:JWKInterface,) => {
         // @ts-ignore
         signer: createDataItemSigner(signer),
     });
-    console.log(processId)
     await sleep(3000);
     return processId;
 };
@@ -102,7 +97,6 @@ const readMessage = async (messageId: string, processId: string) => {
         process: processId,
     });
     if (Error == undefined) {
-        console.log(Messages)
         //let message = Messages.pop();
         //let data = JSON.parse(message.Data);
     } else {

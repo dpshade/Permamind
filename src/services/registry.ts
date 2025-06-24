@@ -20,9 +20,7 @@ const service = (): HubRegistryService => {
         },
         getZoneById: async (processId: string, owner: string): Promise<Zone> => {
             try {
-                console.log("getting zone")
                 let zone = await getZone(processId, owner)
-                console.log("got zone")
                 return zone
             } catch (e) {
                 throw (e)
@@ -31,7 +29,6 @@ const service = (): HubRegistryService => {
         create: async (signer: JWKInterface, profileData: ProfileCreateData): Promise<string> => {
             try {
                 const processId = await createProcess(signer);
-                console.log(processId)
                 await evaluateHub(signer, processId)
                 //console.log("ProfileId", processId);
                 const hubSpec = {
@@ -48,7 +45,6 @@ const service = (): HubRegistryService => {
                 //console.log("*** Profile ID ***", processId);
                 return processId;
             } catch (error) {
-                console.log("Failed to register profile:", error);
                 throw (error)
             }
         },
@@ -59,7 +55,6 @@ async function evaluateHub(signer: JWKInterface, processId: string) {
     try {
         await evalProcess(signer, luaModule, processId);
     } catch (e) {
-        console.log(e)
     }
 }
 
@@ -82,7 +77,6 @@ async function createProfile(signer: JWKInterface, hubId: string, profileData: P
         tags.push(contentTag);
         await event(signer, hubId, tags)
     } catch (err) {
-        console.log(err)
     }
 }
 

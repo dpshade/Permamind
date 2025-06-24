@@ -6,11 +6,12 @@ import { JWKInterface } from "arweave/node/lib/wallet.js";
 
 export interface MemoryService {
     fetch: (hubId: string) => Promise<Array<Memory>>;
+    search: (hubId: string, value:string) => Promise<Array<Memory>>;
     fetchByUser: (hubId: string, user: string) => Promise<Array<Memory>>;
     get: (hubId: string, id: string) => Promise<Memory>;
     createEvent: (signer: JWKInterface, hubId: string, tags: Tag[]) => Promise<void>;
 }
-
+//search
 const service = (): MemoryService => {
     return {
         fetch: async (hubId: string): Promise<Array<Memory>> => {
@@ -30,7 +31,29 @@ const service = (): MemoryService => {
                     }
                 }
             } catch (error) {
-                throw (error)
+                
+            }
+            return memories
+        },
+        search: async (hubId: string, value:string): Promise<Array<Memory>> => {
+            let memories: Array<Memory> = []
+
+            try {
+                const filter = {
+                    kinds: ["10"],
+                    search:value
+                };
+                const _filters = JSON.stringify([filter]);
+                let events = await fetchEvents(hubId, _filters)
+                for (var i = 0; i < events.length; i++) {
+                    //console.log(events[i])
+                    if (events[i].Content) {
+                        let memory = memoryFactory(events[i]);
+                        memories.push(memory)
+                    }
+                }
+            } catch (error) {
+                
             }
             return memories
         },
@@ -53,7 +76,7 @@ const service = (): MemoryService => {
                     }
                 }
             } catch (error) {
-                throw (error)
+                
             }
             return memories
         },
@@ -77,7 +100,6 @@ const service = (): MemoryService => {
             try {
                 await event(signer, hubId, tags);
             } catch (e) {
-                console.log(e)
             }
         },
     };
