@@ -122,11 +122,12 @@ local function filter(filter, events)
 
     if filter.search then
         _events = utils.filter(function(e)
-            for _, tag in ipairs(e.Tags or {}) do
-                if string.find(string.lower(tag[2] or ""), string.lower(filter.search)) then
-                    return true
-                end
+            local search_lower = string.lower(filter.search)            
+   
+            if e and string.find(string.lower(json.encode(e)), search_lower) then
+                return true
             end
+            
             return false
         end, _events)
     end
