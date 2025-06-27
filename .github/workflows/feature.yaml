@@ -8,11 +8,6 @@ on:
       - synchronize
       - reopened
       - ready_for_review
-  push:
-    branches:
-      - feature/*
-      - ai-memory/*
-      - tdd/*
 
 jobs:
   quality-gate:
