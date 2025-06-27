@@ -107,6 +107,7 @@ jobs:
     needs: [quality-verification, test-matrix]
     runs-on: ubuntu-latest
     environment: release
+    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
       id-token: write
@@ -160,19 +161,8 @@ jobs:
 
       - name: Semantic Release
         run: |
-          echo "🔍 Debug info:"
-          echo "Branch: ${{ github.ref }}"
-          echo "Event: ${{ github.event_name }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Actor: ${{ github.actor }}"
-          
-          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
-            echo "🚀 Running semantic release on main branch"
-            npx semantic-release
-          else
-            echo "📝 Running semantic release dry-run on feature branch"
-            npx semantic-release --dry-run
-          fi
+          echo "🚀 Running semantic release on main branch"
+          npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
