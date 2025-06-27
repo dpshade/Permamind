@@ -101,13 +101,11 @@ jobs:
 
       - name: Create Pull Request
         if: steps.check-pr.outputs.has_existing_pr == 'false' && steps.quality-check.outputs.tdd_compliant == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref_name }}
-          base: main
-          title: "${{ steps.branch-info.outputs.feature_type }}: ${{ steps.branch-info.outputs.description }}"
-          body: |
+        run: |
+          echo "Creating PR from ${{ github.ref_name }} to main"
+          gh pr create \
+            --title "${{ steps.branch-info.outputs.feature_type }}: ${{ steps.branch-info.outputs.description }}" \
+            --body "$(cat <<'EOF'
             ## Summary
             ${{ steps.branch-info.outputs.feature_type }} implementing: **${{ steps.branch-info.outputs.description }}**
 
@@ -145,7 +143,12 @@ jobs:
             🤖 **Auto-generated PR**: This pull request was automatically created after all TDD quality checks passed.
 
             🧠 **AI Memory Layer**: Enhanced with comprehensive testing and validation.
-          draft: false
+            EOF
+            )" \
+            --base main \
+            --head ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update existing PR
         if: steps.check-pr.outputs.has_existing_pr == 'true'
