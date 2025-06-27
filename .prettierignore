@@ -1,0 +1,28 @@
+# Generated and build files
+dist/
+coverage/
+node_modules/
+*.tgz
+*.log
+
+# Package manager files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated release files
+RELEASE_NOTES.md
+
+# CI/CD and workflow files (these have specific formatting requirements)
+.github/workflows/
+
+# Binary and executable files
+bin/
+
+# Generated configuration templates
+templates/
+
+# Test output and temporary files
+*.tmp
+*.temp
+.nyc_output/
