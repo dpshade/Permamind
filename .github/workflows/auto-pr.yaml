@@ -1,18 +1,26 @@
-name: Auto PR Creator
+name: Auto PR Creator (Disabled)
 on:
-  push:
-    branches:
-      - feature/*
-      - ai-memory/*
-      - tdd/*
-  workflow_run:
-    workflows: ["AI Memory TDD Workflow"]
-    types:
-      - completed
-    branches:
-      - feature/*
-      - ai-memory/*
-      - tdd/*
+  workflow_dispatch:
+    inputs:
+      enable:
+        description: 'Manually trigger auto PR creation'
+        required: false
+        default: 'false'
+# Temporarily disabled to prevent conflicts with manual PRs
+# Original triggers:
+#  push:
+#    branches:
+#      - feature/*
+#      - ai-memory/*
+#      - tdd/*
+#  workflow_run:
+#    workflows: ["AI Memory TDD Workflow"]
+#    types:
+#      - completed
+#    branches:
+#      - feature/*
+#      - ai-memory/*
+#      - tdd/*
 
 jobs:
   create-pr:
