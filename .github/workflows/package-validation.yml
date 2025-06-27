@@ -28,80 +28,85 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build package
+        run: npm run build
+
       - name: Validate package.json
         run: |
           echo "🔍 Validating package.json configuration..."
           
           # Check required fields for NPM publishing
-          node -e "
-            const pkg = require('./package.json');
-            const required = ['name', 'version', 'description', 'author', 'license', 'repository', 'bin'];
-            const missing = required.filter(field => !pkg[field]);
-            if (missing.length > 0) {
-              console.error('❌ Missing required fields:', missing);
-              process.exit(1);
-            }
-            console.log('✅ All required package.json fields present');
-          "
+          cat > validate-pkg.cjs << 'EOF'
+          const pkg = require('./package.json');
+          const required = ['name', 'version', 'description', 'author', 'license', 'repository', 'bin'];
+          const missing = required.filter(field => !pkg[field]);
+          if (missing.length > 0) {
+            console.error('❌ Missing required fields:', missing);
+            process.exit(1);
+          }
+          console.log('✅ All required package.json fields present');
+          EOF
+          node validate-pkg.cjs
 
       - name: Validate bin entries
         run: |
           echo "🔧 Validating bin entries..."
           
-          node -e "
-            const pkg = require('./package.json');
-            const fs = require('fs');
-            
-            if (!pkg.bin) {
-              console.error('❌ No bin field in package.json');
+          cat > validate-bin.cjs << 'EOF'
+          const pkg = require('./package.json');
+          const fs = require('fs');
+          
+          if (!pkg.bin) {
+            console.error('❌ No bin field in package.json');
+            process.exit(1);
+          }
+          
+          for (const [name, path] of Object.entries(pkg.bin)) {
+            if (!fs.existsSync(path)) {
+              console.error(`❌ Bin file not found: ${path}`);
               process.exit(1);
             }
             
-            for (const [name, path] of Object.entries(pkg.bin)) {
-              if (!fs.existsSync(path)) {
-                console.error(\`❌ Bin file not found: \${path}\`);
-                process.exit(1);
-              }
-              
-              const stats = fs.statSync(path);
-              if (!(stats.mode & 0o111)) {
-                console.error(\`❌ Bin file not executable: \${path}\`);
-                process.exit(1);
-              }
-              
-              console.log(\`✅ \${name}: \${path}\`);
+            const stats = fs.statSync(path);
+            if (!(stats.mode & 0o111)) {
+              console.error(`❌ Bin file not executable: ${path}`);
+              process.exit(1);
             }
-          "
+            
+            console.log(`✅ ${name}: ${path}`);
+          }
+          EOF
+          node validate-bin.cjs
 
       - name: Validate files array
         run: |
           echo "📁 Validating files array..."
           
-          node -e "
-            const pkg = require('./package.json');
-            const fs = require('fs');
-            const path = require('path');
-            
-            if (!pkg.files) {
-              console.error('❌ No files field in package.json');
-              process.exit(1);
+          cat > validate-files.cjs << 'EOF'
+          const pkg = require('./package.json');
+          const fs = require('fs');
+          
+          if (!pkg.files) {
+            console.error('❌ No files field in package.json');
+            process.exit(1);
+          }
+          
+          const missingPaths = [];
+          for (const filePattern of pkg.files) {
+            const basePath = filePattern.replace('/**/*', '').replace('/*', '');
+            if (basePath !== 'README.md' && basePath !== 'LICENSE' && !fs.existsSync(basePath)) {
+              missingPaths.push(filePattern);
             }
-            
-            const missingPaths = [];
-            for (const filePattern of pkg.files) {
-              const basePath = filePattern.replace('/**/*', '').replace('/*', '');
-              if (basePath !== 'README.md' && basePath !== 'LICENSE' && !fs.existsSync(basePath)) {
-                missingPaths.push(filePattern);
-              }
-            }
-            
-            if (missingPaths.length > 0) {
-              console.error('❌ Missing paths in files array:', missingPaths);
-              process.exit(1);
-            }
-            
-            console.log('✅ All paths in files array exist');
-          "
+          }
+          
+          if (missingPaths.length > 0) {
+            console.error('❌ Missing paths in files array:', missingPaths);
+            process.exit(1);
+          }
+          
+          console.log('✅ All paths in files array exist');
+          EOF
+          node validate-files.cjs
 
   test-installation-simulation:
     name: Test Installation Simulation
