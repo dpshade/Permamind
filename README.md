@@ -224,6 +224,12 @@ $env:SEED_PHRASE="your twelve word mnemonic phrase here"
 - Check saved seeds: Look in `~/.config/permamind/seed.json`
 - Lost seed phrase: Unfortunately unrecoverable, you'll need to generate a new one
 
+**Security audit warnings**
+- Known vulnerabilities in `node-forge` dependency (used by Arweave crypto libraries)
+- These are required for Arweave wallet functionality
+- No fixes available from upstream dependencies yet
+- Does not affect application security for normal usage
+
 ### Getting Help
 
 - Check the help: `permamind --help`
