@@ -105,6 +105,31 @@ permamind --test
 permamind --help
 ```
 
+### Seed Phrase Management
+
+Permamind uses a 12-word seed phrase to generate your Arweave wallet identity. This ensures persistent access to your stored memories across sessions.
+
+**Generate a new seed phrase:**
+```bash
+permamind --generate-seed
+```
+
+**Import an existing seed phrase:**
+```bash
+permamind --import-seed
+```
+
+**Export your current seed phrase:**
+```bash
+permamind --export-seed
+```
+
+**Important Notes:**
+- 🔑 **Seed phrases are critical** - without them, you lose access to your memories
+- 💾 **Multiple storage options** - environment variables or secure config files
+- 🔄 **Automatic loading** - server checks for saved seed phrases on startup
+- ⚠️ **Backup essential** - store your seed phrase securely and separately
+
 ### Environment Variables
 
 Set your seed phrase for persistent wallet usage:
@@ -191,6 +216,13 @@ $env:SEED_PHRASE="your twelve word mnemonic phrase here"
 - Use `sudo npm install -g permamind` on Unix systems if needed
 - Or configure npm to use a different global directory
 - On Windows, run PowerShell as Administrator
+
+**Seed phrase issues**
+- Generate new seed: `permamind --generate-seed`
+- Import existing seed: `permamind --import-seed`
+- Export current seed: `permamind --export-seed`
+- Check saved seeds: Look in `~/.config/permamind/seed.json`
+- Lost seed phrase: Unfortunately unrecoverable, you'll need to generate a new one
 
 ### Getting Help
 

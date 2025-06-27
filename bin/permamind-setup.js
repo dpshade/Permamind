@@ -186,15 +186,28 @@ async function main() {
   }
   
   if (!seedPhrase) {
-    const choice = await question('\\nChoose an option:\\n1. Generate new seed phrase\\n2. Import existing seed phrase\\nEnter choice (1 or 2): ');
+    const choice = await question('\\nChoose an option:\\n1. Generate new seed phrase\\n2. Import existing seed phrase\\n3. Use system-generated temporary phrase (not recommended)\\nEnter choice (1-3): ');
     
     if (choice === '1') {
       console.log('\\nGenerating new seed phrase...');
       seedPhrase = await generateSeedPhrase();
       console.log('Generated seed phrase:', seedPhrase);
       console.log('\\n⚠️  IMPORTANT: Store this seed phrase securely!');
+      console.log('💡 You can export it later with: permamind --export-seed');
     } else if (choice === '2') {
-      seedPhrase = await question('\\nEnter your seed phrase: ');
+      seedPhrase = await question('\\nEnter your 12-word seed phrase: ');
+      
+      // Validate the seed phrase
+      const words = seedPhrase.trim().split(/\\s+/);
+      if (words.length !== 12) {
+        console.error('❌ Invalid seed phrase. Must be exactly 12 words.');
+        process.exit(1);
+      }
+      console.log('✅ Seed phrase accepted');
+    } else if (choice === '3') {
+      console.log('\\n⚠️  Using temporary seed phrase - wallet identity will not persist');
+      console.log('💡 You can generate a persistent one later with: permamind --generate-seed');
+      seedPhrase = null; // Will use system-generated temporary
     } else {
       console.log('Invalid choice. Exiting.');
       process.exit(1);

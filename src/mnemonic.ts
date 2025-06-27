@@ -1,5 +1,5 @@
 import { JWKInterface } from "arweave/node/lib/wallet.js";
-import { mnemonicToSeed, wordlists } from "bip39-web-crypto";
+import { mnemonicToSeed, wordlists, validateMnemonic as bip39Validate } from "bip39-web-crypto";
 import {
   generateKeyPair,
   getKeyPairFromMnemonic,
@@ -16,6 +16,27 @@ export async function generateMnemonic() {
     { privateKeyFormat: "pkcs1-pem" },
   );
   return keys.mnemonic;
+}
+
+/**
+ * Validate a mnemonic seed phrase
+ * @param mnemonic - a 12 word mnemonic represented as a string
+ * @returns {Promise<boolean>} - true if the mnemonic is valid, false otherwise
+ */
+export async function validateMnemonic(mnemonic: string): Promise<boolean> {
+  try {
+    // Check if it's exactly 12 words
+    const words = mnemonic.trim().split(/\s+/);
+    if (words.length !== 12) {
+      return false;
+    }
+    
+    // Use bip39 validation
+    const result = await bip39Validate(mnemonic, wordlists.english);
+    return result;
+  } catch (err) {
+    return false;
+  }
 }
 
 /**
