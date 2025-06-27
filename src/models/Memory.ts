@@ -1,7 +1,7 @@
 export type Memory = {
-    id: string,
-    content: string,
-    role:string, // system or user
-    p:string // public key of user
-    timestamp: string,
+  content: string;
+  id: string;
+  p: string; // public key of user
+  role: string; // system or user
+  timestamp: string;
 };

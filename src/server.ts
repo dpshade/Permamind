@@ -1,14 +1,17 @@
+import Arweave from "arweave";
+import { JWKInterface } from "arweave/node/lib/wallet.js";
+import dotenv from "dotenv";
 import { FastMCP } from "fastmcp";
 import { z } from "zod";
-import { memoryService } from "./services/memory.js";
-import { generateMnemonic, getKeyFromMnemonic } from "./mnemonic.js"
-import Arweave from 'arweave';
-import { JWKInterface } from "arweave/node/lib/wallet.js";
-import { Tag } from "./models/Tag.js";
-import { hubRegistryService } from "./services/registry.js";
+
 import { HUB_REGISTRY_ID } from "./constants.js";
+import { getKeyFromMnemonic } from "./mnemonic.js";
+import { MemoryType } from "./models/AIMemory.js";
 import { ProfileCreateData } from "./models/Profile.js";
-import dotenv from 'dotenv';
+import { Tag } from "./models/Tag.js";
+import { aiMemoryService } from "./services/aiMemoryService.js";
+import { memoryService } from "./services/memory.js";
+import { hubRegistryService } from "./services/registry.js";
 
 let keyPair: JWKInterface;
 let publicKey: string;
@@ -19,26 +22,32 @@ dotenv.config();
 async function init() {
   const arweave = Arweave.init({});
   if (process.env.SEED_PHRASE) {
-    keyPair = await getKeyFromMnemonic(process.env.SEED_PHRASE)
+    keyPair = await getKeyFromMnemonic(process.env.SEED_PHRASE);
   } else {
-    keyPair = await arweave.wallets.generate()
+    keyPair = await arweave.wallets.generate();
   }
-  publicKey = await arweave.wallets.jwkToAddress(keyPair)
+  publicKey = await arweave.wallets.jwkToAddress(keyPair);
   try {
-    let zone = await hubRegistryService.getZoneById(HUB_REGISTRY_ID(), publicKey)
-    hubId = zone.spec.processId
+    const zone = await hubRegistryService.getZoneById(
+      HUB_REGISTRY_ID(),
+      publicKey,
+    );
+    hubId = zone.spec.processId;
   } catch (e) {
-    if (e == "TypeError: Cannot read properties of undefined (reading 'processId')") {
-      let profile: ProfileCreateData = {
-        userName: "",
-        displayName: "",
-        description: "",
-        thumbnail: "",
-        coverImage: "",
+    if (
+      e ==
+      "TypeError: Cannot read properties of undefined (reading 'processId')"
+    ) {
+      const profile: ProfileCreateData = {
         bot: true,
-        website: ""
-      }
-      hubId = await hubRegistryService.create(keyPair, profile)
+        coverImage: "",
+        description: "",
+        displayName: "",
+        thumbnail: "",
+        userName: "",
+        website: "",
+      };
+      hubId = await hubRegistryService.create(keyPair, profile);
     }
   }
 }
@@ -58,35 +67,35 @@ server.addTool({
   description: `Add a new memory to permamind. This tool stores converstation as memories. Store every converstation.
   The memory will be indexed for semantic search and can be retrieved later using natural language queries. when possible use the known public key of the other party for the p arg`,
   execute: async (args) => {
-    let kind: Tag = {
+    const kind: Tag = {
       name: "Kind",
-      value: "10"
-    }
-    let content: Tag = {
+      value: "10",
+    };
+    const content: Tag = {
       name: "Content",
-      value: args.content
-    }
-    let role: Tag = {
+      value: args.content,
+    };
+    const role: Tag = {
       name: "r",
-      value: args.role
-    }
-    let p: Tag = {
+      value: args.role,
+    };
+    const p: Tag = {
       name: "p",
-      value: args.p
-    }
-    let tags: Tag[] = [kind, content, role, p]
+      value: args.p,
+    };
+    const tags: Tag[] = [kind, content, role, p];
     try {
-      await memoryService.createEvent(keyPair, hubId, tags)
-      return 'Added Memory'
+      await memoryService.createEvent(keyPair, hubId, tags);
+      return "Added Memory";
     } catch (e) {
-      return String(e)
+      return String(e);
     }
   },
   name: "addMemory",
   parameters: z.object({
     content: z.string().describe("The content of the memory"),
-    role: z.string().describe("The role of the author of the memory"),
     p: z.string().describe("The public key of the other party in the memory"),
+    role: z.string().describe("The role of the author of the memory"),
   }),
 });
 
@@ -101,12 +110,14 @@ server.addTool({
     complete context of all previously stored Memories for the given p arg.
     Results are returned in JSON format with metadata.`,
   execute: async (args) => {
-    let memories = await memoryService.fetchByUser(hubId, args.user)
+    const memories = await memoryService.fetchByUser(hubId, args.user);
     return JSON.stringify(memories);
   },
   name: "getAllMemoriesForConversation",
   parameters: z.object({
-    user: z.string().describe("The public key of the other party in the memory"),
+    user: z
+      .string()
+      .describe("The public key of the other party in the memory"),
   }),
 });
 
@@ -119,8 +130,8 @@ server.addTool({
   description: `Retrieve all stored Memories for the hubId. Call this tool when you need 
     complete context of all previously stored Memories.
     Results are returned in JSON format with metadata.`,
-  execute: async (args) => {
-    let memories = await memoryService.fetch(hubId)
+  execute: async () => {
+    const memories = await memoryService.fetch(hubId);
     return JSON.stringify(memories);
   },
   name: "getAllMemories",
@@ -135,15 +146,15 @@ server.addTool({
     title: "Get Server Info",
   },
   description: "gets the public key hubId for the server",
-  parameters: z.object({}), // Empty object
-  execute: async (args) => {
-    let response = {
+  execute: async () => {
+    const response = {
+      hubId: hubId,
       publicKey: publicKey,
-      hubId: hubId
-    }
+    };
     return JSON.stringify(response);
   },
-  name: "getServerInfo"
+  name: "getServerInfo",
+  parameters: z.object({}), // Empty object
 });
 
 // Tool to search memories
@@ -153,14 +164,292 @@ server.addTool({
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Search Memories",
   },
-  description: "Retrieve all stored Memories for the hubId by keywords or content. Call this tool when you need to search for memories based on a keyword or content",
+  description:
+    "Retrieve all stored Memories for the hubId by keywords or content. Call this tool when you need to search for memories based on a keyword or content",
   execute: async (args) => {
-    let memories = await memoryService.search(hubId, args.search)
+    const memories = await memoryService.search(hubId, args.search);
     return JSON.stringify(memories);
   },
   name: "searchMemories",
   parameters: z.object({
     search: z.string().describe("keyword or content"),
+  }),
+});
+
+// Enhanced AI Memory Tools
+
+// Tool to add enhanced memory with AI-specific metadata
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Add Enhanced Memory",
+  },
+  description: `Add a memory with AI-specific metadata including importance scoring, memory type categorization, 
+    and rich contextual information. Use this for storing memories that need advanced AI processing and retrieval.`,
+  execute: async (args) => {
+    try {
+      const aiMemory = {
+        content: args.content,
+        context: {
+          domain: args.domain,
+          relatedMemories: args.relatedMemories
+            ? args.relatedMemories.split(",").map((s) => s.trim())
+            : [],
+          sessionId: args.sessionId,
+          topic: args.topic,
+        },
+        importance: args.importance || 0.5,
+        memoryType: (args.memoryType as MemoryType) || "conversation",
+        metadata: {
+          accessCount: 0,
+          lastAccessed: new Date().toISOString(),
+          tags: args.tags ? args.tags.split(",").map((s) => s.trim()) : [],
+        },
+        p: args.p,
+        role: args.role,
+      };
+
+      const result = await aiMemoryService.addEnhanced(
+        keyPair,
+        hubId,
+        aiMemory,
+      );
+      return result;
+    } catch (e) {
+      return `Error: ${e}`;
+    }
+  },
+  name: "addMemoryEnhanced",
+  parameters: z.object({
+    content: z.string().describe("The content of the memory"),
+    domain: z
+      .string()
+      .optional()
+      .describe("Domain or category (e.g., 'programming', 'personal')"),
+    importance: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Importance score 0-1 (default: 0.5)"),
+    memoryType: z
+      .enum(["conversation", "reasoning", "knowledge", "procedure"])
+      .optional()
+      .describe("Type of memory (default: conversation)"),
+    p: z.string().describe("The public key of the participant"),
+    relatedMemories: z
+      .string()
+      .optional()
+      .describe("Comma-separated list of related memory IDs"),
+    role: z.string().describe("The role of the author (system/user/assistant)"),
+    sessionId: z.string().optional().describe("Session or conversation ID"),
+    tags: z.string().optional().describe("Comma-separated list of tags"),
+    topic: z.string().optional().describe("Topic or subject of the memory"),
+  }),
+});
+
+// Tool for advanced memory search with filters
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Advanced Memory Search",
+  },
+  description: `Search memories with advanced filtering options including memory type, importance threshold, 
+    time range, and contextual filters. Returns results ranked by relevance and importance.`,
+  execute: async (args) => {
+    try {
+      const filters = {
+        domain: args.domain,
+        importanceThreshold: args.importanceThreshold,
+        memoryType: args.memoryType as MemoryType,
+        sessionId: args.sessionId,
+        timeRange:
+          args.startDate && args.endDate
+            ? {
+                end: args.endDate,
+                start: args.startDate,
+              }
+            : undefined,
+      };
+
+      const memories = await aiMemoryService.searchAdvanced(
+        hubId,
+        args.query,
+        filters,
+      );
+      return JSON.stringify(memories);
+    } catch (e) {
+      return `Error: ${e}`;
+    }
+  },
+  name: "searchMemoriesAdvanced",
+  parameters: z.object({
+    domain: z.string().optional().describe("Filter by domain/category"),
+    endDate: z
+      .string()
+      .optional()
+      .describe("End date for time range filter (ISO string)"),
+    importanceThreshold: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Minimum importance score"),
+    memoryType: z
+      .enum(["conversation", "reasoning", "knowledge", "procedure"])
+      .optional()
+      .describe("Filter by memory type"),
+    query: z.string().describe("Search query or keywords"),
+    sessionId: z.string().optional().describe("Filter by session ID"),
+    startDate: z
+      .string()
+      .optional()
+      .describe("Start date for time range filter (ISO string)"),
+  }),
+});
+
+// Tool to link memories for relationship building
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Link Memories",
+  },
+  description: `Create relationships between memories to build knowledge graphs and reasoning chains. 
+    Useful for connecting related concepts, cause-effect relationships, and building contextual understanding.`,
+  execute: async (args) => {
+    try {
+      const relationship = {
+        strength: args.strength,
+        targetId: args.targetMemoryId,
+        type: args.relationshipType,
+      };
+
+      const result = await aiMemoryService.linkMemories(
+        keyPair,
+        hubId,
+        args.sourceMemoryId,
+        args.targetMemoryId,
+        relationship,
+      );
+      return result;
+    } catch (e) {
+      return `Error: ${e}`;
+    }
+  },
+  name: "linkMemories",
+  parameters: z.object({
+    relationshipType: z
+      .enum(["causes", "supports", "contradicts", "extends", "references"])
+      .describe("Type of relationship"),
+    sourceMemoryId: z.string().describe("ID of the source memory"),
+    strength: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe("Strength of the relationship (0-1)"),
+    targetMemoryId: z.string().describe("ID of the target memory"),
+  }),
+});
+
+// Tool to add reasoning chains
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Add Reasoning Chain",
+  },
+  description: `Store AI reasoning steps and decision pathways. Useful for tracking chain-of-thought processes, 
+    debugging AI decisions, and building reasoning history.`,
+  execute: async (args) => {
+    try {
+      const reasoning = {
+        chainId: args.chainId,
+        outcome: args.outcome,
+        steps: JSON.parse(args.steps),
+      };
+
+      const result = await aiMemoryService.addReasoningChain(
+        keyPair,
+        hubId,
+        reasoning,
+        args.p,
+      );
+      return result;
+    } catch (e) {
+      return `Error: ${e}`;
+    }
+  },
+  name: "addReasoningChain",
+  parameters: z.object({
+    chainId: z.string().describe("Unique identifier for the reasoning chain"),
+    outcome: z
+      .string()
+      .describe("Final outcome or conclusion of the reasoning chain"),
+    p: z.string().describe("Public key of the participant"),
+    steps: z
+      .string()
+      .describe(
+        "JSON array of reasoning steps with stepType, content, confidence, timestamp",
+      ),
+  }),
+});
+
+// Tool to get memory analytics
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Memory Analytics",
+  },
+  description: `Get analytics about memory usage patterns, type distribution, importance scoring, 
+    and access patterns. Useful for understanding memory utilization and optimizing AI performance.`,
+  execute: async (args) => {
+    try {
+      const analytics = await aiMemoryService.getMemoryAnalytics(hubId, args.p);
+      return JSON.stringify(analytics);
+    } catch (e) {
+      return `Error: ${e}`;
+    }
+  },
+  name: "getMemoryAnalytics",
+  parameters: z.object({
+    p: z
+      .string()
+      .optional()
+      .describe("Public key to filter analytics for specific user (optional)"),
+  }),
+});
+
+// Tool for batch memory operations
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Add Memories Batch",
+  },
+  description: `Add multiple memories in a single operation for efficiency. Useful for bulk memory imports 
+    or when processing large amounts of conversational data.`,
+  execute: async (args) => {
+    try {
+      const memories = JSON.parse(args.memories);
+      const results = await aiMemoryService.addMemoriesBatch(
+        keyPair,
+        hubId,
+        memories,
+        args.p,
+      );
+      return JSON.stringify(results);
+    } catch (e) {
+      return `Error: ${e}`;
+    }
+  },
+  name: "addMemoriesBatch",
+  parameters: z.object({
+    memories: z.string().describe("JSON array of memory objects to add"),
+    p: z.string().describe("Public key of the participant"),
   }),
 });
 
@@ -191,8 +480,8 @@ server.addPrompt({
   name: "git-commit",
 });*/
 
-init().then((value) => {
+init().then(() => {
   server.start({
     transportType: "stdio",
-  })
-})
+  });
+});

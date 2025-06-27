@@ -1,20 +1,21 @@
-import { generateKeyPair, getKeyPairFromMnemonic, getKeyPairFromSeed } from "human-crypto-keys";
-import { wordlists, mnemonicToSeed } from "bip39-web-crypto";
 import { JWKInterface } from "arweave/node/lib/wallet.js";
-
-
-
+import { mnemonicToSeed, wordlists } from "bip39-web-crypto";
+import {
+  generateKeyPair,
+  getKeyPairFromMnemonic,
+  getKeyPairFromSeed,
+} from "human-crypto-keys";
 
 /**
  * Generate a 12 word mnemonic for an Arweave key
  * @returns {string} - a promise resolving to a 12 word mnemonic seed phrase
  */
 export async function generateMnemonic() {
-    let keys = await generateKeyPair(
-        { id: "rsa", modulusLength: 4096 },
-        { privateKeyFormat: "pkcs1-pem" }
-    );
-    return keys.mnemonic;
+  const keys = await generateKeyPair(
+    { id: "rsa", modulusLength: 4096 },
+    { privateKeyFormat: "pkcs1-pem" },
+  );
+  return keys.mnemonic;
 }
 
 /**
@@ -30,41 +31,41 @@ export async function generateMnemonic() {
  */
 
 export async function getKeyFromMnemonic(mnemonic: string) {
-    const seedBuffer = await mnemonicToSeed(mnemonic);
-    const { privateKey } = await getKeyPairFromSeed(
-        //@ts-ignore
-        seedBuffer,
-        {
-            id: "rsa",
-            modulusLength: 4096
-        },
-        { privateKeyFormat: "pkcs8-der" }
-    );
-    const jwk = pkcs8ToJwk(privateKey as any);
-    return jwk;
+  const seedBuffer = await mnemonicToSeed(mnemonic);
+  const { privateKey } = await getKeyPairFromSeed(
+    //@ts-ignore
+    seedBuffer,
+    {
+      id: "rsa",
+      modulusLength: 4096,
+    },
+    { privateKeyFormat: "pkcs8-der" },
+  );
+  const jwk = pkcs8ToJwk(privateKey as any);
+  return jwk;
 }
 
 export async function pkcs8ToJwk(
-    privateKey: Uint8Array
+  privateKey: Uint8Array,
 ): Promise<JWKInterface> {
-    const key = await crypto.subtle.importKey(
-        "pkcs8",
-        privateKey,
-        { name: "RSA-PSS", hash: "SHA-256" },
-        true,
-        ["sign"]
-    );
-    const jwk = await crypto.subtle.exportKey("jwk", key);
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    privateKey,
+    { hash: "SHA-256", name: "RSA-PSS" },
+    true,
+    ["sign"],
+  );
+  const jwk = await crypto.subtle.exportKey("jwk", key);
 
-    return {
-        kty: jwk.kty!,
-        e: jwk.e!,
-        n: jwk.n!,
-        d: jwk.d,
-        p: jwk.p,
-        q: jwk.q,
-        dp: jwk.dp,
-        dq: jwk.dq,
-        qi: jwk.qi
-    };
+  return {
+    d: jwk.d,
+    dp: jwk.dp,
+    dq: jwk.dq,
+    e: jwk.e!,
+    kty: jwk.kty!,
+    n: jwk.n!,
+    p: jwk.p,
+    q: jwk.q,
+    qi: jwk.qi,
+  };
 }

@@ -1,9 +1,9 @@
 export type ProfileCreateData = {
-  userName: string;
-  displayName?: string;
-  description?: string;
-  thumbnail?: string;
-  coverImage?: string;
   bot?: boolean;
+  coverImage?: string;
+  description?: string;
+  displayName?: string;
+  thumbnail?: string;
+  userName: string;
   website?: string;
-}
+};
