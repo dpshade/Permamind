@@ -1,0 +1,250 @@
+name: NPM Package Publishing
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Dry run (no actual publish)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  validate-package:
+    name: Package Validation
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run quality checks
+        run: npm run ci:quality
+
+      - name: Build package
+        run: npm run build
+
+      - name: Validate package structure
+        run: |
+          echo "🔍 Validating package structure..."
+          
+          # Check if all bin files exist
+          if [ ! -f "bin/permamind.js" ]; then
+            echo "❌ Missing bin/permamind.js"
+            exit 1
+          fi
+          
+          if [ ! -f "bin/permamind-setup.js" ]; then
+            echo "❌ Missing bin/permamind-setup.js"
+            exit 1
+          fi
+          
+          # Check if templates exist
+          if [ ! -d "templates" ]; then
+            echo "❌ Missing templates directory"
+            exit 1
+          fi
+          
+          # Check if scripts exist
+          if [ ! -d "scripts" ]; then
+            echo "❌ Missing scripts directory"  
+            exit 1
+          fi
+          
+          # Check if dist files exist
+          if [ ! -d "dist" ]; then
+            echo "❌ Missing dist directory"
+            exit 1
+          fi
+          
+          echo "✅ Package structure validation passed"
+
+      - name: Test package installation (dry-run)
+        run: |
+          echo "🧪 Testing package installation..."
+          npm pack --dry-run
+          
+          # Test global installation simulation
+          TARBALL=$(npm pack)
+          echo "Created tarball: $TARBALL"
+          
+          # Validate tarball contents
+          tar -tzf $TARBALL | head -20
+          
+          echo "✅ Package installation test passed"
+
+      - name: Test executable permissions
+        run: |
+          echo "🔧 Testing executable permissions..."
+          
+          if [ ! -x "bin/permamind.js" ]; then
+            echo "❌ bin/permamind.js is not executable"
+            exit 1
+          fi
+          
+          if [ ! -x "bin/permamind-setup.js" ]; then
+            echo "❌ bin/permamind-setup.js is not executable"
+            exit 1
+          fi
+          
+          echo "✅ Executable permissions validation passed"
+
+  cross-platform-test:
+    name: Cross-platform Testing
+    needs: validate-package
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4  
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build package
+        run: npm run build
+
+      - name: Test CLI help command
+        run: node bin/permamind.js --help
+
+      - name: Test CLI version command
+        run: node bin/permamind.js --version
+
+      - name: Test configuration helper
+        run: node scripts/configure.js list
+
+  npm-publish:
+    name: Publish to NPM
+    needs: [validate-package, cross-platform-test]
+    runs-on: ubuntu-latest
+    environment: release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Version bump (manual trigger only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          npm version ${{ github.event.inputs.version_type }}
+          git push --tags
+
+      - name: Build for publishing
+        run: npm run build
+
+      - name: Publish to NPM (dry-run)
+        if: github.event.inputs.dry_run == 'true'
+        run: npm publish --dry-run
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish to NPM
+        if: github.event.inputs.dry_run != 'true'
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Post-publish verification
+        if: github.event.inputs.dry_run != 'true'
+        run: |
+          echo "🔍 Verifying published package..."
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          
+          # Wait for NPM propagation
+          sleep 30
+          
+          # Try to install the published package
+          npm view permamind@$PACKAGE_VERSION
+          
+          echo "✅ Package published and verified successfully!"
+
+      - name: Create GitHub Release
+        if: github.event.inputs.dry_run != 'true' && github.event_name == 'push'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            ## 🧠 Permamind MCP Server Release
+            
+            ### Installation
+            ```bash
+            npm install -g permamind
+            permamind --setup
+            ```
+            
+            ### Features
+            - Easy NPM installation with global CLI
+            - Automated configuration wizard  
+            - Cross-platform support (macOS, Windows, Linux)
+            - Integration with Claude Desktop, VS Code, and Cursor
+            - Comprehensive AI memory management
+            
+            ### What's Changed
+            See the [full changelog](https://github.com/ALLiDoizCode/Permamind/compare/main...main) for detailed changes.
+          draft: false
+          prerelease: false
+
+  notify-success:
+    name: Success Notification
+    needs: npm-publish
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Success notification
+        run: |
+          echo "🎉 NPM Publishing Pipeline Completed Successfully!"
+          echo "📦 Package is now available globally via: npm install -g permamind"
+          echo "🚀 Users can now install with simple: permamind --setup"

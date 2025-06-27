@@ -35,6 +35,140 @@ This MCP server leverages the Velocity Protocol on AO and Arweave (the permaweb)
 - **Conflict Resolution**: Handle concurrent memory updates
 - **Hub Discovery**: Find and connect to specialized memory hubs
 
+## 🚀 Quick Installation
+
+### NPM Installation (Recommended)
+
+Install Permamind globally via NPM for easy access:
+
+```bash
+npm install -g permamind
+```
+
+### Setup and Configuration
+
+Run the setup wizard to configure Permamind with your preferred MCP clients:
+
+```bash
+permamind --setup
+```
+
+The setup wizard will:
+- Generate or import a seed phrase for your Arweave wallet
+- Configure Claude Desktop, VS Code, or Cursor automatically
+- Test your server connection
+- Set up environment variables
+
+### Manual Installation
+
+For development or manual setup:
+
+```bash
+# Clone the repository
+git clone https://github.com/ALLiDoizCode/Permamind.git
+cd Permamind
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
+
+# Start the server
+npm start
+```
+
+### Platform-Specific Installers
+
+**Unix/Linux/macOS:**
+```bash
+curl -sSL https://raw.githubusercontent.com/ALLiDoizCode/Permamind/main/scripts/install.sh | bash
+```
+
+**Windows PowerShell:**
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ALLiDoizCode/Permamind/main/scripts/install.ps1" -OutFile "install.ps1"; .\install.ps1
+```
+
+### Verification
+
+Verify your installation:
+
+```bash
+# Check version
+permamind --version
+
+# Test configuration
+permamind --test
+
+# Get help
+permamind --help
+```
+
+### Seed Phrase Management
+
+Permamind uses a 12-word seed phrase to generate your Arweave wallet identity. This ensures persistent access to your stored memories across sessions.
+
+**Generate a new seed phrase:**
+```bash
+permamind --generate-seed
+```
+
+**Import an existing seed phrase:**
+```bash
+permamind --import-seed
+```
+
+**Export your current seed phrase:**
+```bash
+permamind --export-seed
+```
+
+**Important Notes:**
+- 🔑 **Seed phrases are critical** - without them, you lose access to your memories
+- 💾 **Multiple storage options** - environment variables or secure config files
+- 🔄 **Automatic loading** - server checks for saved seed phrases on startup
+- ⚠️ **Backup essential** - store your seed phrase securely and separately
+
+### Environment Variables
+
+Set your seed phrase for persistent wallet usage:
+
+```bash
+# Bash/Zsh
+export SEED_PHRASE="your twelve word mnemonic phrase here"
+
+# Fish
+set -x SEED_PHRASE "your twelve word mnemonic phrase here"
+
+# Windows CMD
+set SEED_PHRASE=your twelve word mnemonic phrase here
+
+# Windows PowerShell
+$env:SEED_PHRASE="your twelve word mnemonic phrase here"
+```
+
+### Client Integration
+
+**Claude Desktop:** The setup wizard automatically configures `claude_desktop_config.json`
+
+**VS Code/Cursor:** Install the MCP extension and run `permamind --setup`
+
+**Manual Configuration:** Use `permamind-setup` or edit your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "permamind": {
+      "command": "permamind",
+      "env": {
+        "SEED_PHRASE": "your_seed_phrase_here"
+      }
+    }
+  }
+}
+```
+
 ## 📋 MCP Tools
 
 ### Basic Memory Operations
@@ -53,6 +187,71 @@ This MCP server leverages the Velocity Protocol on AO and Arweave (the permaweb)
 - **`addReasoningChain`** - Store AI reasoning processes and decision paths
 - **`getMemoryAnalytics`** - Get memory usage analytics and patterns
 - **`addMemoriesBatch`** - Efficient batch memory operations
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**"permamind command not found"**
+- Ensure NPM global bin directory is in your PATH
+- Try `npm install -g permamind` again
+- Check `npm config get prefix` and ensure that path is in your system PATH
+
+**"SEED_PHRASE not set" warning**
+- Generate a seed phrase: `permamind --generate-seed`
+- Set it as environment variable or use the setup wizard
+- Seed phrase is optional - server will generate temporary one if missing
+
+**Claude Desktop not detecting Permamind**
+- Run `permamind --setup` to configure automatically
+- Restart Claude Desktop after configuration
+- Verify config at: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+**Server startup errors**
+- Check Node.js version: `node --version` (requires 20+)
+- Build the project: `npm run build`
+- Test configuration: `permamind --test`
+
+**Permission errors on installation**
+- Use `sudo npm install -g permamind` on Unix systems if needed
+- Or configure npm to use a different global directory
+- On Windows, run PowerShell as Administrator
+
+**Seed phrase issues**
+- Generate new seed: `permamind --generate-seed`
+- Import existing seed: `permamind --import-seed`
+- Export current seed: `permamind --export-seed`
+- Check saved seeds: Look in `~/.config/permamind/seed.json`
+- Lost seed phrase: Unfortunately unrecoverable, you'll need to generate a new one
+
+**Security audit warnings**
+- Known vulnerabilities in `node-forge` dependency (used by Arweave crypto libraries)
+- These are required for Arweave wallet functionality
+- No fixes available from upstream dependencies yet
+- Does not affect application security for normal usage
+
+### Getting Help
+
+- Check the help: `permamind --help`
+- Test server: `permamind --test`
+- Generate seed: `permamind --generate-seed`
+- View server info: Use the `getServerInfo` MCP tool
+- File issues: [GitHub Issues](https://github.com/ALLiDoizCode/Permamind/issues)
+
+### Configuration Validation
+
+Use the configuration helper to validate your setup:
+
+```bash
+# List all configurations
+node scripts/configure.js list
+
+# Validate specific client
+node scripts/configure.js validate claude
+
+# Show environment setup
+node scripts/configure.js env "your-seed-phrase"
+```
 
 ## 🛠 Development
 

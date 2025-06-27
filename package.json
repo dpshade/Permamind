@@ -2,6 +2,19 @@
   "name": "permamind",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "bin": {
+    "permamind": "./bin/permamind.js",
+    "permamind-setup": "./bin/permamind-setup.js"
+  },
+  "files": [
+    "dist/**/*",
+    "bin/**/*",
+    "templates/**/*",
+    "scripts/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "preferGlobal": true,
   "scripts": {
     "build": "tsc",
     "start": "tsx src/server.ts",
@@ -17,21 +30,39 @@
     "test:unit": "vitest run --config vitest.unit.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "audit": "npm audit --audit-level moderate",
-    "ci:quality": "npm run lint && npm run type-check && npm run test:coverage && npm run audit && npm run build"
+    "ci:quality": "npm run lint && npm run type-check && npm run test:coverage && npm run audit && npm run build",
+    "prepublishOnly": "npm run ci:quality && npm run build",
+    "postpublish": "npm run test:install",
+    "test:install": "npm pack --dry-run",
+    "version:patch": "npm version patch && git push --tags",
+    "version:minor": "npm version minor && git push --tags",
+    "version:major": "npm version major && git push --tags"
   },
   "keywords": [
     "fastmcp",
     "mcp",
-    "permamind"
+    "permamind",
+    "ai",
+    "memory",
+    "blockchain",
+    "arweave",
+    "claude",
+    "ai-memory",
+    "mcp-server"
   ],
   "repository": {
-    "url": "https://github.com/ALLiDoizCode/Permamind"
+    "type": "git",
+    "url": "https://github.com/ALLiDoizCode/Permamind.git"
   },
   "author": "Jonathan Green <dev.jonathan.green@gmail.com>",
   "homepage": "https://x.com/allidoizcode",
   "type": "module",
   "license": "MIT",
   "description": "An MCP server that provides an immortal memory layer for AI agents and clients",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "engines": {
     "node": ">=20.0.0",
     "npm": ">=9.0.0"

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "permamind": {
+      "command": "permamind",
+      "env": {
+        "SEED_PHRASE": "{{SEED_PHRASE}}"
+      }
+    }
+  }
+}

@@ -151,7 +151,7 @@ jobs:
         if: steps.check-pr.outputs.has_existing_pr == 'true'
         run: |
           echo "Updating existing PR #${{ steps.check-pr.outputs.existing_pr }}"
-          gh pr edit ${{ steps.check-pr.outputs.existing_pr }} --body "
+          gh pr edit ${{ steps.check-pr.outputs.existing_pr }} --body "$(cat <<'EOF'
           ## Summary
           ${{ steps.branch-info.outputs.feature_type }} implementing: **${{ steps.branch-info.outputs.description }}**
 
@@ -164,7 +164,8 @@ jobs:
           - Coverage requirements met
 
           **Last Updated**: $(date)
-          "
+          EOF
+          )"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
