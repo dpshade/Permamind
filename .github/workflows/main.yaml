@@ -159,7 +159,20 @@ jobs:
           echo "- Modular service architecture" >> RELEASE_NOTES.md
 
       - name: Semantic Release
-        run: npx semantic-release
+        run: |
+          echo "🔍 Debug info:"
+          echo "Branch: ${{ github.ref }}"
+          echo "Event: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Actor: ${{ github.actor }}"
+          
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            echo "🚀 Running semantic release on main branch"
+            npx semantic-release
+          else
+            echo "📝 Running semantic release dry-run on feature branch"
+            npx semantic-release --dry-run
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
