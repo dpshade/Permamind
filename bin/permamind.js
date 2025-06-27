@@ -6,6 +6,7 @@ import { dirname, join } from 'path';
 import { execSync } from 'child_process';
 import { homedir, platform } from 'os';
 import { createInterface } from 'readline';
+import { ui, format } from '../dist/cli/ui.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -14,45 +15,51 @@ const __dirname = dirname(__filename);
 const packagePath = join(__dirname, '..', 'package.json');
 const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
 
-const HELP_TEXT = `
-Permamind MCP Server v${packageJson.version}
-${packageJson.description}
-
-Usage:
-  permamind [options]
-
-Options:
-  --help, -h          Show this help message
-  --version, -v       Show version information
-  --setup, -s         Run configuration wizard
-  --config <path>     Use custom configuration file
-  --test, -t          Test server startup and configuration
-  --generate-seed     Generate a new seed phrase
-  --export-seed       Export current server seed phrase
-  --import-seed       Import an existing seed phrase
-  --info              Show server information
-
-Environment Variables:
-  SEED_PHRASE         Seed phrase for Arweave wallet
-  HUB_REGISTRY_ID     Custom hub registry ID (optional)
-
-Examples:
-  permamind                    # Start the MCP server
-  permamind --setup            # Run configuration wizard
-  permamind --test             # Test server configuration
-  permamind --generate-seed    # Generate new seed phrase
-  permamind --export-seed      # Export current seed phrase
-  permamind --import-seed      # Import existing seed phrase
-
-For more information, visit: ${packageJson.homepage}
-`;
+// Enhanced help text using UI components
+function showEnhancedHelp() {
+  ui.banner(packageJson.version);
+  
+  ui.header('Usage', 'Command line interface for Permamind MCP Server');
+  ui.code('permamind [options]');
+  
+  ui.subheader('Options');
+  const options = [
+    { key: '--help, -h', value: 'Show this help message' },
+    { key: '--version, -v', value: 'Show version information' },
+    { key: '--setup, -s', value: 'Run configuration wizard' },
+    { key: '--config <path>', value: 'Use custom configuration file' },
+    { key: '--test, -t', value: 'Test server startup and configuration' },
+    { key: '--generate-seed', value: 'Generate a new seed phrase' },
+    { key: '--export-seed', value: 'Export current server seed phrase' },
+    { key: '--import-seed', value: 'Import an existing seed phrase' },
+    { key: '--info', value: 'Show server information' }
+  ];
+  ui.table(options);
+  
+  ui.subheader('Environment Variables');
+  const envVars = [
+    { key: 'SEED_PHRASE', value: 'Seed phrase for Arweave wallet' },
+    { key: 'HUB_REGISTRY_ID', value: 'Custom hub registry ID (optional)' }
+  ];
+  ui.table(envVars);
+  
+  ui.subheader('Examples');
+  ui.command('Start the MCP server', 'permamind');
+  ui.command('Run configuration wizard', 'permamind --setup');
+  ui.command('Test server configuration', 'permamind --test');
+  ui.command('Generate new seed phrase', 'permamind --generate-seed');
+  ui.command('Export current seed phrase', 'permamind --export-seed');
+  ui.command('Import existing seed phrase', 'permamind --import-seed');
+  
+  ui.info('For more information, visit:', format.url(packageJson.homepage));
+}
 
 function showVersion() {
-  console.log(`permamind v${packageJson.version}`);
+  ui.info('Permamind MCP Server', format.version(`v${packageJson.version}`));
 }
 
 function showHelp() {
-  console.log(HELP_TEXT);
+  showEnhancedHelp();
 }
 
 async function generateSeedPhrase() {
@@ -62,33 +69,53 @@ async function generateSeedPhrase() {
   });
 
   try {
+    ui.header('Generate New Seed Phrase', 'Create a secure seed phrase for your Arweave wallet');
+    
+    const loader = ui.loading('Generating secure seed phrase');
+    
     // Import the mnemonic generation functionality
     const { generateMnemonic } = await import('../dist/mnemonic.js');
     const seedPhrase = generateMnemonic();
     
-    console.log('🎲 Generated new seed phrase:');
-    console.log(seedPhrase);
-    console.log('\n⚠️  IMPORTANT: Store this seed phrase securely!');
-    console.log('Without it, you will lose access to your Arweave wallet and stored memories.');
-
+    loader.stop('Seed phrase generated successfully!');
+    
+    ui.space();
+    ui.success('Generated new seed phrase:');
+    ui.code(format.emphasize(seedPhrase));
+    ui.space();
+    
+    ui.warning('CRITICAL: Store this seed phrase securely!', 
+      'Without it, you will lose access to your Arweave wallet and stored memories.');
+    
+    ui.space();
     const save = await new Promise(resolve => {
-      rl.question('\nWould you like to save this seed phrase? (y/n): ', resolve);
+      rl.question(ui.prompt('Would you like to save this seed phrase?', 'y/n'), resolve);
     });
 
     if (save.toLowerCase() === 'y') {
+      ui.space();
+      ui.info('Choose how to save your seed phrase:');
+      ui.list([
+        '1. Environment variable (recommended)',
+        '2. Save to config file', 
+        '3. Both'
+      ], 'numbered');
+      
       const choice = await new Promise(resolve => {
-        rl.question('\nHow would you like to save it?\n1. Environment variable (recommended)\n2. Save to config file\n3. Both\nEnter choice (1-3): ', resolve);
+        rl.question(ui.prompt('Enter choice', '1-3'), resolve);
       });
 
       if (choice === '1' || choice === '3') {
-        console.log('\n📝 Add to your shell profile (.bashrc, .zshrc, etc.):');
-        console.log(`export SEED_PHRASE="${seedPhrase}"`);
+        ui.subheader('Environment Variable Setup');
+        ui.info('Add to your shell profile (.bashrc, .zshrc, etc.):');
+        ui.code(`export ${format.env('SEED_PHRASE')}="${seedPhrase}"`);
         
         if (platform() === 'win32') {
-          console.log('\n📝 For Windows:');
-          console.log(`set SEED_PHRASE=${seedPhrase}`);
-          console.log('Or PowerShell:');
-          console.log(`$env:SEED_PHRASE="${seedPhrase}"`);
+          ui.space();
+          ui.info('For Windows Command Prompt:');
+          ui.code(`set ${format.env('SEED_PHRASE')}=${seedPhrase}`);
+          ui.info('For Windows PowerShell:');
+          ui.code(`$env:${format.env('SEED_PHRASE')}="${seedPhrase}"`);
         }
       }
 
@@ -96,35 +123,44 @@ async function generateSeedPhrase() {
         const configPath = getSeedConfigPath();
         const configDir = dirname(configPath);
         
-        // Ensure directory exists
-        const fs = await import('fs');
-        if (!fs.existsSync(configDir)) {
-          fs.mkdirSync(configDir, { recursive: true });
+        try {
+          // Ensure directory exists
+          const fs = await import('fs');
+          if (!fs.existsSync(configDir)) {
+            fs.mkdirSync(configDir, { recursive: true });
+          }
+
+          const config = {
+            seedPhrase: seedPhrase,
+            createdAt: new Date().toISOString(),
+            source: 'generated'
+          };
+
+          writeFileSync(configPath, JSON.stringify(config, null, 2));
+          ui.success('Seed phrase saved to config file:', format.path(configPath));
+          ui.warning('Keep this file secure and backed up!');
+        } catch (saveErr) {
+          ui.error('Failed to save seed phrase to config file', saveErr.message);
         }
-
-        const config = {
-          seedPhrase: seedPhrase,
-          createdAt: new Date().toISOString(),
-          source: 'generated'
-        };
-
-        writeFileSync(configPath, JSON.stringify(config, null, 2));
-        console.log(`\n💾 Seed phrase saved to: ${configPath}`);
-        console.log('⚠️  Keep this file secure and backed up!');
       }
     } else {
-      console.log('\n💡 Remember to save this seed phrase manually!');
-      console.log('You can set it later with: permamind --import-seed');
+      ui.space();
+      ui.info('Remember to save this seed phrase manually!');
+      ui.info('You can set it later with:', format.command('permamind --import-seed'));
     }
 
   } catch (err) {
     if (err.code === 'MODULE_NOT_FOUND') {
-      console.error('Error importing mnemonic module:', err.message);
-      console.error('This typically means the project is not built properly.');
-      console.error('Please run: npm run build');
+      ui.error('Module not found', 'Project is not built properly.', [
+        format.command('npm run build'),
+        'Check your installation'
+      ]);
     } else {
-      console.error('Error generating seed phrase:', err.message);
-      console.error('If the problem persists, please file an issue: https://github.com/ALLiDoizCode/Permamind/issues');
+      ui.error('Failed to generate seed phrase', err.message, [
+        'Check your Node.js version (requires 20+)',
+        'Try rebuilding: npm run build',
+        format.url('https://github.com/ALLiDoizCode/Permamind/issues')
+      ]);
     }
     process.exit(1);
   } finally {
@@ -268,29 +304,104 @@ async function importSeedPhrase() {
 }
 
 async function testServer() {
-  console.log('Testing Permamind server configuration...');
+  ui.header('Server Configuration Test', 'Validating Permamind server setup');
   
-  // Check if dist directory exists
-  const distPath = join(__dirname, '..', 'dist');
-  try {
-    const fs = await import('fs');
-    if (!fs.existsSync(distPath)) {
-      console.error('Error: Distribution files not found. Run: npm run build');
-      process.exit(1);
+  const tests = [
+    { name: 'Distribution files', check: () => checkDistFiles() },
+    { name: 'Environment variables', check: () => checkEnvironment() },
+    { name: 'Node.js version', check: () => checkNodeVersion() }
+  ];
+  
+  let allPassed = true;
+  
+  for (const test of tests) {
+    const loader = ui.loading(`Testing ${test.name}`);
+    
+    try {
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate test time
+      const result = await test.check();
+      
+      if (result.success) {
+        loader.stop(`${test.name}: ${result.message}`);
+      } else {
+        loader.fail(`${test.name}: ${result.message}`);
+        allPassed = false;
+        
+        if (result.solutions) {
+          ui.space();
+          ui.info('Solutions:');
+          ui.list(result.solutions.map(s => format.command(s)));
+        }
+      }
+    } catch (err) {
+      loader.fail(`${test.name}: ${err.message}`);
+      allPassed = false;
     }
-  } catch (err) {
-    console.error('Error checking distribution files:', err.message);
+  }
+  
+  ui.space();
+  if (allPassed) {
+    ui.success('All tests passed! Server is ready to start');
+    ui.info('Start the server with:', format.command('permamind'));
+  } else {
+    ui.error('Some tests failed', 'Please fix the issues above before starting the server');
     process.exit(1);
   }
+}
 
-  // Check environment variables
-  if (!process.env.SEED_PHRASE) {
-    console.warn('Warning: SEED_PHRASE environment variable not set');
-    console.log('Generate one with: permamind --generate-seed');
+async function checkDistFiles() {
+  const distPath = join(__dirname, '..', 'dist');
+  const fs = await import('fs');
+  
+  if (!fs.existsSync(distPath)) {
+    return {
+      success: false,
+      message: 'Distribution files not found',
+      solutions: ['npm run build', 'Check your installation']
+    };
   }
+  
+  return {
+    success: true,
+    message: 'Distribution files found'
+  };
+}
 
-  console.log('✓ Configuration looks good');
-  console.log('Start the server with: permamind');
+function checkEnvironment() {
+  if (!process.env.SEED_PHRASE) {
+    return {
+      success: false,
+      message: 'SEED_PHRASE environment variable not set',
+      solutions: [
+        'permamind --generate-seed',
+        'permamind --import-seed',
+        'export SEED_PHRASE="your-seed-phrase"'
+      ]
+    };
+  }
+  
+  return {
+    success: true,
+    message: 'Environment variables configured'
+  };
+}
+
+function checkNodeVersion() {
+  const nodeVersion = process.version;
+  const majorVersion = parseInt(nodeVersion.slice(1).split('.')[0]);
+  
+  if (majorVersion < 20) {
+    return {
+      success: false,
+      message: `Node.js ${nodeVersion} is too old (requires 20+)`,
+      solutions: ['Download from https://nodejs.org/']
+    };
+  }
+  
+  return {
+    success: true,
+    message: `Node.js ${nodeVersion} is compatible`
+  };
 }
 
 async function startServer(configPath) {

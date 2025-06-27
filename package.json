@@ -74,6 +74,7 @@
     "arweave": "^1.15.7",
     "arweave-mnemonic-keys": "^0.0.9",
     "bip39-web-crypto": "^4.0.1",
+    "chalk": "^5.4.1",
     "dotenv": "^16.5.0",
     "fastmcp": "^1.27.3",
     "human-crypto-keys": "^0.1.4",
