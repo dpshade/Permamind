@@ -184,16 +184,14 @@ jobs:
             echo ""
             
             # Create a temporary semantic-release config for GitHub-only releases
-            cat > .releaserc.tmp.json << 'EOF'
-{
-  "branches": ["main"],
-  "plugins": [
-    "@semantic-release/commit-analyzer",
-    "@semantic-release/release-notes-generator",
-    "@semantic-release/github"
-  ]
-}
-EOF
+            echo '{
+              "branches": ["main"],
+              "plugins": [
+                "@semantic-release/commit-analyzer",
+                "@semantic-release/release-notes-generator",
+                "@semantic-release/github"
+              ]
+            }' > .releaserc.tmp.json
             npx semantic-release --extends ./.releaserc.tmp.json
             rm -f .releaserc.tmp.json
           else
