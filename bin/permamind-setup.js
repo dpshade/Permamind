@@ -138,7 +138,7 @@ function createVSCodeConfig(configDir, seedPhrase) {
 }
 
 async function testServerConnection(seedPhrase) {
-  console.log('\\nTesting server connection...');
+  console.log('\nTesting server connection...');
   
   try {
     // Set environment variable temporarily
@@ -160,7 +160,7 @@ async function testServerConnection(seedPhrase) {
 
 async function main() {
   console.log('🧠 Permamind Setup Wizard');
-  console.log('=========================\\n');
+  console.log('=========================\n');
   
   const os = detectOS();
   console.log(`Detected OS: ${os}`);
@@ -172,7 +172,7 @@ async function main() {
     process.exit(1);
   }
   
-  console.log('\\n1. Seed Phrase Configuration');
+  console.log('\n1. Seed Phrase Configuration');
   console.log('============================');
   
   let seedPhrase = process.env.SEED_PHRASE;
@@ -186,16 +186,16 @@ async function main() {
   }
   
   if (!seedPhrase) {
-    const choice = await question('\\nChoose an option:\\n1. Generate new seed phrase\\n2. Import existing seed phrase\\n3. Use system-generated temporary phrase (not recommended)\\nEnter choice (1-3): ');
+    const choice = await question('\nChoose an option:\n1. Generate new seed phrase\n2. Import existing seed phrase\n3. Use system-generated temporary phrase (not recommended)\nEnter choice (1-3): ');
     
     if (choice === '1') {
-      console.log('\\nGenerating new seed phrase...');
+      console.log('\nGenerating new seed phrase...');
       seedPhrase = await generateSeedPhrase();
       console.log('Generated seed phrase:', seedPhrase);
-      console.log('\\n⚠️  IMPORTANT: Store this seed phrase securely!');
+      console.log('\n⚠️  IMPORTANT: Store this seed phrase securely!');
       console.log('💡 You can export it later with: permamind --export-seed');
     } else if (choice === '2') {
-      seedPhrase = await question('\\nEnter your 12-word seed phrase: ');
+      seedPhrase = await question('\nEnter your 12-word seed phrase: ');
       
       // Validate the seed phrase
       const words = seedPhrase.trim().split(/\\s+/);
@@ -205,7 +205,7 @@ async function main() {
       }
       console.log('✅ Seed phrase accepted');
     } else if (choice === '3') {
-      console.log('\\n⚠️  Using temporary seed phrase - wallet identity will not persist');
+      console.log('\n⚠️  Using temporary seed phrase - wallet identity will not persist');
       console.log('💡 You can generate a persistent one later with: permamind --generate-seed');
       seedPhrase = null; // Will use system-generated temporary
     } else {
@@ -214,13 +214,13 @@ async function main() {
     }
   }
   
-  console.log('\\n2. Client Configuration');
+  console.log('\n2. Client Configuration');
   console.log('=======================');
   
   // Claude Desktop Configuration
   const claudeConfigPath = getClaudeDesktopConfigPath();
   if (claudeConfigPath) {
-    const configureClaudeDesktop = await question(`\\nConfigure Claude Desktop? (y/n): `);
+    const configureClaudeDesktop = await question(`\nConfigure Claude Desktop? (y/n): `);
     if (configureClaudeDesktop.toLowerCase() === 'y') {
       try {
         updateClaudeDesktopConfig(claudeConfigPath, seedPhrase);
@@ -236,7 +236,7 @@ async function main() {
   // VS Code Configuration
   const vscodeConfigDir = getVSCodeConfigPath();
   if (vscodeConfigDir) {
-    const configureVSCode = await question('\\nConfigure VS Code? (y/n): ');
+    const configureVSCode = await question('\nConfigure VS Code? (y/n): ');
     if (configureVSCode.toLowerCase() === 'y') {
       try {
         const mcpConfigPath = createVSCodeConfig(vscodeConfigDir, seedPhrase);
@@ -247,37 +247,37 @@ async function main() {
     }
   }
   
-  console.log('\\n3. Testing Configuration');
+  console.log('\n3. Testing Configuration');
   console.log('========================');
   
-  const testConnection = await question('\\nTest server connection? (y/n): ');
+  const testConnection = await question('\nTest server connection? (y/n): ');
   if (testConnection.toLowerCase() === 'y') {
     await testServerConnection(seedPhrase);
   }
   
-  console.log('\\n4. Environment Setup');
+  console.log('\n4. Environment Setup');
   console.log('====================');
   
-  const setupEnv = await question('\\nAdd SEED_PHRASE to environment? (y/n): ');
+  const setupEnv = await question('\nAdd SEED_PHRASE to environment? (y/n): ');
   if (setupEnv.toLowerCase() === 'y') {
-    console.log('\\nAdd this to your shell profile (.bashrc, .zshrc, etc.):');
+    console.log('\nAdd this to your shell profile (.bashrc, .zshrc, etc.):');
     console.log(`export SEED_PHRASE="${seedPhrase}"`);
     
     if (os === 'Windows') {
-      console.log('\\nFor Windows Command Prompt:');
+      console.log('\nFor Windows Command Prompt:');
       console.log(`set SEED_PHRASE=${seedPhrase}`);
-      console.log('\\nFor Windows PowerShell:');
+      console.log('\nFor Windows PowerShell:');
       console.log(`$env:SEED_PHRASE="${seedPhrase}"`);
     }
   }
   
-  console.log('\\n🎉 Setup Complete!');
+  console.log('\n🎉 Setup Complete!');
   console.log('==================');
-  console.log('\\nNext steps:');
+  console.log('\nNext steps:');
   console.log('1. Restart your MCP clients (Claude Desktop, VS Code, etc.)');
   console.log('2. Start using Permamind with: permamind');
   console.log('3. Test with: permamind --test');
-  console.log('\\nFor help: permamind --help');
+  console.log('\nFor help: permamind --help');
   
   rl.close();
 }
