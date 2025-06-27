@@ -13,6 +13,24 @@ import { Memory } from "../models/Memory.js";
 import { Tag } from "../models/Tag.js";
 import { event, fetchEvents } from "../relay.js";
 
+// Constants for memory kinds
+const MEMORY_KINDS = {
+  AI_MEMORY: "10",
+  MEMORY_RELATIONSHIP: "11",
+  REASONING_CHAIN: "23",
+  MEMORY_CONTEXT: "40",
+} as const;
+
+// Validation utilities
+const isValidImportance = (importance: number): boolean =>
+  importance >= 0 && importance <= 1;
+
+const isValidStrength = (strength: number): boolean =>
+  strength >= 0 && strength <= 1;
+
+const isNonEmptyString = (value: string): boolean =>
+  typeof value === "string" && value.trim().length > 0;
+
 export interface AIMemoryService {
   // Enhanced memory operations
   addEnhanced: (
@@ -69,6 +87,12 @@ export interface AIMemoryService {
     query: string,
     filters?: SearchFilters,
   ) => Promise<AIMemory[]>;
+
+  // Relationship analysis methods
+  getMemoryRelationships: (memoryId: string) => Promise<MemoryLink[]>;
+  getRelationshipAnalytics: (hubId: string) => Promise<any>;
+  findShortestPath: (sourceId: string, targetId: string) => Promise<string[]>;
+  detectCircularReferences: (hubId: string) => Promise<string[]>;
 }
 
 const aiService = (): AIMemoryService => {
@@ -79,6 +103,20 @@ const aiService = (): AIMemoryService => {
       memory: Partial<AIMemory>,
     ): Promise<string> => {
       try {
+        // Validate required fields
+        if (!memory.content || !isNonEmptyString(memory.content)) {
+          throw new Error("Memory content is required");
+        }
+        if (!memory.p || !isNonEmptyString(memory.p)) {
+          throw new Error("Memory p parameter is required");
+        }
+        if (
+          memory.importance !== undefined &&
+          !isValidImportance(memory.importance)
+        ) {
+          throw new Error("Importance must be between 0 and 1");
+        }
+
         const tags = createAIMemoryTags(memory);
         await event(signer, hubId, tags);
         return "Enhanced memory added successfully";
@@ -115,8 +153,19 @@ const aiService = (): AIMemoryService => {
       p: string,
     ): Promise<string> => {
       try {
+        // Validate inputs
+        if (!isNonEmptyString(reasoning.chainId)) {
+          throw new Error("Chain ID is required");
+        }
+        if (!reasoning.steps || reasoning.steps.length === 0) {
+          throw new Error("At least one reasoning step is required");
+        }
+        if (!isNonEmptyString(p)) {
+          throw new Error("P parameter is required");
+        }
+
         const tags: Tag[] = [
-          { name: "kind", value: "23" }, // Reasoning chain kind
+          { name: "kind", value: MEMORY_KINDS.REASONING_CHAIN },
           { name: "chainId", value: reasoning.chainId },
           { name: "steps", value: JSON.stringify(reasoning.steps) },
           { name: "outcome", value: reasoning.outcome },
@@ -140,8 +189,16 @@ const aiService = (): AIMemoryService => {
       p: string,
     ): Promise<string> => {
       try {
+        // Validate inputs
+        if (!isNonEmptyString(contextName)) {
+          throw new Error("Context name is required");
+        }
+        if (!isNonEmptyString(p)) {
+          throw new Error("P parameter is required");
+        }
+
         const tags: Tag[] = [
-          { name: "kind", value: "40" }, // Context kind
+          { name: "kind", value: MEMORY_KINDS.MEMORY_CONTEXT },
           { name: "contextName", value: contextName },
           { name: "description", value: description },
           { name: "p", value: p },
@@ -162,7 +219,7 @@ const aiService = (): AIMemoryService => {
     ): Promise<AIMemory[]> => {
       try {
         const filter = {
-          kinds: ["10"],
+          kinds: [MEMORY_KINDS.AI_MEMORY],
           tags: { ai_context_id: [contextId] },
         };
         const _filters = JSON.stringify([filter]);
@@ -182,7 +239,7 @@ const aiService = (): AIMemoryService => {
     ): Promise<MemoryAnalytics> => {
       try {
         const filter: any = {
-          kinds: ["10"],
+          kinds: [MEMORY_KINDS.AI_MEMORY],
         };
 
         if (p) {
@@ -226,7 +283,7 @@ const aiService = (): AIMemoryService => {
     ): Promise<null | ReasoningTrace> => {
       try {
         const filter = {
-          kinds: ["23"],
+          kinds: [MEMORY_KINDS.REASONING_CHAIN],
           tags: { chainId: [chainId] },
         };
         const _filters = JSON.stringify([filter]);
@@ -253,8 +310,22 @@ const aiService = (): AIMemoryService => {
       relationship: MemoryLink,
     ): Promise<string> => {
       try {
+        // Validate inputs
+        if (!isNonEmptyString(sourceId)) {
+          throw new Error("Source ID is required");
+        }
+        if (!isNonEmptyString(targetId)) {
+          throw new Error("Target ID is required");
+        }
+        if (sourceId === targetId) {
+          throw new Error("Self-referential relationships are not allowed");
+        }
+        if (!isValidStrength(relationship.strength)) {
+          throw new Error("Relationship strength must be between 0 and 1");
+        }
+
         const tags: Tag[] = [
-          { name: "kind", value: "11" }, // Memory relationship kind
+          { name: "kind", value: MEMORY_KINDS.MEMORY_RELATIONSHIP },
           { name: "sourceId", value: sourceId },
           { name: "targetId", value: targetId },
           { name: "relationshipType", value: relationship.type },
@@ -274,7 +345,7 @@ const aiService = (): AIMemoryService => {
     ): Promise<AIMemory[]> => {
       try {
         const filter: any = {
-          kinds: ["10"],
+          kinds: [MEMORY_KINDS.AI_MEMORY],
         };
 
         if (query) {
@@ -313,13 +384,36 @@ const aiService = (): AIMemoryService => {
         throw new Error(`Failed to search memories: ${error}`);
       }
     },
+
+    getMemoryRelationships: async (memoryId: string): Promise<MemoryLink[]> => {
+      // Minimal implementation for TDD
+      throw new Error("getMemoryRelationships not implemented yet");
+    },
+
+    getRelationshipAnalytics: async (hubId: string): Promise<any> => {
+      // Minimal implementation for TDD
+      throw new Error("getRelationshipAnalytics not implemented yet");
+    },
+
+    findShortestPath: async (
+      sourceId: string,
+      targetId: string,
+    ): Promise<string[]> => {
+      // Minimal implementation for TDD
+      throw new Error("findShortestPath not implemented yet");
+    },
+
+    detectCircularReferences: async (hubId: string): Promise<string[]> => {
+      // Minimal implementation for TDD
+      throw new Error("detectCircularReferences not implemented yet");
+    },
   };
 };
 
 // Helper functions
 function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
   const tags: Tag[] = [
-    { name: "kind", value: "10" },
+    { name: "kind", value: MEMORY_KINDS.AI_MEMORY },
     { name: "Content", value: memory.content || "" },
     { name: "p", value: memory.p || "" },
     { name: "role", value: memory.role || "user" },
@@ -374,6 +468,11 @@ function eventToAIMemory(event: any): AIMemory {
   const context: MemoryContext = event.ai_context
     ? JSON.parse(event.ai_context)
     : {};
+
+  // Add domain from event tags if available
+  if (event.ai_domain) {
+    context.domain = event.ai_domain;
+  }
 
   const aiMemory: AIMemory = {
     ...baseMemory,

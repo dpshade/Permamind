@@ -1,4 +1,4 @@
-name: Run Tests
+name: AI Memory TDD Workflow
 on:
   pull_request:
     branches:
@@ -8,27 +8,97 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+  push:
+    branches:
+      - feature/*
+      - ai-memory/*
+      - tdd/*
+
 jobs:
-  test:
+  quality-gate:
     runs-on: ubuntu-latest
-    name: Test
+    name: TDD Quality Gate
     strategy:
       fail-fast: true
       matrix:
         node:
+          - 20
           - 22
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Setup NodeJS ${{ matrix.node }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
+          cache: "npm"
+
       - name: Install dependencies
-        run: npm install
-      - name: Run lint
-        run: npm run lint
-      - name: Run tests
-        run: npm run test
+        run: npm ci
+
+      - name: Run TDD Quality Checks
+        run: npm run ci:quality
+
+      - name: Upload Coverage Reports
+        if: matrix.node == 22
+        uses: codecov/codecov-action@v4
+        with:
+          directory: ./coverage
+          fail_ci_if_error: true
+
+      - name: Check Coverage Thresholds
+        if: matrix.node == 22
+        run: |
+          echo "Checking coverage meets TDD requirements..."
+          npm run test:coverage -- --reporter=json > coverage.json
+          COVERAGE=$(cat coverage.json | jq -r '.aiMemoryService.statements.pct')
+          echo "AI Memory Service Coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 85" | bc -l) )); then
+            echo "❌ Coverage $COVERAGE% is below required 85% threshold"
+            exit 1
+          else
+            echo "✅ Coverage $COVERAGE% meets TDD requirements"
+          fi
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    name: Unit Tests (TDD Red-Green)
+    needs: quality-gate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Unit Tests
+        run: npm run test:unit
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: Integration Tests (TDD Refactor)
+    needs: quality-gate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup NodeJS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Integration Tests
+        run: npm run test:integration
