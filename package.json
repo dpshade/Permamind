@@ -32,6 +32,10 @@
   "type": "module",
   "license": "MIT",
   "description": "An MCP server that provides an immortal memory layer for AI agents and clients",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "@langchain/openai": "^0.5.15",
     "@permaweb/aoconnect": "^0.0.85",
