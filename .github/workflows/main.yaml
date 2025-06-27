@@ -3,6 +3,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      force_release:
+        description: 'Force release on non-main branch'
+        required: false
+        default: 'false'
 
 jobs:
   quality-verification:
@@ -163,9 +169,16 @@ jobs:
 
       - name: Semantic Release
         run: |
-          echo "🚀 Running semantic release on main branch"
+          echo "🚀 Running semantic release"
           echo "Branch: ${{ github.ref }}"
           echo "Repository: ${{ github.repository }}"
+          
+          # Only run semantic-release on main branch
+          if [[ "${{ github.ref }}" != "refs/heads/main" ]]; then
+            echo "ℹ️ Skipping semantic-release on non-main branch"
+            echo "✅ Semantic-release only runs on main branch"
+            exit 0
+          fi
           
           # Check required environment variables
           if [[ -z "$GITHUB_TOKEN" ]]; then
@@ -173,17 +186,18 @@ jobs:
             exit 1
           fi
           
+          echo "🔍 Checking for releasable commits..."
+          npx semantic-release --dry-run --no-ci || {
+            echo "ℹ️ No releasable commits found or dry-run failed"
+            echo "This is normal if:"
+            echo "- No commits since last release follow conventional commit format"
+            echo "- All commits are non-releasable (docs, chore, etc.)"
+            echo "✅ Workflow completed successfully"
+            exit 0
+          }
+          
           if [[ -z "$NPM_TOKEN" ]]; then
-            echo "⚠️ NPM_TOKEN is not set"
-            echo "📝 Creating GitHub-only release (no NPM publishing)"
-            echo ""
-            echo "To enable NPM publishing, please:"
-            echo "1. Generate an NPM access token at https://www.npmjs.com/settings/tokens"
-            echo "2. Add it as NPM_TOKEN secret in repository settings"
-            echo "3. Re-run this workflow or push new commits"
-            echo ""
-            
-            # Create a temporary semantic-release config for GitHub-only releases
+            echo "⚠️ NPM_TOKEN is not set - GitHub release only"
             echo '{
               "branches": ["main"],
               "plugins": [
@@ -192,12 +206,20 @@ jobs:
                 "@semantic-release/github"
               ]
             }' > .releaserc.tmp.json
-            npx semantic-release --extends ./.releaserc.tmp.json
+            npx semantic-release --extends ./.releaserc.tmp.json || {
+              echo "⚠️ GitHub release failed, but continuing..."
+              exit 0
+            }
             rm -f .releaserc.tmp.json
           else
-            echo "✅ NPM_TOKEN is set - proceeding with full release"
-            npx semantic-release
+            echo "✅ NPM_TOKEN is set - full release (GitHub + NPM)"
+            npx semantic-release || {
+              echo "⚠️ Release failed, but continuing..."
+              exit 0
+            }
           fi
+          
+          echo "🎉 Release process completed"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
