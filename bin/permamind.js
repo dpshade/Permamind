@@ -14,7 +14,25 @@ const __dirname = dirname(__filename);
 const packagePath = join(__dirname, '..', 'package.json');
 const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
 
-const HELP_TEXT = `
+function showBanner() {
+  const banner = `
+ ██████╗ ███████╗██████╗ ███╗   ███╗ █████╗ ███╗   ███╗██╗███╗   ██╗██████╗ 
+ ██╔══██╗██╔════╝██╔══██╗████╗ ████║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗
+ ██████╔╝█████╗  ██████╔╝██╔████╔██║███████║██╔████╔██║██║██╔██╗ ██║██║  ██║
+ ██╔═══╝ ██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║  ██║
+ ██║     ███████╗██║  ██║██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██████╔╝
+ ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═════╝ 
+                                                                              
+🧠 Immortal Memory Layer for AI Agents • Built on Arweave • Powered by AO
+`;
+  return banner;
+}
+
+function showCompactBanner() {
+  return `🧠 PERMAMIND - Immortal AI Memory • Built on Arweave • Powered by AO`;
+}
+
+const HELP_TEXT = `${showBanner()}
 Permamind MCP Server v${packageJson.version}
 ${packageJson.description}
 
@@ -56,6 +74,10 @@ function showHelp() {
 }
 
 async function generateSeedPhrase() {
+  console.log(showBanner());
+  console.log('🔐 Seed Phrase Generator');
+  console.log('');
+  
   const rl = createInterface({
     input: process.stdin,
     output: process.stdout
@@ -300,7 +322,8 @@ async function importSeedPhrase() {
 }
 
 async function testServer() {
-  process.stderr.write('Testing Permamind server configuration...');
+  process.stderr.write(showCompactBanner() + '\n');
+  process.stderr.write('🔧 Testing Permamind server configuration...');
   
   // Check if dist directory exists
   const distPath = join(__dirname, '..', 'dist');
@@ -488,6 +511,7 @@ if (args.length === 0) {
       break;
       
     case '--info':
+      console.log(showBanner());
       process.stdout.write(`Permamind MCP Server v${packageJson.version}\n`);
       process.stdout.write(`Description: ${packageJson.description}\n`);
       process.stdout.write(`Repository: ${packageJson.repository.url}\n`);
