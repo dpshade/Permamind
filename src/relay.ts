@@ -2,19 +2,14 @@ import { JWKInterface } from "arweave/node/lib/wallet.js";
 
 import type { Tag } from "./models/Tag.js";
 
-//@ts-ignore
 import {
   Eval,
   FetchEvents,
   GetZoneById,
   GetZones,
   Info,
-  QueryFee,
   Register,
-  Transfer,
-  UpdateProfile,
 } from "./messageFactory.js";
-//@ts-ignore
 import { read, send } from "./process.js";
 
 export const evalProcess = async (
@@ -22,12 +17,12 @@ export const evalProcess = async (
   data: string,
   processId: string,
 ) => {
-  //await walletService.connectWallet();
   try {
     const tags = Eval();
-    // @ts-ignore
     await send(signer, processId, tags, data);
-  } catch (e) {}
+  } catch (e) {
+    // Silent error handling
+  }
 };
 
 export const event = async (
@@ -46,22 +41,21 @@ export const event = async (
   tags.push(actionTag);
   tags.push(idTag);
   try {
-    // @ts-ignore
-    const result = await send(signer, hub, tags, null);
-  } catch (e) {}
+    await send(signer, hub, tags, null);
+  } catch (e) {
+    // Silent error handling
+  }
 };
 
 export const info = async (processId: string): Promise<any> => {
   try {
-    // @ts-ignore
     const message = Info();
     const result = await read(processId, message);
-    //
     if (result) {
       const json = JSON.parse(result.Data);
       return json;
     } else {
-      throw "Not Found";
+      throw new Error("Not Found");
     }
   } catch (e) {
     throw e;
@@ -74,10 +68,7 @@ export const fetchEvents = async (
 ): Promise<any[]> => {
   let events: any[] = [];
   try {
-    // @ts-ignore
     const message = FetchEvents(filters);
-    //// console.log removed
-    //// console.log removed
     const result = await read(processId, message);
 
     if (result) {
@@ -85,7 +76,7 @@ export const fetchEvents = async (
       events = json;
     }
   } catch (e) {
-    //throw e;
+    // Silent error handling
   }
   return events;
 };
@@ -96,10 +87,11 @@ export const register = async (
   spec: any,
 ): Promise<void> => {
   try {
-    // @ts-ignore
     const message = Register();
     await send(signer, processId, message, JSON.stringify(spec));
-  } catch (e) {}
+  } catch (e) {
+    // Silent error handling
+  }
 };
 
 export const getZones = async (
@@ -110,7 +102,6 @@ export const getZones = async (
 ): Promise<any[]> => {
   let events: any[] = [];
   try {
-    // @ts-ignore
     const message = GetZones(filters, page.toString(), limit.toString());
     const result = await read(processId, message);
     if (result) {
@@ -118,7 +109,7 @@ export const getZones = async (
       events = json;
     }
   } catch (e) {
-    //throw e;
+    // Silent error handling
   }
   return events;
 };
@@ -129,7 +120,6 @@ export const getZone = async (
 ): Promise<any> => {
   let events: any[] = [];
   try {
-    // @ts-ignore
     const message = GetZoneById(zoneId);
     const result = await read(processId, message);
     if (result) {
@@ -137,7 +127,7 @@ export const getZone = async (
       events = json;
     }
   } catch (e) {
-    //throw e;
+    // Silent error handling
   }
   return events;
 };

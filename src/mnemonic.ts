@@ -1,5 +1,9 @@
 import { JWKInterface } from "arweave/node/lib/wallet.js";
-import { mnemonicToSeed, wordlists, validateMnemonic as bip39Validate } from "bip39-web-crypto";
+import {
+  validateMnemonic as bip39Validate,
+  mnemonicToSeed,
+  wordlists,
+} from "bip39-web-crypto";
 import {
   generateKeyPair,
   getKeyPairFromMnemonic,
@@ -18,39 +22,6 @@ export async function generateMnemonic() {
   return keys.mnemonic;
 }
 
-/**
- * Validate a mnemonic seed phrase
- * @param mnemonic - a 12 word mnemonic represented as a string
- * @returns {Promise<boolean>} - true if the mnemonic is valid, false otherwise
- */
-export async function validateMnemonic(mnemonic: string): Promise<boolean> {
-  try {
-    // Check if it's exactly 12 words
-    const words = mnemonic.trim().split(/\s+/);
-    if (words.length !== 12) {
-      return false;
-    }
-    
-    // Use bip39 validation
-    const result = await bip39Validate(mnemonic, wordlists.english);
-    return result;
-  } catch (err) {
-    return false;
-  }
-}
-
-/**
- * Generates a JWK object representation of an Arweave key
- * @param mnemonic - a 12 word mnemonic represented as a string
- * @returns {object} - returns a Javascript object that conforms to the JWKInterface required by Arweave-js
- *
- * @example <caption>Generate an Arweave key and get its public address</caption>
- * let key = getKeyFromMnemonic('jewel cave spy act loyal solid night manual joy select mystery unhappy')
- * arweave.wallets.jwkToAddress(key)
- * //returns qe741op_rt-iwBazAqJipTc15X8INlDCoPz6S40RBdg
- *
- */
-
 export async function getKeyFromMnemonic(mnemonic: string) {
   const seedBuffer = await mnemonicToSeed(mnemonic);
   const { privateKey } = await getKeyPairFromSeed(
@@ -65,6 +36,18 @@ export async function getKeyFromMnemonic(mnemonic: string) {
   const jwk = pkcs8ToJwk(privateKey as any);
   return jwk;
 }
+
+/**
+ * Generates a JWK object representation of an Arweave key
+ * @param mnemonic - a 12 word mnemonic represented as a string
+ * @returns {object} - returns a Javascript object that conforms to the JWKInterface required by Arweave-js
+ *
+ * @example <caption>Generate an Arweave key and get its public address</caption>
+ * let key = getKeyFromMnemonic('jewel cave spy act loyal solid night manual joy select mystery unhappy')
+ * arweave.wallets.jwkToAddress(key)
+ * //returns qe741op_rt-iwBazAqJipTc15X8INlDCoPz6S40RBdg
+ *
+ */
 
 export async function pkcs8ToJwk(
   privateKey: Uint8Array,
@@ -89,4 +72,25 @@ export async function pkcs8ToJwk(
     q: jwk.q,
     qi: jwk.qi,
   };
+}
+
+/**
+ * Validate a mnemonic seed phrase
+ * @param mnemonic - a 12 word mnemonic represented as a string
+ * @returns {Promise<boolean>} - true if the mnemonic is valid, false otherwise
+ */
+export async function validateMnemonic(mnemonic: string): Promise<boolean> {
+  try {
+    // Check if it's exactly 12 words
+    const words = mnemonic.trim().split(/\s+/);
+    if (words.length !== 12) {
+      return false;
+    }
+
+    // Use bip39 validation
+    const result = await bip39Validate(mnemonic, wordlists.english);
+    return result;
+  } catch (err) {
+    return false;
+  }
 }

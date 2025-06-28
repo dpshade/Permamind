@@ -16,9 +16,9 @@ import { event, fetchEvents } from "../relay.js";
 // Constants for memory kinds
 const MEMORY_KINDS = {
   AI_MEMORY: "10",
+  MEMORY_CONTEXT: "40",
   MEMORY_RELATIONSHIP: "11",
   REASONING_CHAIN: "23",
-  MEMORY_CONTEXT: "40",
 } as const;
 
 // Validation utilities
@@ -63,18 +63,24 @@ export interface AIMemoryService {
     p: string,
   ) => Promise<string>;
 
+  detectCircularReferences: (hubId: string) => Promise<string[]>;
   // Utility functions
   eventToAIMemory: (event: any) => AIMemory;
+
+  findShortestPath: (sourceId: string, targetId: string) => Promise<string[]>;
+
   getContextMemories: (hubId: string, contextId: string) => Promise<AIMemory[]>;
 
   // Analytics
   getMemoryAnalytics: (hubId: string, p?: string) => Promise<MemoryAnalytics>;
+  // Relationship analysis methods
+  getMemoryRelationships: (memoryId: string) => Promise<MemoryLink[]>;
 
   getReasoningChain: (
     hubId: string,
     chainId: string,
   ) => Promise<null | ReasoningTrace>;
-
+  getRelationshipAnalytics: (hubId: string) => Promise<any>;
   linkMemories: (
     signer: JWKInterface,
     hubId: string,
@@ -87,12 +93,6 @@ export interface AIMemoryService {
     query: string,
     filters?: SearchFilters,
   ) => Promise<AIMemory[]>;
-
-  // Relationship analysis methods
-  getMemoryRelationships: (memoryId: string) => Promise<MemoryLink[]>;
-  getRelationshipAnalytics: (hubId: string) => Promise<any>;
-  findShortestPath: (sourceId: string, targetId: string) => Promise<string[]>;
-  detectCircularReferences: (hubId: string) => Promise<string[]>;
 }
 
 const aiService = (): AIMemoryService => {
@@ -211,7 +211,20 @@ const aiService = (): AIMemoryService => {
       }
     },
 
+    detectCircularReferences: async (hubId: string): Promise<string[]> => {
+      // Minimal implementation for TDD
+      throw new Error("detectCircularReferences not implemented yet");
+    },
+
     eventToAIMemory: eventToAIMemory,
+
+    findShortestPath: async (
+      sourceId: string,
+      targetId: string,
+    ): Promise<string[]> => {
+      // Minimal implementation for TDD
+      throw new Error("findShortestPath not implemented yet");
+    },
 
     getContextMemories: async (
       hubId: string,
@@ -276,6 +289,10 @@ const aiService = (): AIMemoryService => {
         };
       }
     },
+    getMemoryRelationships: async (memoryId: string): Promise<MemoryLink[]> => {
+      // Minimal implementation for TDD
+      throw new Error("getMemoryRelationships not implemented yet");
+    },
 
     getReasoningChain: async (
       hubId: string,
@@ -300,6 +317,11 @@ const aiService = (): AIMemoryService => {
       } catch (error) {
         return null;
       }
+    },
+
+    getRelationshipAnalytics: async (hubId: string): Promise<any> => {
+      // Minimal implementation for TDD
+      throw new Error("getRelationshipAnalytics not implemented yet");
     },
 
     linkMemories: async (
@@ -338,6 +360,7 @@ const aiService = (): AIMemoryService => {
         throw new Error(`Failed to link memories: ${e}`);
       }
     },
+
     searchAdvanced: async (
       hubId: string,
       query: string,
@@ -383,29 +406,6 @@ const aiService = (): AIMemoryService => {
       } catch (error) {
         throw new Error(`Failed to search memories: ${error}`);
       }
-    },
-
-    getMemoryRelationships: async (memoryId: string): Promise<MemoryLink[]> => {
-      // Minimal implementation for TDD
-      throw new Error("getMemoryRelationships not implemented yet");
-    },
-
-    getRelationshipAnalytics: async (hubId: string): Promise<any> => {
-      // Minimal implementation for TDD
-      throw new Error("getRelationshipAnalytics not implemented yet");
-    },
-
-    findShortestPath: async (
-      sourceId: string,
-      targetId: string,
-    ): Promise<string[]> => {
-      // Minimal implementation for TDD
-      throw new Error("findShortestPath not implemented yet");
-    },
-
-    detectCircularReferences: async (hubId: string): Promise<string[]> => {
-      // Minimal implementation for TDD
-      throw new Error("detectCircularReferences not implemented yet");
     },
   };
 };

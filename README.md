@@ -54,6 +54,7 @@ permamind --setup
 ```
 
 The setup wizard will:
+
 - Generate or import a seed phrase for your Arweave wallet
 - Configure Claude Desktop, VS Code, or Cursor automatically
 - Test your server connection
@@ -81,11 +82,13 @@ npm start
 ### Platform-Specific Installers
 
 **Unix/Linux/macOS:**
+
 ```bash
 curl -sSL https://raw.githubusercontent.com/ALLiDoizCode/Permamind/main/scripts/install.sh | bash
 ```
 
 **Windows PowerShell:**
+
 ```powershell
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ALLiDoizCode/Permamind/main/scripts/install.ps1" -OutFile "install.ps1"; .\install.ps1
 ```
@@ -110,21 +113,25 @@ permamind --help
 Permamind uses a 12-word seed phrase to generate your Arweave wallet identity. This ensures persistent access to your stored memories across sessions.
 
 **Generate a new seed phrase:**
+
 ```bash
 permamind --generate-seed
 ```
 
 **Import an existing seed phrase:**
+
 ```bash
 permamind --import-seed
 ```
 
 **Export your current seed phrase:**
+
 ```bash
 permamind --export-seed
 ```
 
 **Important Notes:**
+
 - 🔑 **Seed phrases are critical** - without them, you lose access to your memories
 - 💾 **Multiple storage options** - environment variables or secure config files
 - 🔄 **Automatic loading** - server checks for saved seed phrases on startup
@@ -193,31 +200,37 @@ $env:SEED_PHRASE="your twelve word mnemonic phrase here"
 ### Common Issues
 
 **"permamind command not found"**
+
 - Ensure NPM global bin directory is in your PATH
 - Try `npm install -g permamind` again
 - Check `npm config get prefix` and ensure that path is in your system PATH
 
 **"SEED_PHRASE not set" warning**
+
 - Generate a seed phrase: `permamind --generate-seed`
 - Set it as environment variable or use the setup wizard
 - Seed phrase is optional - server will generate temporary one if missing
 
 **Claude Desktop not detecting Permamind**
+
 - Run `permamind --setup` to configure automatically
 - Restart Claude Desktop after configuration
 - Verify config at: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 **Server startup errors**
+
 - Check Node.js version: `node --version` (requires 20+)
 - Build the project: `npm run build`
 - Test configuration: `permamind --test`
 
 **Permission errors on installation**
+
 - Use `sudo npm install -g permamind` on Unix systems if needed
 - Or configure npm to use a different global directory
 - On Windows, run PowerShell as Administrator
 
 **Seed phrase issues**
+
 - Generate new seed: `permamind --generate-seed`
 - Import existing seed: `permamind --import-seed`
 - Export current seed: `permamind --export-seed`
@@ -225,6 +238,7 @@ $env:SEED_PHRASE="your twelve word mnemonic phrase here"
 - Lost seed phrase: Unfortunately unrecoverable, you'll need to generate a new one
 
 **Security audit warnings**
+
 - Known vulnerabilities in `node-forge` dependency (used by Arweave crypto libraries)
 - These are required for Arweave wallet functionality
 - No fixes available from upstream dependencies yet

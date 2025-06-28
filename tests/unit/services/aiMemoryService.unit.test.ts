@@ -1,12 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { aiMemoryService } from "../../../src/services/aiMemoryService.js";
 import {
   basicMemory,
-  testReasoningChain,
-  testMemoryLink,
   batchMemories,
+  testMemoryLink,
+  testReasoningChain,
 } from "../../fixtures/memories.js";
-import { mockKeyPair, mockHubId } from "../../mocks/aoConnect.js";
+import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 
 // Mock the relay functions
 vi.mock("../../../src/relay.js", () => ({
@@ -33,8 +34,8 @@ describe("AIMemoryService", () => {
     it("should handle missing optional properties gracefully", async () => {
       const minimalMemory = {
         content: "Basic memory",
-        role: "user",
         p: "user_key",
+        role: "user",
       };
 
       const result = await aiMemoryService.addEnhanced(
@@ -76,12 +77,12 @@ describe("AIMemoryService", () => {
     it("should search memories with filters", async () => {
       const mockEvents = [
         {
-          Id: "test_1",
-          Content: "Test memory 1",
-          Timestamp: "2024-01-01T00:00:00.000Z",
-          p: "user_1",
           ai_importance: "0.8",
           ai_type: "knowledge",
+          Content: "Test memory 1",
+          Id: "test_1",
+          p: "user_1",
+          Timestamp: "2024-01-01T00:00:00.000Z",
         },
       ];
 
@@ -89,8 +90,8 @@ describe("AIMemoryService", () => {
       vi.mocked(fetchEvents).mockResolvedValueOnce(mockEvents);
 
       const filters = {
-        memoryType: "knowledge" as const,
         importanceThreshold: 0.5,
+        memoryType: "knowledge" as const,
       };
 
       const result = await aiMemoryService.searchAdvanced(
@@ -127,16 +128,16 @@ describe("AIMemoryService", () => {
     it("should rank memories by importance and recency", async () => {
       const mockEvents = [
         {
-          Id: "test_1",
-          Content: "Memory 1",
-          Timestamp: "2024-01-01T00:00:00.000Z",
           ai_importance: "0.5",
+          Content: "Memory 1",
+          Id: "test_1",
+          Timestamp: "2024-01-01T00:00:00.000Z",
         },
         {
-          Id: "test_2",
-          Content: "Memory 2",
-          Timestamp: "2024-01-02T00:00:00.000Z",
           ai_importance: "0.9",
+          Content: "Memory 2",
+          Id: "test_2",
+          Timestamp: "2024-01-02T00:00:00.000Z",
         },
       ];
 
@@ -252,8 +253,8 @@ describe("AIMemoryService", () => {
     it("should retrieve reasoning chain by ID", async () => {
       const mockChainEvent = {
         chainId: "test_chain_123",
-        steps: JSON.stringify(testReasoningChain.steps),
         outcome: "Test outcome",
+        steps: JSON.stringify(testReasoningChain.steps),
       };
 
       const { fetchEvents } = await import("../../../src/relay.js");
@@ -351,22 +352,22 @@ describe("AIMemoryService", () => {
     it("should generate comprehensive memory analytics", async () => {
       const mockEvents = [
         {
-          Id: "mem_1",
-          Content: "Memory 1",
-          ai_type: "knowledge",
           ai_importance: "0.8",
-        },
-        {
-          Id: "mem_2",
-          Content: "Memory 2",
-          ai_type: "conversation",
-          ai_importance: "0.3",
-        },
-        {
-          Id: "mem_3",
-          Content: "Memory 3",
           ai_type: "knowledge",
+          Content: "Memory 1",
+          Id: "mem_1",
+        },
+        {
+          ai_importance: "0.3",
+          ai_type: "conversation",
+          Content: "Memory 2",
+          Id: "mem_2",
+        },
+        {
           ai_importance: "0.9",
+          ai_type: "knowledge",
+          Content: "Memory 3",
+          Id: "mem_3",
         },
       ];
 
@@ -415,14 +416,14 @@ describe("AIMemoryService", () => {
   describe("eventToAIMemory", () => {
     it("should convert event to AIMemory with proper defaults", () => {
       const mockEvent = {
-        Id: "test_123",
-        Timestamp: "2024-01-01T00:00:00.000Z",
-        Content: "Test content",
-        p: "user_key",
-        r: "system",
+        ai_context: JSON.stringify({ sessionId: "test_session" }),
         ai_importance: "0.7",
         ai_type: "knowledge",
-        ai_context: JSON.stringify({ sessionId: "test_session" }),
+        Content: "Test content",
+        Id: "test_123",
+        p: "user_key",
+        r: "system",
+        Timestamp: "2024-01-01T00:00:00.000Z",
       };
 
       const aiMemory = aiMemoryService.eventToAIMemory(mockEvent);
@@ -436,10 +437,10 @@ describe("AIMemoryService", () => {
 
     it("should handle missing AI-specific fields with defaults", () => {
       const basicEvent = {
-        Id: "test_123",
-        Timestamp: "2024-01-01T00:00:00.000Z",
         Content: "Basic content",
+        Id: "test_123",
         p: "user_key",
+        Timestamp: "2024-01-01T00:00:00.000Z",
       };
 
       const aiMemory = aiMemoryService.eventToAIMemory(basicEvent);
@@ -492,9 +493,9 @@ describe("AIMemoryService", () => {
     it("should retrieve memories for specific context", async () => {
       const mockContextMemories = [
         {
-          Id: "ctx_mem_1",
-          Content: "Context memory 1",
           ai_context_id: "context_123",
+          Content: "Context memory 1",
+          Id: "ctx_mem_1",
         },
       ];
 

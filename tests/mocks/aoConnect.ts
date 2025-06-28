@@ -12,8 +12,8 @@ mockSend.mockResolvedValue({ messageId: "test_message_123" });
 mockRead.mockResolvedValue({
   Data: JSON.stringify([
     {
-      Id: "test_event_123",
       Content: "Test content",
+      Id: "test_event_123",
       Timestamp: "2024-01-01T00:00:00.000Z",
     },
   ]),
@@ -21,20 +21,20 @@ mockRead.mockResolvedValue({
 mockCreateProcess.mockResolvedValue("test_process_123");
 mockFetchEvents.mockResolvedValue([
   {
-    Id: "test_event_123",
     Content: "Test content",
-    Timestamp: "2024-01-01T00:00:00.000Z",
+    Id: "test_event_123",
     p: "test_user_key",
+    Timestamp: "2024-01-01T00:00:00.000Z",
   },
 ]);
 mockEvent.mockResolvedValue({ success: true });
 
 // Mock JWK interface
 export const mockKeyPair = {
+  d: "test_d_value",
+  e: "AQAB",
   kty: "RSA",
   n: "test_n_value",
-  e: "AQAB",
-  d: "test_d_value",
 };
 
 // Mock hub ID and public key
