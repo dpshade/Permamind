@@ -1,4 +1,4 @@
-#!/usr/local/bin/node
+#!/usr/bin/env node
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -149,7 +149,8 @@ function updateClaudeDesktopConfig(configPath, seedPhrase) {
     command: "npx",
     args: ["permamind"],
     env: {
-      SEED_PHRASE: seedPhrase
+      SEED_PHRASE: seedPhrase,
+      PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
     }
   };
 
@@ -172,7 +173,8 @@ function createVSCodeConfig(configDir, seedPhrase) {
         command: "npx",
         args: ["permamind"],
         env: {
-          SEED_PHRASE: seedPhrase
+          SEED_PHRASE: seedPhrase,
+          PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
         }
       }
     }
