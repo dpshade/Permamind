@@ -19,6 +19,7 @@ import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracke
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
 import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.js";
 import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
+import { CrossHubDiscoveryService } from "./services/CrossHubDiscoveryService.js";
 
 let keyPair: JWKInterface;
 let publicKey: string;
@@ -71,6 +72,7 @@ let workflowServices: {
   relationshipManager: WorkflowRelationshipManager;
   enhancementEngine: WorkflowEnhancementEngine;
   analyticsService: WorkflowAnalyticsService;
+  crossHubDiscovery: CrossHubDiscoveryService;
 } | null = null;
 
 function initializeWorkflowServices() {
@@ -78,12 +80,14 @@ function initializeWorkflowServices() {
   const relationshipManager = new WorkflowRelationshipManager();
   const enhancementEngine = new WorkflowEnhancementEngine(performanceTracker, relationshipManager);
   const analyticsService = new WorkflowAnalyticsService(performanceTracker, relationshipManager);
+  const crossHubDiscovery = new CrossHubDiscoveryService();
   
   workflowServices = {
     performanceTracker,
     relationshipManager,
     enhancementEngine,
-    analyticsService
+    analyticsService,
+    crossHubDiscovery
   };
 
   // Start background enhancement cycles
@@ -1124,6 +1128,194 @@ server.addTool({
   parameters: z.object({
     action: z.enum(["start", "stop", "status", "force_cycle"]).describe("Action to perform"),
     workflowId: z.string().optional().describe("Specific workflow ID (optional for start/stop actions)"),
+  }),
+});
+
+// Cross-Hub Discovery Tools
+
+// Tool to discover workflows across the network
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Discover Cross-Hub Workflows",
+  },
+  description: `Discover workflows across all Permamind hubs in the network by capability, requirements, or similarity. 
+    Enables finding workflows from other users that could enhance your own workflows through learning and collaboration.`,
+  execute: async (args) => {
+    try {
+      if (!workflowServices) {
+        return "Workflow services not initialized";
+      }
+
+      const discoveryService = workflowServices.crossHubDiscovery;
+      let workflows = [];
+
+      switch (args.discoveryType) {
+        case "capability":
+          if (!args.capability) {
+            return "capability parameter required for capability discovery";
+          }
+          workflows = await discoveryService.discoverByCapability(args.capability);
+          break;
+
+        case "requirements":
+          if (!args.requirements) {
+            return "requirements parameter required for requirements discovery";
+          }
+          const requirementsList = args.requirements.split(",").map(r => r.trim());
+          workflows = await discoveryService.findWorkflowsForRequirements(requirementsList);
+          break;
+
+        case "similar":
+          if (!args.localWorkflowId) {
+            return "localWorkflowId parameter required for similarity discovery";
+          }
+          workflows = await discoveryService.findSimilarWorkflows(args.localWorkflowId, hubId);
+          break;
+
+        case "search":
+          if (!args.query) {
+            return "query parameter required for search discovery";
+          }
+          const filters = {
+            capabilities: args.capabilities ? args.capabilities.split(",").map(c => c.trim()) : undefined,
+            tags: args.tags ? args.tags.split(",").map(t => t.trim()) : undefined,
+            minReputationScore: args.minReputationScore,
+            minPerformanceScore: args.minPerformanceScore,
+          };
+          workflows = await discoveryService.searchGlobalWorkflows(args.query, filters);
+          break;
+
+        default:
+          return "Invalid discoveryType. Use: capability, requirements, similar, or search";
+      }
+
+      return JSON.stringify({
+        discoveryType: args.discoveryType,
+        totalFound: workflows.length,
+        workflows: workflows.slice(0, args.limit || 10), // Limit results for readability
+        hasMore: workflows.length > (args.limit || 10)
+      });
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  },
+  name: "discoverCrossHubWorkflows",
+  parameters: z.object({
+    discoveryType: z.enum(["capability", "requirements", "similar", "search"]).describe("Type of discovery to perform"),
+    capability: z.string().optional().describe("Capability to search for (required for capability discovery)"),
+    requirements: z.string().optional().describe("Comma-separated requirements to fulfill (required for requirements discovery)"),
+    localWorkflowId: z.string().optional().describe("Local workflow ID to find similar workflows for (required for similar discovery)"),
+    query: z.string().optional().describe("Search query (required for search discovery)"),
+    capabilities: z.string().optional().describe("Comma-separated capabilities to filter by"),
+    tags: z.string().optional().describe("Comma-separated tags to filter by"),
+    minReputationScore: z.number().min(0).max(1).optional().describe("Minimum reputation score (0-1)"),
+    minPerformanceScore: z.number().min(0).max(1).optional().describe("Minimum performance score (0-1)"),
+    limit: z.number().optional().describe("Maximum number of results to return (default: 10)"),
+  }),
+});
+
+// Tool to get network statistics
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Get Network Statistics",
+  },
+  description: `Get statistics about the workflow ecosystem network including total hubs, workflows, 
+    top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.`,
+  execute: async (args) => {
+    try {
+      if (!workflowServices) {
+        return "Workflow services not initialized";
+      }
+
+      const discoveryService = workflowServices.crossHubDiscovery;
+      const stats = await discoveryService.getNetworkStatistics();
+
+      return JSON.stringify(stats);
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  },
+  name: "getNetworkStatistics",
+  parameters: z.object({}),
+});
+
+// Tool to request enhancement patterns from other workflows
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Request Enhancement Patterns",
+  },
+  description: `Request enhancement patterns from high-performing workflows in other hubs. 
+    Enables learning optimization techniques and improvement strategies from successful workflows across the network.`,
+  execute: async (args) => {
+    try {
+      if (!workflowServices) {
+        return "Workflow services not initialized";
+      }
+
+      const discoveryService = workflowServices.crossHubDiscovery;
+      const patterns = await discoveryService.requestEnhancementPatterns(
+        args.sourceHubId,
+        args.sourceWorkflowId
+      );
+
+      return JSON.stringify({
+        sourceHubId: args.sourceHubId,
+        sourceWorkflowId: args.sourceWorkflowId,
+        patternsFound: patterns.length,
+        patterns: patterns
+      });
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  },
+  name: "requestEnhancementPatterns",
+  parameters: z.object({
+    sourceHubId: z.string().describe("Hub ID containing the source workflow"),
+    sourceWorkflowId: z.string().describe("Workflow ID to request patterns from"),
+  }),
+});
+
+// Tool to discover and analyze hub ecosystem
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Discover Hubs",
+  },
+  description: `Discover all Permamind hubs in the network and get information about their workflows, 
+    activity levels, and reputation scores. Enables understanding the broader ecosystem landscape.`,
+  execute: async (args) => {
+    try {
+      if (!workflowServices) {
+        return "Workflow services not initialized";
+      }
+
+      const discoveryService = workflowServices.crossHubDiscovery;
+      const hubs = await discoveryService.discoverHubs(args.forceRefresh || false);
+
+      return JSON.stringify({
+        totalHubs: hubs.length,
+        hubs: hubs.map(hub => ({
+          processId: hub.processId,
+          workflowCount: hub.workflowCount,
+          hasPublicWorkflows: hub.hasPublicWorkflows,
+          reputationScore: hub.reputationScore,
+          lastActivity: hub.lastActivity
+        }))
+      });
+    } catch (error) {
+      return `Error: ${error}`;
+    }
+  },
+  name: "discoverHubs",
+  parameters: z.object({
+    forceRefresh: z.boolean().optional().describe("Force refresh of hub discovery cache"),
   }),
 });
 
