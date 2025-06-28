@@ -48,11 +48,11 @@ For more information, visit: ${packageJson.homepage}
 `;
 
 function showVersion() {
-  console.log(`permamind v${packageJson.version}`);
+  process.stderr.write(`permamind v${packageJson.version}`);
 }
 
 function showHelp() {
-  console.log(HELP_TEXT);
+  process.stderr.write(HELP_TEXT);
 }
 
 async function generateSeedPhrase() {
@@ -66,10 +66,10 @@ async function generateSeedPhrase() {
     const { generateMnemonic } = await import('../dist/mnemonic.js');
     const seedPhrase = generateMnemonic();
     
-    console.log('🎲 Generated new seed phrase:');
-    console.log(seedPhrase);
-    console.log('\n⚠️  IMPORTANT: Store this seed phrase securely!');
-    console.log('Without it, you will lose access to your Arweave wallet and stored memories.');
+    process.stderr.write('🎲 Generated new seed phrase:');
+    process.stderr.write(seedPhrase);
+    process.stderr.write('\n⚠️  IMPORTANT: Store this seed phrase securely!');
+    process.stderr.write('Without it, you will lose access to your Arweave wallet and stored memories.');
 
     const save = await new Promise(resolve => {
       rl.question('\nWould you like to save this seed phrase? (y/n): ', resolve);
@@ -81,14 +81,14 @@ async function generateSeedPhrase() {
       });
 
       if (choice === '1' || choice === '3') {
-        console.log('\n📝 Add to your shell profile (.bashrc, .zshrc, etc.):');
-        console.log(`export SEED_PHRASE="${seedPhrase}"`);
+        process.stderr.write('\n📝 Add to your shell profile (.bashrc, .zshrc, etc.):');
+        process.stderr.write(`export SEED_PHRASE="${seedPhrase}"`);
         
         if (platform() === 'win32') {
-          console.log('\n📝 For Windows:');
-          console.log(`set SEED_PHRASE=${seedPhrase}`);
-          console.log('Or PowerShell:');
-          console.log(`$env:SEED_PHRASE="${seedPhrase}"`);
+          process.stderr.write('\n📝 For Windows:');
+          process.stderr.write(`set SEED_PHRASE=${seedPhrase}`);
+          process.stderr.write('Or PowerShell:');
+          process.stderr.write(`$env:SEED_PHRASE="${seedPhrase}"`);
         }
       }
 
@@ -109,12 +109,12 @@ async function generateSeedPhrase() {
         };
 
         writeFileSync(configPath, JSON.stringify(config, null, 2));
-        console.log(`\n💾 Seed phrase saved to: ${configPath}`);
-        console.log('⚠️  Keep this file secure and backed up!');
+        process.stderr.write(`\n💾 Seed phrase saved to: ${configPath}`);
+        process.stderr.write('⚠️  Keep this file secure and backed up!');
       }
     } else {
-      console.log('\n💡 Remember to save this seed phrase manually!');
-      console.log('You can set it later with: permamind --import-seed');
+      process.stderr.write('\n💡 Remember to save this seed phrase manually!');
+      process.stderr.write('You can set it later with: permamind --import-seed');
     }
 
   } catch (err) {
@@ -150,9 +150,9 @@ async function exportSeedPhrase() {
   try {
     // Check if there's an environment variable first
     if (process.env.SEED_PHRASE) {
-      console.log('🔑 Current seed phrase (from environment):');
-      console.log(process.env.SEED_PHRASE);
-      console.log('\n💡 This seed phrase is set via environment variable');
+      process.stderr.write('🔑 Current seed phrase (from environment):');
+      process.stderr.write(process.env.SEED_PHRASE);
+      process.stderr.write('\n💡 This seed phrase is set via environment variable');
       return;
     }
 
@@ -162,9 +162,9 @@ async function exportSeedPhrase() {
       try {
         const config = JSON.parse(readFileSync(configPath, 'utf8'));
         if (config.seedPhrase) {
-          console.log('🔑 Current seed phrase (from saved config):');
-          console.log(config.seedPhrase);
-          console.log('\n💡 This seed phrase is saved in:', configPath);
+          process.stderr.write('🔑 Current seed phrase (from saved config):');
+          process.stderr.write(config.seedPhrase);
+          process.stderr.write('\n💡 This seed phrase is saved in:', configPath);
           return;
         }
       } catch (err) {
@@ -173,13 +173,13 @@ async function exportSeedPhrase() {
     }
 
     // Try to get seed phrase from a temporary server startup
-    console.log('🔍 No persistent seed phrase found.');
-    console.log('💡 The server generates temporary seed phrases when none is provided.');
-    console.log('');
-    console.log('To get a persistent seed phrase:');
-    console.log('1. Generate one: permamind --generate-seed');
-    console.log('2. Import existing: permamind --import-seed');
-    console.log('3. Set environment: export SEED_PHRASE="your phrase here"');
+    process.stderr.write('🔍 No persistent seed phrase found.');
+    process.stderr.write('💡 The server generates temporary seed phrases when none is provided.');
+    process.stderr.write('');
+    process.stderr.write('To get a persistent seed phrase:');
+    process.stderr.write('1. Generate one: permamind --generate-seed');
+    process.stderr.write('2. Import existing: permamind --import-seed');
+    process.stderr.write('3. Set environment: export SEED_PHRASE="your phrase here"');
 
   } catch (err) {
     console.error('❌ Error exporting seed phrase:', err.message);
@@ -194,8 +194,8 @@ async function importSeedPhrase() {
   });
 
   try {
-    console.log('🔐 Import Existing Seed Phrase');
-    console.log('===============================\n');
+    process.stderr.write('🔐 Import Existing Seed Phrase');
+    process.stderr.write('===============================\n');
 
     const seedPhrase = await new Promise(resolve => {
       rl.question('Enter your 12-word seed phrase: ', resolve);
@@ -224,14 +224,14 @@ async function importSeedPhrase() {
     const trimmedSeed = seedPhrase.trim();
 
     if (choice === '1' || choice === '3') {
-      console.log('\n📝 Add to your shell profile (.bashrc, .zshrc, etc.):');
-      console.log(`export SEED_PHRASE="${trimmedSeed}"`);
+      process.stderr.write('\n📝 Add to your shell profile (.bashrc, .zshrc, etc.):');
+      process.stderr.write(`export SEED_PHRASE="${trimmedSeed}"`);
       
       if (platform() === 'win32') {
-        console.log('\n📝 For Windows:');
-        console.log(`set SEED_PHRASE=${trimmedSeed}`);
-        console.log('Or PowerShell:');
-        console.log(`$env:SEED_PHRASE="${trimmedSeed}"`);
+        process.stderr.write('\n📝 For Windows:');
+        process.stderr.write(`set SEED_PHRASE=${trimmedSeed}`);
+        process.stderr.write('Or PowerShell:');
+        process.stderr.write(`$env:SEED_PHRASE="${trimmedSeed}"`);
       }
     }
 
@@ -252,12 +252,12 @@ async function importSeedPhrase() {
       };
 
       writeFileSync(configPath, JSON.stringify(config, null, 2));
-      console.log(`\n💾 Seed phrase saved to: ${configPath}`);
-      console.log('⚠️  Keep this file secure and backed up!');
+      process.stderr.write(`\n💾 Seed phrase saved to: ${configPath}`);
+      process.stderr.write('⚠️  Keep this file secure and backed up!');
     }
 
-    console.log('\n✅ Seed phrase imported successfully!');
-    console.log('🔄 Restart your MCP clients to use the new seed phrase.');
+    process.stderr.write('\n✅ Seed phrase imported successfully!');
+    process.stderr.write('🔄 Restart your MCP clients to use the new seed phrase.');
 
   } catch (err) {
     console.error('❌ Error importing seed phrase:', err.message);
@@ -268,7 +268,7 @@ async function importSeedPhrase() {
 }
 
 async function testServer() {
-  console.log('Testing Permamind server configuration...');
+  process.stderr.write('Testing Permamind server configuration...');
   
   // Check if dist directory exists
   const distPath = join(__dirname, '..', 'dist');
@@ -286,11 +286,11 @@ async function testServer() {
   // Check environment variables
   if (!process.env.SEED_PHRASE) {
     console.warn('Warning: SEED_PHRASE environment variable not set');
-    console.log('Generate one with: permamind --generate-seed');
+    process.stderr.write('Generate one with: permamind --generate-seed');
   }
 
-  console.log('✓ Configuration looks good');
-  console.log('Start the server with: permamind');
+  process.stderr.write('✓ Configuration looks good');
+  process.stderr.write('Start the server with: permamind');
 }
 
 async function startServer(configPath) {
@@ -324,7 +324,7 @@ async function startServer(configPath) {
         process.exit(1);
       }
       process.env.CONFIG_PATH = configPath;
-      console.log('📝 Using config file:', configPath);
+      process.stderr.write('📝 Using config file:', configPath);
     }
 
     // Check for seed phrase from various sources
@@ -339,27 +339,19 @@ async function startServer(configPath) {
           if (config.seedPhrase) {
             seedPhrase = config.seedPhrase;
             process.env.SEED_PHRASE = seedPhrase;
-            console.log('🔑 Using saved seed phrase from:', configPath);
+            // Silent loading for MCP protocol compatibility
           }
         } catch (err) {
-          console.warn('⚠️  Could not read saved seed phrase config');
+          // Silent error handling for MCP protocol compatibility
         }
       }
     }
 
-    if (!seedPhrase) {
-      console.warn('⚠️  Warning: No persistent seed phrase found - server will generate temporary wallet');
-      console.warn('💡 For persistent identity, run: permamind --generate-seed');
-      console.warn('💡 Or import existing: permamind --import-seed');
-      console.warn('💡 Or export current: permamind --export-seed');
-    } else {
-      console.log('✅ Using persistent seed phrase for wallet identity');
-    }
+    // Note: Removing console output during MCP server startup to prevent JSON protocol interference
+    // Seed phrase validation occurs silently - use --test flag for diagnostics
 
     // Start the server by importing and running it
-    console.log('🚀 Starting Permamind MCP server...');
-    console.log('📡 Server will communicate via stdio (MCP protocol)');
-    
+    // Note: No console output here as it interferes with MCP JSON protocol
     await import(serverPath);
     
   } catch (err) {
@@ -464,15 +456,15 @@ if (args.length === 0) {
       break;
       
     case '--info':
-      console.log(`Permamind MCP Server v${packageJson.version}`);
-      console.log(`Description: ${packageJson.description}`);
-      console.log(`Repository: ${packageJson.repository.url}`);
-      console.log(`Author: ${packageJson.author}`);
+      process.stderr.write(`Permamind MCP Server v${packageJson.version}`);
+      process.stderr.write(`Description: ${packageJson.description}`);
+      process.stderr.write(`Repository: ${packageJson.repository.url}`);
+      process.stderr.write(`Author: ${packageJson.author}`);
       break;
       
     default:
       console.error(`Unknown command: ${command}`);
-      console.log('Use --help for available options');
+      process.stderr.write('Use --help for available options');
       process.exit(1);
   }
 }

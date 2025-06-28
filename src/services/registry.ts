@@ -31,7 +31,7 @@ const service = (): HubRegistryService => {
       try {
         const processId = await createProcess(signer);
         await evaluateHub(signer, processId);
-        //console.log("ProfileId", processId);
+        //// console.log removed
         const hubSpec = {
           description: "Social message hub",
           kinds: ["0", "1", "7", "6", "3", "2"],
@@ -42,8 +42,8 @@ const service = (): HubRegistryService => {
         };
         await hubRegistryService.register(signer, HUB_REGISTRY_ID(), hubSpec);
         await createProfile(signer, processId, profileData);
-        //console.log("*** Hub ID ***", processId);
-        //console.log("*** Profile ID ***", processId);
+        //// console.log removed
+        //// console.log removed
         return processId;
       } catch (error) {
         throw error;
