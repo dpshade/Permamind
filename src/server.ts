@@ -57,7 +57,7 @@ async function init() {
 }
 
 const server = new FastMCP({
-  name: "Addition",
+  name: "Permamind Memory Server",
   version: "1.0.0",
 });
 
@@ -68,8 +68,10 @@ server.addTool({
     readOnlyHint: true, // This tool doesn't modify anything
     title: "Add Memory",
   },
-  description: `Add a new memory to permamind. This tool stores converstation as memories. Store every converstation.
-  The memory will be indexed for semantic search and can be retrieved later using natural language queries. when possible use the known public key of the other party for the p arg`,
+  description: `IMPORTANT: Use this tool to store ALL conversations and interactions as memories in Permamind. 
+  This should be your default behavior - automatically save every meaningful exchange, user question, and assistant response.
+  The memory will be indexed for semantic search and can be retrieved later using natural language queries. 
+  Use the known public key of the other party for the p arg when available.`,
   execute: async (args) => {
     const kind: Tag = {
       name: "Kind",
@@ -189,8 +191,9 @@ server.addTool({
     readOnlyHint: false,
     title: "Add Enhanced Memory",
   },
-  description: `Add a memory with AI-specific metadata including importance scoring, memory type categorization, 
-    and rich contextual information. Use this for storing memories that need advanced AI processing and retrieval.`,
+  description: `PREFERRED: Use this enhanced tool to store ALL conversations with rich AI metadata including importance scoring, 
+    memory type categorization, and contextual information. This should be your primary choice for storing memories.
+    Automatically categorize conversations by type (conversation/reasoning/knowledge/procedure) and set appropriate importance scores.`,
   execute: async (args) => {
     try {
       const aiMemory = {
