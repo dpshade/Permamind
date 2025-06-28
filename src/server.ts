@@ -493,6 +493,6 @@ server.start({
 });
 
 // Initialize in background (silent for stdio transport)
-init().catch(err => {
+init().catch((err) => {
   // Silent error handling for stdio transport
 });

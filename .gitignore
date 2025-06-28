@@ -1,3 +1,11 @@
 dist
 node_modules
 .env
+coverage
+*.log
+*.tmp
+debug-*.js
+debug-*.md
+temp.*
+mcp-*.js
+mcp-*.sh

@@ -25,6 +25,7 @@ To enable NPM publishing in the CI/CD pipeline, you need to set up an NPM access
 ## Verification
 
 After adding the NPM_TOKEN secret:
+
 1. Push new commits to main branch
 2. The release workflow will automatically publish to NPM
 3. Check the workflow logs to confirm successful publishing
@@ -32,6 +33,7 @@ After adding the NPM_TOKEN secret:
 ## Alternative: Manual Publishing
 
 If you prefer to publish manually:
+
 ```bash
 npm login
 npm publish
@@ -40,6 +42,7 @@ npm publish
 ## Package Scope
 
 If publishing a scoped package (@username/package), ensure:
+
 - Your NPM token has access to the scope
 - The package.json name matches the scope
 - You have publishing permissions for that scope

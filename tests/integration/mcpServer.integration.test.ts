@@ -1,18 +1,19 @@
 import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  beforeAll,
   afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
 } from "vitest";
 import { z } from "zod";
+
 import { aiMemoryService } from "../../src/services/aiMemoryService.js";
 import {
   basicMemory,
-  testReasoningChain,
   batchMemories,
+  testReasoningChain,
 } from "../fixtures/memories.js";
 
 // Mock external dependencies
@@ -26,7 +27,7 @@ describe("MCP Server Integration Tests", () => {
 
   beforeAll(async () => {
     // Setup test environment
-    mockKeyPair = { kty: "RSA", n: "test_n", e: "AQAB" };
+    mockKeyPair = { e: "AQAB", kty: "RSA", n: "test_n" };
     mockHubId = "test_hub_integration";
   });
 
@@ -54,10 +55,10 @@ describe("MCP Server Integration Tests", () => {
       const { fetchEvents } = await import("../../src/relay.js");
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
-          Id: "mem_123",
-          Content: basicMemory.content,
           ai_importance: basicMemory.importance!.toString(),
           ai_type: basicMemory.memoryType,
+          Content: basicMemory.content,
+          Id: "mem_123",
           Timestamp: "2024-01-01T00:00:00.000Z",
         },
       ]);
@@ -65,7 +66,7 @@ describe("MCP Server Integration Tests", () => {
       const searchResults = await aiMemoryService.searchAdvanced(
         mockHubId,
         "TypeScript",
-        { memoryType: "knowledge", importanceThreshold: 0.5 },
+        { importanceThreshold: 0.5, memoryType: "knowledge" },
       );
       expect(searchResults).toHaveLength(1);
       expect(searchResults[0].content).toBe(basicMemory.content);
@@ -76,17 +77,17 @@ describe("MCP Server Integration Tests", () => {
         mockHubId,
         "mem_123",
         "mem_456",
-        { targetId: "mem_456", type: "supports", strength: 0.8 },
+        { strength: 0.8, targetId: "mem_456", type: "supports" },
       );
       expect(linkResult).toBe("Memory link created successfully");
 
       // 4. Get analytics
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
-          Id: "mem_123",
-          Content: basicMemory.content,
-          ai_type: basicMemory.memoryType,
           ai_importance: basicMemory.importance!.toString(),
+          ai_type: basicMemory.memoryType,
+          Content: basicMemory.content,
+          Id: "mem_123",
         },
       ]);
 
@@ -158,8 +159,8 @@ describe("MCP Server Integration Tests", () => {
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
           chainId: testReasoningChain.chainId,
-          steps: JSON.stringify(testReasoningChain.steps),
           outcome: testReasoningChain.outcome,
+          steps: JSON.stringify(testReasoningChain.steps),
         },
       ]);
 
@@ -187,10 +188,10 @@ describe("MCP Server Integration Tests", () => {
       // 2. Add related memory
       await aiMemoryService.addEnhanced(mockKeyPair, mockHubId, {
         content: "Redis implementation details",
-        role: "system",
-        p: "ai_agent",
         importance: 0.9,
         memoryType: "knowledge",
+        p: "ai_agent",
+        role: "system",
       });
 
       // 3. Link reasoning chain to memory
@@ -199,7 +200,7 @@ describe("MCP Server Integration Tests", () => {
         mockHubId,
         "reasoning_chain_memory",
         "redis_details_memory",
-        { targetId: "redis_details_memory", type: "supports", strength: 0.9 },
+        { strength: 0.9, targetId: "redis_details_memory", type: "supports" },
       );
 
       expect(linkResult).toBe("Memory link created successfully");
@@ -233,9 +234,9 @@ describe("MCP Server Integration Tests", () => {
       const { fetchEvents } = await import("../../src/relay.js");
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
-          Id: "ctx_mem_1",
-          Content: contextMemory.content,
           ai_context_id: "auth_project_context",
+          Content: contextMemory.content,
+          Id: "ctx_mem_1",
         },
       ]);
 
@@ -255,27 +256,27 @@ describe("MCP Server Integration Tests", () => {
       // Mock diverse memory results
       const mockMemories = [
         {
-          Id: "mem_1",
-          Content: "TypeScript configuration",
-          ai_type: "knowledge",
-          ai_importance: "0.9",
           ai_domain: "programming",
+          ai_importance: "0.9",
+          ai_type: "knowledge",
+          Content: "TypeScript configuration",
+          Id: "mem_1",
           Timestamp: "2024-01-01T00:00:00.000Z",
         },
         {
-          Id: "mem_2",
-          Content: "JavaScript debugging",
-          ai_type: "procedure",
-          ai_importance: "0.7",
           ai_domain: "programming",
+          ai_importance: "0.7",
+          ai_type: "procedure",
+          Content: "JavaScript debugging",
+          Id: "mem_2",
           Timestamp: "2024-01-02T00:00:00.000Z",
         },
         {
-          Id: "mem_3",
-          Content: "User interface design",
-          ai_type: "knowledge",
-          ai_importance: "0.6",
           ai_domain: "design",
+          ai_importance: "0.6",
+          ai_type: "knowledge",
+          Content: "User interface design",
+          Id: "mem_3",
           Timestamp: "2024-01-03T00:00:00.000Z",
         },
       ];
@@ -287,9 +288,9 @@ describe("MCP Server Integration Tests", () => {
         mockHubId,
         "programming",
         {
-          memoryType: "knowledge",
-          importanceThreshold: 0.8,
           domain: "programming",
+          importanceThreshold: 0.8,
+          memoryType: "knowledge",
         },
       );
 
@@ -303,14 +304,14 @@ describe("MCP Server Integration Tests", () => {
 
       // Mock diverse memory data for analytics
       const analyticsData = [
-        { ai_type: "knowledge", ai_importance: "0.9" },
-        { ai_type: "knowledge", ai_importance: "0.8" },
-        { ai_type: "conversation", ai_importance: "0.5" },
-        { ai_type: "procedure", ai_importance: "0.7" },
-        { ai_type: "reasoning", ai_importance: "0.3" },
+        { ai_importance: "0.9", ai_type: "knowledge" },
+        { ai_importance: "0.8", ai_type: "knowledge" },
+        { ai_importance: "0.5", ai_type: "conversation" },
+        { ai_importance: "0.7", ai_type: "procedure" },
+        { ai_importance: "0.3", ai_type: "reasoning" },
       ].map((mem, index) => ({
-        Id: `mem_${index}`,
         Content: `Memory ${index}`,
+        Id: `mem_${index}`,
         ...mem,
         Timestamp: `2024-01-0${index + 1}T00:00:00.000Z`,
       }));
@@ -321,15 +322,15 @@ describe("MCP Server Integration Tests", () => {
 
       expect(analytics.totalMemories).toBe(5);
       expect(analytics.memoryTypeDistribution).toEqual({
-        knowledge: 2,
         conversation: 1,
+        knowledge: 2,
         procedure: 1,
         reasoning: 1,
       });
       expect(analytics.importanceDistribution).toEqual({
         high: 3, // 0.9, 0.8, 0.7
-        medium: 2, // 0.5, 0.3
         low: 0, // none
+        medium: 2, // 0.5, 0.3
       });
     });
   });
@@ -361,10 +362,10 @@ describe("MCP Server Integration Tests", () => {
       // Mock malformed event data
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
-          Id: "malformed_mem",
+          ai_context: "invalid_json",
           // Missing required fields
           ai_importance: "invalid_number",
-          ai_context: "invalid_json",
+          Id: "malformed_mem",
         },
       ]);
 
@@ -383,10 +384,10 @@ describe("MCP Server Integration Tests", () => {
       // Create large batch
       const largeBatch = Array.from({ length: 100 }, (_, i) => ({
         content: `Batch memory ${i}`,
-        role: "system",
-        p: "batch_user",
         importance: Math.random(),
         memoryType: "knowledge" as const,
+        p: "batch_user",
+        role: "system",
       }));
 
       const startTime = Date.now();
@@ -411,9 +412,9 @@ describe("MCP Server Integration Tests", () => {
       const { fetchEvents } = await import("../../src/relay.js");
       vi.mocked(fetchEvents).mockResolvedValue([
         {
-          Id: "concurrent_mem",
-          Content: "Concurrent test memory",
           ai_type: "knowledge",
+          Content: "Concurrent test memory",
+          Id: "concurrent_mem",
         },
       ]);
 
@@ -443,10 +444,10 @@ describe("MCP Server Integration Tests", () => {
       // Mock search returning the added memory
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
-          Id: "consistency_mem",
-          Content: basicMemory.content,
           ai_importance: basicMemory.importance!.toString(),
           ai_type: basicMemory.memoryType,
+          Content: basicMemory.content,
+          Id: "consistency_mem",
           p: basicMemory.p,
         },
       ]);
@@ -469,7 +470,7 @@ describe("MCP Server Integration Tests", () => {
         mockHubId,
         "mem_a",
         "mem_b",
-        { targetId: "mem_b", type: "supports", strength: 0.8 },
+        { strength: 0.8, targetId: "mem_b", type: "supports" },
       );
 
       await aiMemoryService.linkMemories(
@@ -477,7 +478,7 @@ describe("MCP Server Integration Tests", () => {
         mockHubId,
         "mem_b",
         "mem_a",
-        { targetId: "mem_a", type: "supports", strength: 0.8 },
+        { strength: 0.8, targetId: "mem_a", type: "supports" },
       );
 
       // Both relationships should be created successfully

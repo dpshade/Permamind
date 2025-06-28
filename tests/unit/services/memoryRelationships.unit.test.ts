@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { aiMemoryService } from "../../../src/services/aiMemoryService.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { MemoryLink, RelationshipType } from "../../../src/models/AIMemory.js";
+import { aiMemoryService } from "../../../src/services/aiMemoryService.js";
 import { memoryRelationships } from "../../fixtures/memories.js";
-import { mockKeyPair, mockHubId } from "../../mocks/aoConnect.js";
+import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 
 vi.mock("../../../src/relay.js", () => ({
   event: vi.fn(),
@@ -26,9 +27,9 @@ describe("Memory Relationships", () => {
 
       for (const type of relationshipTypes) {
         const relationship: MemoryLink = {
+          strength: 0.8,
           targetId: "target_memory",
           type,
-          strength: 0.8,
         };
 
         await expect(
@@ -61,9 +62,9 @@ describe("Memory Relationships", () => {
   describe("Causal Relationships (causes)", () => {
     it("should create causal relationship between memories", async () => {
       const causalLink: MemoryLink = {
+        strength: 0.9,
         targetId: "effect_memory",
         type: "causes",
-        strength: 0.9,
       };
 
       const result = await aiMemoryService.linkMemories(
@@ -79,9 +80,9 @@ describe("Memory Relationships", () => {
 
     it("should create strong causal relationships for direct causation", async () => {
       const strongCausal: MemoryLink = {
+        strength: 0.95,
         targetId: "direct_effect",
         type: "causes",
-        strength: 0.95,
       };
 
       await expect(
@@ -97,9 +98,9 @@ describe("Memory Relationships", () => {
 
     it("should create weak causal relationships for indirect causation", async () => {
       const weakCausal: MemoryLink = {
+        strength: 0.3,
         targetId: "indirect_effect",
         type: "causes",
-        strength: 0.3,
       };
 
       await expect(
@@ -117,9 +118,9 @@ describe("Memory Relationships", () => {
   describe("Support Relationships (supports)", () => {
     it("should create supportive relationships between evidence and claims", async () => {
       const supportLink: MemoryLink = {
+        strength: 0.8,
         targetId: "claim_memory",
         type: "supports",
-        strength: 0.8,
       };
 
       await expect(
@@ -139,9 +140,9 @@ describe("Memory Relationships", () => {
 
       const promises = evidences.map((evidence) =>
         aiMemoryService.linkMemories(mockKeyPair, mockHubId, evidence, claim, {
+          strength: 0.7,
           targetId: claim,
           type: "supports",
-          strength: 0.7,
         }),
       );
 
@@ -155,9 +156,9 @@ describe("Memory Relationships", () => {
   describe("Contradiction Relationships (contradicts)", () => {
     it("should create contradiction relationships between conflicting memories", async () => {
       const contradictLink: MemoryLink = {
+        strength: 0.9,
         targetId: "conflicting_memory",
         type: "contradicts",
-        strength: 0.9,
       };
 
       await expect(
@@ -173,9 +174,9 @@ describe("Memory Relationships", () => {
 
     it("should handle partial contradictions with appropriate strength", async () => {
       const partialContradiction: MemoryLink = {
+        strength: 0.4,
         targetId: "partially_conflicting",
         type: "contradicts",
-        strength: 0.4,
       };
 
       await expect(
@@ -193,9 +194,9 @@ describe("Memory Relationships", () => {
   describe("Extension Relationships (extends)", () => {
     it("should create extension relationships for elaborated concepts", async () => {
       const extensionLink: MemoryLink = {
+        strength: 0.85,
         targetId: "detailed_memory",
         type: "extends",
-        strength: 0.85,
       };
 
       await expect(
@@ -211,9 +212,9 @@ describe("Memory Relationships", () => {
 
     it("should allow hierarchical extension chains", async () => {
       const extensions = [
-        { source: "level1", target: "level2", strength: 0.9 },
-        { source: "level2", target: "level3", strength: 0.8 },
-        { source: "level3", target: "level4", strength: 0.7 },
+        { source: "level1", strength: 0.9, target: "level2" },
+        { source: "level2", strength: 0.8, target: "level3" },
+        { source: "level3", strength: 0.7, target: "level4" },
       ];
 
       for (const ext of extensions) {
@@ -223,7 +224,7 @@ describe("Memory Relationships", () => {
             mockHubId,
             ext.source,
             ext.target,
-            { targetId: ext.target, type: "extends", strength: ext.strength },
+            { strength: ext.strength, targetId: ext.target, type: "extends" },
           ),
         ).resolves.toBe("Memory link created successfully");
       }
@@ -233,9 +234,9 @@ describe("Memory Relationships", () => {
   describe("Reference Relationships (references)", () => {
     it("should create reference relationships for citations", async () => {
       const referenceLink: MemoryLink = {
+        strength: 0.6,
         targetId: "referenced_memory",
         type: "references",
-        strength: 0.6,
       };
 
       await expect(
@@ -259,7 +260,7 @@ describe("Memory Relationships", () => {
           mockHubId,
           mainMemory,
           source,
-          { targetId: source, type: "references", strength: 0.5 },
+          { strength: 0.5, targetId: source, type: "references" },
         ),
       );
 
@@ -277,33 +278,33 @@ describe("Memory Relationships", () => {
       const relationships = [
         {
           source: "memory_A",
+          strength: 0.9,
           target: "memory_B",
           type: "causes" as const,
-          strength: 0.9,
         },
         {
           source: "memory_B",
+          strength: 0.8,
           target: "memory_C",
           type: "supports" as const,
-          strength: 0.8,
         },
         {
           source: "memory_C",
+          strength: 0.7,
           target: "memory_D",
           type: "contradicts" as const,
-          strength: 0.7,
         },
         {
           source: "memory_D",
+          strength: 0.6,
           target: "memory_E",
           type: "extends" as const,
-          strength: 0.6,
         },
         {
           source: "memory_E",
+          strength: 0.5,
           target: "memory_A",
           type: "references" as const,
-          strength: 0.5,
         },
       ];
 
@@ -313,7 +314,7 @@ describe("Memory Relationships", () => {
           mockHubId,
           rel.source,
           rel.target,
-          { targetId: rel.target, type: rel.type, strength: rel.strength },
+          { strength: rel.strength, targetId: rel.target, type: rel.type },
         ),
       );
 
@@ -326,15 +327,15 @@ describe("Memory Relationships", () => {
     it("should handle bidirectional relationships", async () => {
       // Create bidirectional support relationship
       const forwardLink: MemoryLink = {
+        strength: 0.8,
         targetId: "memory_B",
         type: "supports",
-        strength: 0.8,
       };
 
       const backwardLink: MemoryLink = {
+        strength: 0.8,
         targetId: "memory_A",
         type: "supports",
-        strength: 0.8,
       };
 
       await expect(
@@ -360,9 +361,9 @@ describe("Memory Relationships", () => {
 
     it("should prevent self-referential relationships", async () => {
       const selfLink: MemoryLink = {
+        strength: 0.5,
         targetId: "memory_self",
         type: "supports",
-        strength: 0.5,
       };
 
       // Self-referential relationships should be rejected for data integrity
