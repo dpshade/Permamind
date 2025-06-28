@@ -20,8 +20,8 @@ export const evalProcess = async (
   try {
     const tags = Eval();
     await send(signer, processId, tags, data);
-  } catch (e) {
-    // Silent error handling
+  } catch {
+    // Silent error handling for evaluation process
   }
 };
 
@@ -42,31 +42,27 @@ export const event = async (
   tags.push(idTag);
   try {
     await send(signer, hub, tags, null);
-  } catch (e) {
-    // Silent error handling
+  } catch {
+    // Silent error handling for events
   }
 };
 
-export const info = async (processId: string): Promise<any> => {
-  try {
-    const message = Info();
-    const result = await read(processId, message);
-    if (result) {
-      const json = JSON.parse(result.Data);
-      return json;
-    } else {
-      throw new Error("Not Found");
-    }
-  } catch (e) {
-    throw e;
+export const info = async (processId: string): Promise<unknown> => {
+  const message = Info();
+  const result = await read(processId, message);
+  if (result) {
+    const json = JSON.parse(result.Data);
+    return json;
+  } else {
+    throw new Error("Not Found");
   }
 };
 
 export const fetchEvents = async (
   processId: string,
   filters: string,
-): Promise<any[]> => {
-  let events: any[] = [];
+): Promise<unknown[]> => {
+  let events: unknown[] = [];
   try {
     const message = FetchEvents(filters);
     const result = await read(processId, message);
@@ -75,8 +71,8 @@ export const fetchEvents = async (
       const json = JSON.parse(result.Data);
       events = json;
     }
-  } catch (e) {
-    // Silent error handling
+  } catch {
+    // Silent error handling for fetch events
   }
   return events;
 };
@@ -84,13 +80,13 @@ export const fetchEvents = async (
 export const register = async (
   signer: JWKInterface,
   processId: string,
-  spec: any,
+  spec: unknown,
 ): Promise<void> => {
   try {
     const message = Register();
     await send(signer, processId, message, JSON.stringify(spec));
-  } catch (e) {
-    // Silent error handling
+  } catch {
+    // Silent error handling for register
   }
 };
 
@@ -99,8 +95,8 @@ export const getZones = async (
   filters: string,
   page: number,
   limit: number,
-): Promise<any[]> => {
-  let events: any[] = [];
+): Promise<unknown[]> => {
+  let events: unknown[] = [];
   try {
     const message = GetZones(filters, page.toString(), limit.toString());
     const result = await read(processId, message);
@@ -108,8 +104,8 @@ export const getZones = async (
       const json = JSON.parse(result.Data);
       events = json;
     }
-  } catch (e) {
-    // Silent error handling
+  } catch {
+    // Silent error handling for get zones
   }
   return events;
 };
@@ -117,8 +113,8 @@ export const getZones = async (
 export const getZone = async (
   processId: string,
   zoneId: string,
-): Promise<any> => {
-  let events: any[] = [];
+): Promise<unknown> => {
+  let events: unknown[] = [];
   try {
     const message = GetZoneById(zoneId);
     const result = await read(processId, message);
@@ -126,8 +122,8 @@ export const getZone = async (
       const json = JSON.parse(result.Data);
       events = json;
     }
-  } catch (e) {
-    // Silent error handling
+  } catch {
+    // Silent error handling for get zone
   }
   return events;
 };

@@ -14,16 +14,16 @@ function sleep(ms: number) {
 }
 
 const { dryrun, message, result, spawn } = connect({
-  MODE: "legacy",
   CU_URL: CU_URL(),
   GATEWAY_URL: GATEWAY_URL(),
+  MODE: "legacy",
   MU_URL: MU_URL(),
 });
 
 export async function send(
   signer: JWKInterface,
   processId: string,
-  tags: any[],
+  tags: { name: string; value: string }[],
   data: null | string,
 ) {
   const _message = {
@@ -38,7 +38,10 @@ export async function send(
   return await readMessage(messageId, processId);
 }
 
-export const read = async (processId: string, tags: any[]) => {
+export const read = async (
+  processId: string,
+  tags: { name: string; value: string }[],
+) => {
   const result = await dryrun({
     CU_URL: CU_URL(),
     GATEWAY_URL: GATEWAY_URL(),

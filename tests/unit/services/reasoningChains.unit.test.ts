@@ -609,7 +609,7 @@ describe("Reasoning Chains", () => {
 
     it("should validate step type consistency", () => {
       const validStepTypes = ["observation", "thought", "action", "conclusion"];
-      const invalidStepType = "invalid_step" as any;
+      const invalidStepType = "invalid_step" as never;
 
       validStepTypes.forEach((stepType) => {
         expect(["observation", "thought", "action", "conclusion"]).toContain(

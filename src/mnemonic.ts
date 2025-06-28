@@ -4,11 +4,7 @@ import {
   mnemonicToSeed,
   wordlists,
 } from "bip39-web-crypto";
-import {
-  generateKeyPair,
-  getKeyPairFromMnemonic,
-  getKeyPairFromSeed,
-} from "human-crypto-keys";
+import { generateKeyPair, getKeyPairFromSeed } from "human-crypto-keys";
 
 /**
  * Generate a 12 word mnemonic for an Arweave key
@@ -25,7 +21,7 @@ export async function generateMnemonic() {
 export async function getKeyFromMnemonic(mnemonic: string) {
   const seedBuffer = await mnemonicToSeed(mnemonic);
   const { privateKey } = await getKeyPairFromSeed(
-    //@ts-ignore
+    // @ts-expect-error: seedBuffer type mismatch with library expectations
     seedBuffer,
     {
       id: "rsa",
@@ -33,7 +29,7 @@ export async function getKeyFromMnemonic(mnemonic: string) {
     },
     { privateKeyFormat: "pkcs8-der" },
   );
-  const jwk = pkcs8ToJwk(privateKey as any);
+  const jwk = pkcs8ToJwk(privateKey as unknown as Uint8Array);
   return jwk;
 }
 
@@ -90,7 +86,7 @@ export async function validateMnemonic(mnemonic: string): Promise<boolean> {
     // Use bip39 validation
     const result = await bip39Validate(mnemonic, wordlists.english);
     return result;
-  } catch (err) {
+  } catch {
     return false;
   }
 }

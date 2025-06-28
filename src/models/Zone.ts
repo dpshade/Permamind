@@ -1,5 +1,5 @@
 export type Zone = {
   owner: string;
   registeredAt: number;
-  spec: any;
+  spec: unknown;
 };

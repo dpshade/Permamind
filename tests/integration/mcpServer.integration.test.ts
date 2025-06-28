@@ -7,7 +7,6 @@ import {
   it,
   vi,
 } from "vitest";
-import { z } from "zod";
 
 import { aiMemoryService } from "../../src/services/aiMemoryService.js";
 import {
@@ -22,7 +21,7 @@ vi.mock("../../src/process.js");
 vi.mock("../../src/services/registry.js");
 
 describe("MCP Server Integration Tests", () => {
-  let mockKeyPair: any;
+  let mockKeyPair: Record<string, unknown>;
   let mockHubId: string;
 
   beforeAll(async () => {

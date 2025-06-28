@@ -6,7 +6,7 @@ import { HUB_REGISTRY_ID } from "../constants.js";
 import { ProfileCreateData } from "../models/Profile.js";
 import { Tag } from "../models/Tag.js";
 import { createProcess } from "../process.js";
-import { evalProcess, event, getZone, getZones, register } from "../relay.js";
+import { evalProcess, event, getZone, register } from "../relay.js";
 import { luaModule } from "./hub_lua.js";
 
 export interface HubRegistryService {
@@ -18,7 +18,7 @@ export interface HubRegistryService {
   register: (
     signer: JWKInterface,
     processId: string,
-    spec: any,
+    spec: unknown,
   ) => Promise<void>;
 }
 
@@ -28,39 +28,31 @@ const service = (): HubRegistryService => {
       signer: JWKInterface,
       profileData: ProfileCreateData,
     ): Promise<string> => {
-      try {
-        const processId = await createProcess(signer);
-        await evaluateHub(signer, processId);
-        //// console.log removed
-        const hubSpec = {
-          description: "Social message hub",
-          kinds: ["0", "1", "7", "6", "3", "2"],
-          processId: processId,
-          profile: profileData,
-          type: "hub",
-          version: "1.0.0",
-        };
-        await hubRegistryService.register(signer, HUB_REGISTRY_ID(), hubSpec);
-        await createProfile(signer, processId, profileData);
-        //// console.log removed
-        //// console.log removed
-        return processId;
-      } catch (error) {
-        throw error;
-      }
+      const processId = await createProcess(signer);
+      await evaluateHub(signer, processId);
+      //// console.log removed
+      const hubSpec = {
+        description: "Social message hub",
+        kinds: ["0", "1", "7", "6", "3", "2"],
+        processId: processId,
+        profile: profileData,
+        type: "hub",
+        version: "1.0.0",
+      };
+      await hubRegistryService.register(signer, HUB_REGISTRY_ID(), hubSpec);
+      await createProfile(signer, processId, profileData);
+      //// console.log removed
+      //// console.log removed
+      return processId;
     },
     getZoneById: async (processId: string, owner: string): Promise<Zone> => {
-      try {
-        const zone = await getZone(processId, owner);
-        return zone;
-      } catch (e) {
-        throw e;
-      }
+      const zone = await getZone(processId, owner);
+      return zone as Zone;
     },
     register: async (
       signer: JWKInterface,
       processId: string,
-      spec: any,
+      spec: unknown,
     ): Promise<void> => {
       register(signer, processId, spec);
     },
@@ -89,13 +81,17 @@ async function createProfile(
     tags.push(kindTag);
     tags.push(contentTag);
     await event(signer, hubId, tags);
-  } catch (err) {}
+  } catch {
+    // Silent error handling for profile creation
+  }
 }
 
 async function evaluateHub(signer: JWKInterface, processId: string) {
   try {
     await evalProcess(signer, luaModule, processId);
-  } catch (e) {}
+  } catch {
+    // Silent error handling for hub evaluation
+  }
 }
 
 export const hubRegistryService = service();
