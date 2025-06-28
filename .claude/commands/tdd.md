@@ -7,6 +7,7 @@ A test-first development workflow following the Red-Green-Refactor cycle.
 Execute development using Test-Driven Development principles:
 
 ### Phase 1: 🔴 WRITE TESTS & COMMIT
+
 **Create failing tests first**
 
 - Understand requirements and expected behavior
@@ -16,6 +17,7 @@ Execute development using Test-Driven Development principles:
 - Use TodoWrite to track test implementation tasks
 
 ### Phase 2: 🟢 CODE & ITERATE
+
 **Make tests pass with minimal implementation**
 
 - Implement just enough code to make tests pass
@@ -25,6 +27,7 @@ Execute development using Test-Driven Development principles:
 - Commit working implementation (Green phase)
 
 ### Phase 3: 🔵 REFACTOR & COMMIT
+
 **Improve code quality while keeping tests green**
 
 - Refactor implementation for better design
@@ -42,24 +45,28 @@ Execute development using Test-Driven Development principles:
 ## Detailed Workflow Steps
 
 ### 1. Test Planning
+
 - Use TodoWrite to create test implementation plan
 - Identify edge cases and error conditions
 - Plan test structure and organization
 - Define expected inputs/outputs
 
 ### 2. Test Implementation
+
 - Write unit tests for core functionality
 - Write integration tests for complex interactions
 - Write error handling tests
 - Ensure tests are readable and maintainable
 
 ### 3. Minimal Implementation
+
 - Write simplest code that passes tests
 - Don't optimize prematurely
 - Focus on correctness first
 - Validate with frequent test runs
 
 ### 4. Iterative Improvement
+
 - Refactor implementation incrementally
 - Add error handling and edge cases
 - Improve performance where needed

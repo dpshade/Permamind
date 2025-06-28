@@ -7,6 +7,7 @@ A visual feedback-driven development workflow for UI/UX features and visual comp
 Execute development with continuous visual validation:
 
 ### Phase 1: 💻 WRITE CODE
+
 **Implement visual features**
 
 - Use TodoWrite to plan visual implementation tasks
@@ -16,6 +17,7 @@ Execute development with continuous visual validation:
 - Use existing design system components
 
 ### Phase 2: 📸 SCREENSHOT RESULT
+
 **Capture visual output for validation**
 
 - Run the application or component
@@ -25,6 +27,7 @@ Execute development with continuous visual validation:
 - Save screenshots for comparison
 
 ### Phase 3: 🔄 ITERATE
+
 **Refine based on visual feedback**
 
 - Analyze screenshots for improvements needed
@@ -42,18 +45,21 @@ Execute development with continuous visual validation:
 ## Detailed Workflow Steps
 
 ### 1. Visual Planning
+
 - Understand design requirements and mockups
 - Identify existing UI components to reuse
 - Plan responsive behavior and breakpoints
 - Create todos for visual implementation tasks
 
-### 2. Initial Implementation  
+### 2. Initial Implementation
+
 - Write HTML/JSX structure
 - Add CSS/styling (Tailwind, styled-components, etc.)
 - Implement basic functionality
 - Ensure accessibility standards
 
 ### 3. Visual Capture
+
 - Start development server
 - Navigate to relevant views/components
 - Take screenshots of different states:
@@ -64,6 +70,7 @@ Execute development with continuous visual validation:
   - Mobile/tablet/desktop breakpoints
 
 ### 4. Visual Analysis
+
 - Compare screenshots with requirements
 - Identify spacing, alignment, color issues
 - Check typography and visual hierarchy
@@ -71,6 +78,7 @@ Execute development with continuous visual validation:
 - Note accessibility concerns
 
 ### 5. Iterative Refinement
+
 - Fix identified visual issues
 - Enhance styling and polish
 - Test cross-browser compatibility

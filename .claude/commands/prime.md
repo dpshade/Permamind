@@ -5,12 +5,13 @@ Load the following documentation into context for development:
 ## Fetch and load these resources:
 
 ### AO Ecosystem
+
 1. **AO Cookbook** - https://github.com/permaweb/ao-cookbook
    - Read the entire README and main documentation
    - Load Getting Started, Core Concepts, Guides, and References sections
    - Include all code snippets and examples
 
-2. **AOS Documentation** - https://github.com/permaweb/aos  
+2. **AOS Documentation** - https://github.com/permaweb/aos
    - Load complete README and documentation
    - Include installation instructions, CLI commands, and usage patterns
    - Load process creation and management documentation
@@ -19,7 +20,7 @@ Load the following documentation into context for development:
    - Load complete README and protocol overview
    - Load all VIPs (Velocity Improvement Proposals):
      - VIP-01: Basic protocol flow, message validation, hub communication
-     - VIP-02: Follow lists and social graph management  
+     - VIP-02: Follow lists and social graph management
      - VIP-03: Text messages, replies, and threading
      - VIP-04: Reactions and social interactions
      - VIP-05: Media attachments and content handling
@@ -34,6 +35,7 @@ Load the following documentation into context for development:
    - Load integration examples and usage patterns
 
 ### MCP (Model Context Protocol) Framework
+
 5. **FastMCP** - https://github.com/punkpeye/fastmcp
    - Load complete TypeScript MCP server framework documentation
    - Include tool, resource, and prompt definitions
@@ -53,6 +55,7 @@ Load the following documentation into context for development:
    - Load server creation and client integration patterns
 
 ### Claude Development & Agent Building
+
 8. **Claude Code Overview** - https://docs.anthropic.com/en/docs/claude-code/overview
    - Load complete Claude Code documentation
    - Include features, capabilities, and usage instructions
@@ -69,6 +72,7 @@ Load the following documentation into context for development:
     - Include evaluation methods and multi-agent coordination patterns
 
 ### UI Framework & Components
+
 11. **Svelte** - https://github.com/sveltejs/svelte
     - Load complete Svelte framework documentation and README
     - Include core concepts, syntax, and reactive patterns
@@ -93,20 +97,21 @@ Load the following documentation into context for development:
 ## After loading all documentation:
 
 Confirm context is loaded and ready by saying:
+
 ```
 ✅ PRIME CONTEXT LOADED
 
 Documentation now available:
 
 🔧 AO Ecosystem:
-- AO Cookbook (development patterns & code snippets)  
+- AO Cookbook (development patterns & code snippets)
 - AOS (operating system & CLI commands)
 - Velocity Protocol (decentralized social/operational network for AO)
   - All VIPs 01-07 (protocol specs, social features, security)
 
 🌐 MCP Framework:
 - FastMCP (TypeScript MCP server framework)
-- MCP-Use (LangChain.js MCP client library)  
+- MCP-Use (LangChain.js MCP client library)
 - Model Context Protocol (official specs & SDKs)
 
 🤖 Agent Development:

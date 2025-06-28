@@ -26,3 +26,6 @@ templates/
 *.tmp
 *.temp
 .nyc_output/
+
+# Dashboard build files
+dashboard/.svelte-kit/

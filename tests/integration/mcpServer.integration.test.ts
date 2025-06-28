@@ -322,12 +322,12 @@ describe("MCP Server Integration Tests", () => {
       expect(analytics.totalMemories).toBe(5);
       expect(analytics.memoryTypeDistribution).toEqual({
         conversation: 1,
+        enhancement: 0,
         knowledge: 2,
+        performance: 0,
         procedure: 1,
         reasoning: 1,
         workflow: 0,
-        enhancement: 0,
-        performance: 0,
       });
       expect(analytics.importanceDistribution).toEqual({
         high: 3, // 0.9, 0.8, 0.7

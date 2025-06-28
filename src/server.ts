@@ -13,13 +13,13 @@ import { MemoryType } from "./models/AIMemory.js";
 import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
+import { CrossHubDiscoveryService } from "./services/CrossHubDiscoveryService.js";
 import { memoryService } from "./services/memory.js";
 import { hubRegistryService } from "./services/registry.js";
+import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
+import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.js";
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
-import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.js";
-import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
-import { CrossHubDiscoveryService } from "./services/CrossHubDiscoveryService.js";
 
 let keyPair: JWKInterface;
 let publicKey: string;
@@ -68,26 +68,32 @@ const server = new FastMCP({
 
 // Initialize workflow ecosystem services
 let workflowServices: {
-  performanceTracker: WorkflowPerformanceTracker;
-  relationshipManager: WorkflowRelationshipManager;
-  enhancementEngine: WorkflowEnhancementEngine;
   analyticsService: WorkflowAnalyticsService;
   crossHubDiscovery: CrossHubDiscoveryService;
+  enhancementEngine: WorkflowEnhancementEngine;
+  performanceTracker: WorkflowPerformanceTracker;
+  relationshipManager: WorkflowRelationshipManager;
 } | null = null;
 
 function initializeWorkflowServices() {
   const performanceTracker = new WorkflowPerformanceTracker();
   const relationshipManager = new WorkflowRelationshipManager();
-  const enhancementEngine = new WorkflowEnhancementEngine(performanceTracker, relationshipManager);
-  const analyticsService = new WorkflowAnalyticsService(performanceTracker, relationshipManager);
-  const crossHubDiscovery = new CrossHubDiscoveryService();
-  
-  workflowServices = {
+  const enhancementEngine = new WorkflowEnhancementEngine(
     performanceTracker,
     relationshipManager,
-    enhancementEngine,
+  );
+  const analyticsService = new WorkflowAnalyticsService(
+    performanceTracker,
+    relationshipManager,
+  );
+  const crossHubDiscovery = new CrossHubDiscoveryService();
+
+  workflowServices = {
     analyticsService,
-    crossHubDiscovery
+    crossHubDiscovery,
+    enhancementEngine,
+    performanceTracker,
+    relationshipManager,
   };
 
   // Start background enhancement cycles
@@ -95,7 +101,7 @@ function initializeWorkflowServices() {
 }
 
 // Background enhancement cycle management
-let enhancementIntervals: Map<string, NodeJS.Timeout> = new Map();
+const enhancementIntervals: Map<string, NodeJS.Timeout> = new Map();
 
 function startBackgroundEnhancementCycles() {
   // Start a periodic check for workflows that need enhancement cycles
@@ -105,7 +111,7 @@ function startBackgroundEnhancementCycles() {
     try {
       // Get all workflow memories to find active workflows
       const allMemories = await aiMemoryService.searchAdvanced(hubId, "", {
-        memoryType: "workflow"
+        memoryType: "workflow",
       });
 
       // Extract unique workflow IDs
@@ -133,23 +139,34 @@ function startEnhancementCycleForWorkflow(workflowId: string) {
 
   // Initialize enhancement loop for this workflow
   const optimizationTargets = [
-    { metric: "execution_time", targetValue: 0.8, weight: 0.3, achieved: false },
-    { metric: "success_rate", targetValue: 0.95, weight: 0.4, achieved: false },
-    { metric: "quality_score", targetValue: 0.9, weight: 0.3, achieved: false }
+    {
+      achieved: false,
+      metric: "execution_time",
+      targetValue: 0.8,
+      weight: 0.3,
+    },
+    { achieved: false, metric: "success_rate", targetValue: 0.95, weight: 0.4 },
+    { achieved: false, metric: "quality_score", targetValue: 0.9, weight: 0.3 },
   ] as any[];
 
-  workflowServices.enhancementEngine.initializeEnhancementLoop(workflowId, optimizationTargets);
+  workflowServices.enhancementEngine.initializeEnhancementLoop(
+    workflowId,
+    optimizationTargets,
+  );
 
   // Run enhancement cycles periodically
   const runEnhancementCycle = async () => {
     if (!workflowServices) return;
 
     try {
-      const result = await workflowServices.enhancementEngine.runEnhancementCycle(workflowId);
-      
+      const result =
+        await workflowServices.enhancementEngine.runEnhancementCycle(
+          workflowId,
+        );
+
       // Schedule next cycle based on the recommendation
       const nextInterval = Math.max(result.nextCycleIn, 300000); // Minimum 5 minutes
-      
+
       clearTimeout(enhancementIntervals.get(workflowId));
       const timeout = setTimeout(runEnhancementCycle, nextInterval);
       enhancementIntervals.set(workflowId, timeout);
@@ -585,12 +602,21 @@ server.addTool({
   execute: async (args) => {
     try {
       const workflowMemory = {
+        capabilities: args.capabilities
+          ? args.capabilities.split(",").map((s) => s.trim())
+          : [],
         content: args.content,
         context: {
           domain: args.domain,
           sessionId: args.sessionId,
           topic: args.topic,
         },
+        dependencies: args.dependencies
+          ? args.dependencies.split(",").map((s) => s.trim())
+          : [],
+        enhancement: args.enhancement
+          ? JSON.parse(args.enhancement)
+          : undefined,
         importance: args.importance || 0.7,
         memoryType: "workflow" as MemoryType,
         metadata: {
@@ -599,18 +625,23 @@ server.addTool({
           tags: args.tags ? args.tags.split(",").map((s) => s.trim()) : [],
         },
         p: args.p,
+        performance: args.performance
+          ? JSON.parse(args.performance)
+          : undefined,
+        requirements: args.requirements
+          ? args.requirements.split(",").map((s) => s.trim())
+          : [],
         role: args.role,
+        stage: args.stage,
         workflowId: args.workflowId,
         workflowVersion: args.workflowVersion || "1.0.0",
-        stage: args.stage,
-        performance: args.performance ? JSON.parse(args.performance) : undefined,
-        enhancement: args.enhancement ? JSON.parse(args.enhancement) : undefined,
-        dependencies: args.dependencies ? args.dependencies.split(",").map((s) => s.trim()) : [],
-        capabilities: args.capabilities ? args.capabilities.split(",").map((s) => s.trim()) : [],
-        requirements: args.requirements ? args.requirements.split(",").map((s) => s.trim()) : [],
       };
 
-      const result = await aiMemoryService.addEnhanced(keyPair, hubId, workflowMemory);
+      const result = await aiMemoryService.addEnhanced(
+        keyPair,
+        hubId,
+        workflowMemory,
+      );
       return result;
     } catch (error) {
       return `Error: ${error}`;
@@ -618,22 +649,49 @@ server.addTool({
   },
   name: "addWorkflowMemory",
   parameters: z.object({
-    content: z.string().describe("The workflow execution content or description"),
-    workflowId: z.string().describe("Unique identifier for the workflow"),
-    stage: z.enum(["planning", "execution", "evaluation", "optimization", "archived"]).describe("Current workflow stage"),
-    p: z.string().describe("Public key of the participant"),
-    role: z.string().describe("Role of the author (system/user/assistant)"),
-    workflowVersion: z.string().optional().describe("Version of the workflow (default: 1.0.0)"),
-    performance: z.string().optional().describe("JSON string of performance metrics"),
-    enhancement: z.string().optional().describe("JSON string of enhancement data"),
-    dependencies: z.string().optional().describe("Comma-separated list of dependency workflow IDs"),
-    capabilities: z.string().optional().describe("Comma-separated list of workflow capabilities"),
-    requirements: z.string().optional().describe("Comma-separated list of workflow requirements"),
-    importance: z.number().min(0).max(1).optional().describe("Importance score 0-1 (default: 0.7)"),
+    capabilities: z
+      .string()
+      .optional()
+      .describe("Comma-separated list of workflow capabilities"),
+    content: z
+      .string()
+      .describe("The workflow execution content or description"),
+    dependencies: z
+      .string()
+      .optional()
+      .describe("Comma-separated list of dependency workflow IDs"),
     domain: z.string().optional().describe("Domain or category"),
+    enhancement: z
+      .string()
+      .optional()
+      .describe("JSON string of enhancement data"),
+    importance: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Importance score 0-1 (default: 0.7)"),
+    p: z.string().describe("Public key of the participant"),
+    performance: z
+      .string()
+      .optional()
+      .describe("JSON string of performance metrics"),
+    requirements: z
+      .string()
+      .optional()
+      .describe("Comma-separated list of workflow requirements"),
+    role: z.string().describe("Role of the author (system/user/assistant)"),
     sessionId: z.string().optional().describe("Session or execution ID"),
-    topic: z.string().optional().describe("Topic or subject"),
+    stage: z
+      .enum(["planning", "execution", "evaluation", "optimization", "archived"])
+      .describe("Current workflow stage"),
     tags: z.string().optional().describe("Comma-separated list of tags"),
+    topic: z.string().optional().describe("Topic or subject"),
+    workflowId: z.string().describe("Unique identifier for the workflow"),
+    workflowVersion: z
+      .string()
+      .optional()
+      .describe("Version of the workflow (default: 1.0.0)"),
   }),
 });
 
@@ -649,21 +707,21 @@ server.addTool({
   execute: async (args) => {
     try {
       const performance = {
-        executionTime: args.executionTime,
-        success: args.success,
-        errorRate: args.errorRate || 0,
-        qualityScore: args.qualityScore,
         completionRate: args.completionRate || 1.0,
-        retryCount: args.retryCount || 0,
+        errorRate: args.errorRate || 0,
+        executionTime: args.executionTime,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: args.qualityScore,
         resourceUsage: {
-          memoryUsage: args.memoryUsage || 0,
           cpuTime: args.cpuTime || 0,
+          memoryUsage: args.memoryUsage || 0,
           networkRequests: args.networkRequests || 0,
           storageOperations: args.storageOperations || 0,
           toolCalls: args.toolCalls || 0,
         },
+        retryCount: args.retryCount || 0,
+        success: args.success,
         userSatisfaction: args.userSatisfaction,
-        lastExecuted: new Date().toISOString(),
       };
 
       // Create performance memory
@@ -681,19 +739,26 @@ server.addTool({
           tags: ["performance", "metrics", args.workflowId],
         },
         p: args.p,
-        role: "system",
-        workflowId: args.workflowId,
-        stage: "evaluation",
         performance,
+        role: "system",
+        stage: "evaluation",
+        workflowId: args.workflowId,
       };
 
-      const result = await aiMemoryService.addEnhanced(keyPair, hubId, performanceMemory);
-      
+      const result = await aiMemoryService.addEnhanced(
+        keyPair,
+        hubId,
+        performanceMemory,
+      );
+
       // Also track in performance tracker if available
       if (workflowServices) {
-        workflowServices.performanceTracker.recordPerformance(args.workflowId, performance);
+        workflowServices.performanceTracker.recordPerformance(
+          args.workflowId,
+          performance,
+        );
       }
-      
+
       return result;
     } catch (error) {
       return `Error: ${error}`;
@@ -701,20 +766,50 @@ server.addTool({
   },
   name: "trackWorkflowPerformance",
   parameters: z.object({
-    workflowId: z.string().describe("Unique identifier for the workflow"),
-    p: z.string().describe("Public key of the participant"),
-    executionTime: z.number().describe("Execution time in milliseconds"),
-    success: z.boolean().describe("Whether the workflow execution was successful"),
-    qualityScore: z.number().min(0).max(1).describe("Quality score of the output (0-1)"),
-    errorRate: z.number().min(0).max(1).optional().describe("Error rate (0-1, default: 0)"),
-    completionRate: z.number().min(0).max(1).optional().describe("Completion rate (0-1, default: 1.0)"),
-    retryCount: z.number().optional().describe("Number of retries (default: 0)"),
-    memoryUsage: z.number().optional().describe("Memory usage in MB"),
+    completionRate: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Completion rate (0-1, default: 1.0)"),
     cpuTime: z.number().optional().describe("CPU time in milliseconds"),
-    networkRequests: z.number().optional().describe("Number of network requests"),
-    storageOperations: z.number().optional().describe("Number of storage operations"),
+    errorRate: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Error rate (0-1, default: 0)"),
+    executionTime: z.number().describe("Execution time in milliseconds"),
+    memoryUsage: z.number().optional().describe("Memory usage in MB"),
+    networkRequests: z
+      .number()
+      .optional()
+      .describe("Number of network requests"),
+    p: z.string().describe("Public key of the participant"),
+    qualityScore: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe("Quality score of the output (0-1)"),
+    retryCount: z
+      .number()
+      .optional()
+      .describe("Number of retries (default: 0)"),
+    storageOperations: z
+      .number()
+      .optional()
+      .describe("Number of storage operations"),
+    success: z
+      .boolean()
+      .describe("Whether the workflow execution was successful"),
     toolCalls: z.number().optional().describe("Number of tool calls"),
-    userSatisfaction: z.number().min(0).max(1).optional().describe("User satisfaction score (0-1)"),
+    userSatisfaction: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("User satisfaction score (0-1)"),
+    workflowId: z.string().describe("Unique identifier for the workflow"),
   }),
 });
 
@@ -750,6 +845,7 @@ server.addTool({
           domain: "workflow_relationships",
           topic: "workflow_coordination",
         },
+        dependencies: [args.targetWorkflowId],
         importance: 0.6,
         memoryType: "knowledge" as MemoryType,
         metadata: {
@@ -759,23 +855,22 @@ server.addTool({
         },
         p: args.p,
         role: "system",
-        workflowId: args.sourceWorkflowId,
         stage: "planning",
-        dependencies: [args.targetWorkflowId],
+        workflowId: args.sourceWorkflowId,
       };
 
       await aiMemoryService.addEnhanced(keyPair, hubId, relationshipMemory);
-      
+
       // Also track in relationship manager if available
       if (workflowServices) {
         workflowServices.relationshipManager.createRelationship(
           args.sourceWorkflowId,
           args.targetWorkflowId,
           args.relationshipType,
-          args.strength
+          args.strength,
         );
       }
-      
+
       return result;
     } catch (error) {
       return `Error: ${error}`;
@@ -783,14 +878,31 @@ server.addTool({
   },
   name: "createWorkflowRelationship",
   parameters: z.object({
+    p: z
+      .string()
+      .describe("Public key of the participant creating the relationship"),
+    relationshipType: z
+      .enum([
+        "inherits",
+        "composes",
+        "enhances",
+        "triggers",
+        "depends_on",
+        "replaces",
+        "causes",
+        "supports",
+        "contradicts",
+        "extends",
+        "references",
+      ])
+      .describe("Type of relationship between workflows"),
     sourceWorkflowId: z.string().describe("ID of the source workflow"),
+    strength: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe("Strength of the relationship (0-1)"),
     targetWorkflowId: z.string().describe("ID of the target workflow"),
-    relationshipType: z.enum([
-      "inherits", "composes", "enhances", "triggers", "depends_on", "replaces",
-      "causes", "supports", "contradicts", "extends", "references"
-    ]).describe("Type of relationship between workflows"),
-    strength: z.number().min(0).max(1).describe("Strength of the relationship (0-1)"),
-    p: z.string().describe("Public key of the participant creating the relationship"),
   }),
 });
 
@@ -806,20 +918,22 @@ server.addTool({
   execute: async (args) => {
     try {
       const enhancement = {
-        id: args.enhancementId || `enhancement_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: args.enhancementType,
-        description: args.description,
-        impact: args.expectedImpact,
         actualImpact: args.actualImpact,
+        code: args.code,
+        description: args.description,
+        id:
+          args.enhancementId ||
+          `enhancement_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        impact: args.expectedImpact,
+        parameters: args.parameters ? JSON.parse(args.parameters) : {},
+        type: args.enhancementType,
         validation: {
-          isValid: args.isValid,
           confidence: args.confidence || 0.5,
-          testResults: args.testResults ? JSON.parse(args.testResults) : [],
+          isValid: args.isValid,
           riskAssessment: args.riskLevel,
+          testResults: args.testResults ? JSON.parse(args.testResults) : [],
           validatedAt: new Date().toISOString(),
         },
-        code: args.code,
-        parameters: args.parameters ? JSON.parse(args.parameters) : {},
       };
 
       const enhancementMemory = {
@@ -828,6 +942,7 @@ server.addTool({
           domain: "workflow_enhancement",
           topic: "self_improvement",
         },
+        enhancement,
         importance: Math.max(0.5, args.expectedImpact),
         memoryType: "enhancement" as MemoryType,
         metadata: {
@@ -837,18 +952,24 @@ server.addTool({
         },
         p: args.p,
         role: "system",
-        workflowId: args.workflowId,
         stage: "optimization",
-        enhancement,
+        workflowId: args.workflowId,
       };
 
-      const result = await aiMemoryService.addEnhanced(keyPair, hubId, enhancementMemory);
-      
+      const result = await aiMemoryService.addEnhanced(
+        keyPair,
+        hubId,
+        enhancementMemory,
+      );
+
       // Also track in analytics service if available
       if (workflowServices) {
-        workflowServices.analyticsService.addEnhancement(args.workflowId, enhancement);
+        workflowServices.analyticsService.addEnhancement(
+          args.workflowId,
+          enhancement,
+        );
       }
-      
+
       return result;
     } catch (error) {
       return `Error: ${error}`;
@@ -856,22 +977,55 @@ server.addTool({
   },
   name: "addWorkflowEnhancement",
   parameters: z.object({
-    workflowId: z.string().describe("ID of the workflow being enhanced"),
-    p: z.string().describe("Public key of the participant"),
-    enhancementType: z.enum([
-      "optimization", "bug_fix", "feature_add", "refactor", "parameter_tune",
-      "logic_improve", "error_handling", "user_experience"
-    ]).describe("Type of enhancement"),
+    actualImpact: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Actual measured impact (0-1)"),
+    code: z
+      .string()
+      .optional()
+      .describe("Code changes or implementation details"),
+    confidence: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Confidence in the enhancement (0-1)"),
     description: z.string().describe("Description of the enhancement"),
-    expectedImpact: z.number().min(0).max(1).describe("Expected impact score (0-1)"),
-    actualImpact: z.number().min(0).max(1).optional().describe("Actual measured impact (0-1)"),
+    enhancementId: z
+      .string()
+      .optional()
+      .describe("Unique enhancement ID (auto-generated if not provided)"),
+    enhancementType: z
+      .enum([
+        "optimization",
+        "bug_fix",
+        "feature_add",
+        "refactor",
+        "parameter_tune",
+        "logic_improve",
+        "error_handling",
+        "user_experience",
+      ])
+      .describe("Type of enhancement"),
+    expectedImpact: z
+      .number()
+      .min(0)
+      .max(1)
+      .describe("Expected impact score (0-1)"),
     isValid: z.boolean().describe("Whether the enhancement is validated"),
-    confidence: z.number().min(0).max(1).optional().describe("Confidence in the enhancement (0-1)"),
-    riskLevel: z.enum(["low", "medium", "high", "critical"]).describe("Risk level of applying the enhancement"),
-    enhancementId: z.string().optional().describe("Unique enhancement ID (auto-generated if not provided)"),
-    code: z.string().optional().describe("Code changes or implementation details"),
-    parameters: z.string().optional().describe("JSON string of enhancement parameters"),
+    p: z.string().describe("Public key of the participant"),
+    parameters: z
+      .string()
+      .optional()
+      .describe("JSON string of enhancement parameters"),
+    riskLevel: z
+      .enum(["low", "medium", "high", "critical"])
+      .describe("Risk level of applying the enhancement"),
     testResults: z.string().optional().describe("JSON array of test results"),
+    workflowId: z.string().describe("ID of the workflow being enhanced"),
   }),
 });
 
@@ -888,12 +1042,15 @@ server.addTool({
     try {
       const filters = {
         domain: "workflow",
-        memoryType: args.memoryType as MemoryType,
         importanceThreshold: args.importanceThreshold,
-        timeRange: args.startDate && args.endDate ? {
-          start: args.startDate,
-          end: args.endDate,
-        } : undefined,
+        memoryType: args.memoryType as MemoryType,
+        timeRange:
+          args.startDate && args.endDate
+            ? {
+                end: args.endDate,
+                start: args.startDate,
+              }
+            : undefined,
       };
 
       // Add workflow-specific filters through tags
@@ -907,7 +1064,11 @@ server.addTool({
         query += ` tags:${workflowTags.join(",")}`;
       }
 
-      const memories = await aiMemoryService.searchAdvanced(hubId, query, filters);
+      const memories = await aiMemoryService.searchAdvanced(
+        hubId,
+        query,
+        filters,
+      );
       return JSON.stringify(memories);
     } catch (error) {
       return `Error: ${error}`;
@@ -915,17 +1076,46 @@ server.addTool({
   },
   name: "searchWorkflowMemories",
   parameters: z.object({
+    endDate: z
+      .string()
+      .optional()
+      .describe("End date for time range filter (ISO string)"),
+    enhancementType: z
+      .enum([
+        "optimization",
+        "bug_fix",
+        "feature_add",
+        "refactor",
+        "parameter_tune",
+        "logic_improve",
+        "error_handling",
+        "user_experience",
+      ])
+      .optional()
+      .describe("Filter by enhancement type"),
+    importanceThreshold: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Minimum importance score"),
+    memoryType: z
+      .enum(["workflow", "performance", "enhancement"])
+      .optional()
+      .describe("Filter by workflow memory type"),
     query: z.string().describe("Search query for workflow memories"),
-    workflowId: z.string().optional().describe("Filter by specific workflow ID"),
-    stage: z.enum(["planning", "execution", "evaluation", "optimization", "archived"]).optional().describe("Filter by workflow stage"),
-    memoryType: z.enum(["workflow", "performance", "enhancement"]).optional().describe("Filter by workflow memory type"),
-    enhancementType: z.enum([
-      "optimization", "bug_fix", "feature_add", "refactor", "parameter_tune",
-      "logic_improve", "error_handling", "user_experience"
-    ]).optional().describe("Filter by enhancement type"),
-    importanceThreshold: z.number().min(0).max(1).optional().describe("Minimum importance score"),
-    startDate: z.string().optional().describe("Start date for time range filter (ISO string)"),
-    endDate: z.string().optional().describe("End date for time range filter (ISO string)"),
+    stage: z
+      .enum(["planning", "execution", "evaluation", "optimization", "archived"])
+      .optional()
+      .describe("Filter by workflow stage"),
+    startDate: z
+      .string()
+      .optional()
+      .describe("Start date for time range filter (ISO string)"),
+    workflowId: z
+      .string()
+      .optional()
+      .describe("Filter by specific workflow ID"),
   }),
 });
 
@@ -942,37 +1132,48 @@ server.addTool({
     try {
       if (!workflowServices) {
         // Fallback to basic analytics if workflow services not initialized
-        const basicAnalytics = await aiMemoryService.getMemoryAnalytics(hubId, args.p);
+        const basicAnalytics = await aiMemoryService.getMemoryAnalytics(
+          hubId,
+          args.p,
+        );
         return JSON.stringify({
           ...basicAnalytics,
           workflowSpecific: {
             message: "Workflow services initializing...",
+            recommendations: ["Workflow ecosystem is starting up"],
             totalWorkflows: 0,
-            recommendations: ["Workflow ecosystem is starting up"]
-          }
+          },
         });
       }
 
       // Use the actual analytics service
-      const workflowAnalytics = workflowServices.analyticsService.getWorkflowAnalytics(
-        args.workflowId,
-        args.p
-      );
+      const workflowAnalytics =
+        workflowServices.analyticsService.getWorkflowAnalytics(
+          args.workflowId,
+          args.p,
+        );
 
       // Get enhancement effectiveness
-      const enhancement = workflowServices.analyticsService.getEnhancementEffectiveness(args.workflowId);
-      
+      const enhancement =
+        workflowServices.analyticsService.getEnhancementEffectiveness(
+          args.workflowId,
+        );
+
       // Get ecosystem health score
-      const healthScore = workflowServices.analyticsService.getEcosystemHealthScore();
-      
+      const healthScore =
+        workflowServices.analyticsService.getEcosystemHealthScore();
+
       // Get recommendations
-      const recommendations = workflowServices.analyticsService.generateRecommendations(args.workflowId);
+      const recommendations =
+        workflowServices.analyticsService.generateRecommendations(
+          args.workflowId,
+        );
 
       const result = {
         ...workflowAnalytics,
-        enhancementEffectiveness: enhancement,
         ecosystemHealthScore: healthScore,
-        recommendations
+        enhancementEffectiveness: enhancement,
+        recommendations,
       };
 
       return JSON.stringify(result);
@@ -982,8 +1183,14 @@ server.addTool({
   },
   name: "getWorkflowAnalytics",
   parameters: z.object({
-    p: z.string().optional().describe("Public key to filter analytics for specific user (optional)"),
-    workflowId: z.string().optional().describe("Get analytics for specific workflow (optional)"),
+    p: z
+      .string()
+      .optional()
+      .describe("Public key to filter analytics for specific user (optional)"),
+    workflowId: z
+      .string()
+      .optional()
+      .describe("Get analytics for specific workflow (optional)"),
   }),
 });
 
@@ -999,22 +1206,22 @@ server.addTool({
   execute: async (args) => {
     try {
       const composition = {
-        id: args.compositionId,
-        name: args.name,
         description: args.description,
-        workflows: JSON.parse(args.workflowSteps),
-        executionStrategy: args.executionStrategy,
         errorHandling: {
-          onFailure: args.onFailure || "abort",
           maxRetries: args.maxRetries || 3,
+          onFailure: args.onFailure || "abort",
           retryDelay: args.retryDelay || 1000,
         },
+        executionStrategy: args.executionStrategy,
+        id: args.compositionId,
+        name: args.name,
         resourceAllocation: {
           maxConcurrentWorkflows: args.maxConcurrent || 1,
           memoryLimit: args.memoryLimit || 1024,
-          timeLimit: args.timeLimit || 300000,
           priority: args.priority || "medium",
+          timeLimit: args.timeLimit || 300000,
         },
+        workflows: JSON.parse(args.workflowSteps),
       };
 
       const compositionMemory = {
@@ -1023,6 +1230,9 @@ server.addTool({
           domain: "workflow_composition",
           topic: "workflow_orchestration",
         },
+        dependencies: JSON.parse(args.workflowSteps).map(
+          (step: any) => step.workflowId,
+        ),
         importance: 0.8,
         memoryType: "procedure" as MemoryType,
         metadata: {
@@ -1032,12 +1242,15 @@ server.addTool({
         },
         p: args.p,
         role: "system",
-        workflowId: args.compositionId,
         stage: "planning",
-        dependencies: JSON.parse(args.workflowSteps).map((step: any) => step.workflowId),
+        workflowId: args.compositionId,
       };
 
-      const result = await aiMemoryService.addEnhanced(keyPair, hubId, compositionMemory);
+      const result = await aiMemoryService.addEnhanced(
+        keyPair,
+        hubId,
+        compositionMemory,
+      );
       return result;
     } catch (error) {
       return `Error: ${error}`;
@@ -1046,18 +1259,47 @@ server.addTool({
   name: "createWorkflowComposition",
   parameters: z.object({
     compositionId: z.string().describe("Unique identifier for the composition"),
+    description: z
+      .string()
+      .describe("Description of what the composition does"),
+    executionStrategy: z
+      .enum(["sequential", "parallel", "conditional", "pipeline", "adaptive"])
+      .describe("How workflows should be executed"),
+    maxConcurrent: z
+      .number()
+      .optional()
+      .describe("Max concurrent workflows (default: 1)"),
+    maxRetries: z
+      .number()
+      .optional()
+      .describe("Maximum number of retries (default: 3)"),
+    memoryLimit: z
+      .number()
+      .optional()
+      .describe("Memory limit in MB (default: 1024)"),
     name: z.string().describe("Name of the composition"),
-    description: z.string().describe("Description of what the composition does"),
-    workflowSteps: z.string().describe("JSON array of workflow steps with workflowId, order, conditions"),
-    executionStrategy: z.enum(["sequential", "parallel", "conditional", "pipeline", "adaptive"]).describe("How workflows should be executed"),
+    onFailure: z
+      .enum(["abort", "continue", "retry", "fallback"])
+      .optional()
+      .describe("What to do when a workflow fails"),
     p: z.string().describe("Public key of the creator"),
-    onFailure: z.enum(["abort", "continue", "retry", "fallback"]).optional().describe("What to do when a workflow fails"),
-    maxRetries: z.number().optional().describe("Maximum number of retries (default: 3)"),
-    retryDelay: z.number().optional().describe("Delay between retries in ms (default: 1000)"),
-    maxConcurrent: z.number().optional().describe("Max concurrent workflows (default: 1)"),
-    memoryLimit: z.number().optional().describe("Memory limit in MB (default: 1024)"),
-    timeLimit: z.number().optional().describe("Time limit in ms (default: 300000)"),
-    priority: z.enum(["low", "medium", "high"]).optional().describe("Execution priority (default: medium)"),
+    priority: z
+      .enum(["low", "medium", "high"])
+      .optional()
+      .describe("Execution priority (default: medium)"),
+    retryDelay: z
+      .number()
+      .optional()
+      .describe("Delay between retries in ms (default: 1000)"),
+    timeLimit: z
+      .number()
+      .optional()
+      .describe("Time limit in ms (default: 300000)"),
+    workflowSteps: z
+      .string()
+      .describe(
+        "JSON array of workflow steps with workflowId, order, conditions",
+      ),
   }),
 });
 
@@ -1077,6 +1319,19 @@ server.addTool({
       }
 
       switch (args.action) {
+        case "force_cycle":
+          if (!args.workflowId) {
+            return "workflowId required for force_cycle action";
+          }
+          const result =
+            await workflowServices.enhancementEngine.runEnhancementCycle(
+              args.workflowId,
+            );
+          return JSON.stringify({
+            message: `Enhancement cycle completed for ${args.workflowId}`,
+            result,
+          });
+
         case "start":
           if (args.workflowId) {
             startEnhancementCycleForWorkflow(args.workflowId);
@@ -1102,20 +1357,10 @@ server.addTool({
           const activeWorkflows = Array.from(enhancementIntervals.keys());
           const status = {
             activeEnhancementCycles: activeWorkflows.length,
+            backgroundProcessActive: enhancementIntervals.size > 0,
             workflowIds: activeWorkflows,
-            backgroundProcessActive: enhancementIntervals.size > 0
           };
           return JSON.stringify(status);
-
-        case "force_cycle":
-          if (!args.workflowId) {
-            return "workflowId required for force_cycle action";
-          }
-          const result = await workflowServices.enhancementEngine.runEnhancementCycle(args.workflowId);
-          return JSON.stringify({
-            message: `Enhancement cycle completed for ${args.workflowId}`,
-            result
-          });
 
         default:
           return "Invalid action. Use: start, stop, status, or force_cycle";
@@ -1126,8 +1371,13 @@ server.addTool({
   },
   name: "manageEnhancementCycles",
   parameters: z.object({
-    action: z.enum(["start", "stop", "status", "force_cycle"]).describe("Action to perform"),
-    workflowId: z.string().optional().describe("Specific workflow ID (optional for start/stop actions)"),
+    action: z
+      .enum(["start", "stop", "status", "force_cycle"])
+      .describe("Action to perform"),
+    workflowId: z
+      .string()
+      .optional()
+      .describe("Specific workflow ID (optional for start/stop actions)"),
   }),
 });
 
@@ -1156,22 +1406,22 @@ server.addTool({
           if (!args.capability) {
             return "capability parameter required for capability discovery";
           }
-          workflows = await discoveryService.discoverByCapability(args.capability);
+          workflows = await discoveryService.discoverByCapability(
+            args.capability,
+          );
           break;
 
         case "requirements":
           if (!args.requirements) {
             return "requirements parameter required for requirements discovery";
           }
-          const requirementsList = args.requirements.split(",").map(r => r.trim());
-          workflows = await discoveryService.findWorkflowsForRequirements(requirementsList);
-          break;
-
-        case "similar":
-          if (!args.localWorkflowId) {
-            return "localWorkflowId parameter required for similarity discovery";
-          }
-          workflows = await discoveryService.findSimilarWorkflows(args.localWorkflowId, hubId);
+          const requirementsList = args.requirements
+            .split(",")
+            .map((r) => r.trim());
+          workflows =
+            await discoveryService.findWorkflowsForRequirements(
+              requirementsList,
+            );
           break;
 
         case "search":
@@ -1179,12 +1429,29 @@ server.addTool({
             return "query parameter required for search discovery";
           }
           const filters = {
-            capabilities: args.capabilities ? args.capabilities.split(",").map(c => c.trim()) : undefined,
-            tags: args.tags ? args.tags.split(",").map(t => t.trim()) : undefined,
-            minReputationScore: args.minReputationScore,
+            capabilities: args.capabilities
+              ? args.capabilities.split(",").map((c) => c.trim())
+              : undefined,
             minPerformanceScore: args.minPerformanceScore,
+            minReputationScore: args.minReputationScore,
+            tags: args.tags
+              ? args.tags.split(",").map((t) => t.trim())
+              : undefined,
           };
-          workflows = await discoveryService.searchGlobalWorkflows(args.query, filters);
+          workflows = await discoveryService.searchGlobalWorkflows(
+            args.query,
+            filters,
+          );
+          break;
+
+        case "similar":
+          if (!args.localWorkflowId) {
+            return "localWorkflowId parameter required for similarity discovery";
+          }
+          workflows = await discoveryService.findSimilarWorkflows(
+            args.localWorkflowId,
+            hubId,
+          );
           break;
 
         default:
@@ -1193,9 +1460,9 @@ server.addTool({
 
       return JSON.stringify({
         discoveryType: args.discoveryType,
+        hasMore: workflows.length > (args.limit || 10),
         totalFound: workflows.length,
         workflows: workflows.slice(0, args.limit || 10), // Limit results for readability
-        hasMore: workflows.length > (args.limit || 10)
       });
     } catch (error) {
       return `Error: ${error}`;
@@ -1203,16 +1470,50 @@ server.addTool({
   },
   name: "discoverCrossHubWorkflows",
   parameters: z.object({
-    discoveryType: z.enum(["capability", "requirements", "similar", "search"]).describe("Type of discovery to perform"),
-    capability: z.string().optional().describe("Capability to search for (required for capability discovery)"),
-    requirements: z.string().optional().describe("Comma-separated requirements to fulfill (required for requirements discovery)"),
-    localWorkflowId: z.string().optional().describe("Local workflow ID to find similar workflows for (required for similar discovery)"),
-    query: z.string().optional().describe("Search query (required for search discovery)"),
-    capabilities: z.string().optional().describe("Comma-separated capabilities to filter by"),
+    capabilities: z
+      .string()
+      .optional()
+      .describe("Comma-separated capabilities to filter by"),
+    capability: z
+      .string()
+      .optional()
+      .describe("Capability to search for (required for capability discovery)"),
+    discoveryType: z
+      .enum(["capability", "requirements", "similar", "search"])
+      .describe("Type of discovery to perform"),
+    limit: z
+      .number()
+      .optional()
+      .describe("Maximum number of results to return (default: 10)"),
+    localWorkflowId: z
+      .string()
+      .optional()
+      .describe(
+        "Local workflow ID to find similar workflows for (required for similar discovery)",
+      ),
+    minPerformanceScore: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Minimum performance score (0-1)"),
+    minReputationScore: z
+      .number()
+      .min(0)
+      .max(1)
+      .optional()
+      .describe("Minimum reputation score (0-1)"),
+    query: z
+      .string()
+      .optional()
+      .describe("Search query (required for search discovery)"),
+    requirements: z
+      .string()
+      .optional()
+      .describe(
+        "Comma-separated requirements to fulfill (required for requirements discovery)",
+      ),
     tags: z.string().optional().describe("Comma-separated tags to filter by"),
-    minReputationScore: z.number().min(0).max(1).optional().describe("Minimum reputation score (0-1)"),
-    minPerformanceScore: z.number().min(0).max(1).optional().describe("Minimum performance score (0-1)"),
-    limit: z.number().optional().describe("Maximum number of results to return (default: 10)"),
   }),
 });
 
@@ -1261,14 +1562,14 @@ server.addTool({
       const discoveryService = workflowServices.crossHubDiscovery;
       const patterns = await discoveryService.requestEnhancementPatterns(
         args.sourceHubId,
-        args.sourceWorkflowId
+        args.sourceWorkflowId,
       );
 
       return JSON.stringify({
+        patterns: patterns,
+        patternsFound: patterns.length,
         sourceHubId: args.sourceHubId,
         sourceWorkflowId: args.sourceWorkflowId,
-        patternsFound: patterns.length,
-        patterns: patterns
       });
     } catch (error) {
       return `Error: ${error}`;
@@ -1277,7 +1578,9 @@ server.addTool({
   name: "requestEnhancementPatterns",
   parameters: z.object({
     sourceHubId: z.string().describe("Hub ID containing the source workflow"),
-    sourceWorkflowId: z.string().describe("Workflow ID to request patterns from"),
+    sourceWorkflowId: z
+      .string()
+      .describe("Workflow ID to request patterns from"),
   }),
 });
 
@@ -1297,17 +1600,19 @@ server.addTool({
       }
 
       const discoveryService = workflowServices.crossHubDiscovery;
-      const hubs = await discoveryService.discoverHubs(args.forceRefresh || false);
+      const hubs = await discoveryService.discoverHubs(
+        args.forceRefresh || false,
+      );
 
       return JSON.stringify({
-        totalHubs: hubs.length,
-        hubs: hubs.map(hub => ({
-          processId: hub.processId,
-          workflowCount: hub.workflowCount,
+        hubs: hubs.map((hub) => ({
           hasPublicWorkflows: hub.hasPublicWorkflows,
+          lastActivity: hub.lastActivity,
+          processId: hub.processId,
           reputationScore: hub.reputationScore,
-          lastActivity: hub.lastActivity
-        }))
+          workflowCount: hub.workflowCount,
+        })),
+        totalHubs: hubs.length,
       });
     } catch (error) {
       return `Error: ${error}`;
@@ -1315,7 +1620,10 @@ server.addTool({
   },
   name: "discoverHubs",
   parameters: z.object({
-    forceRefresh: z.boolean().optional().describe("Force refresh of hub discovery cache"),
+    forceRefresh: z
+      .boolean()
+      .optional()
+      .describe("Force refresh of hub discovery cache"),
   }),
 });
 
@@ -1352,9 +1660,11 @@ server.start({
 });
 
 // Initialize in background (silent for stdio transport)
-init().then(() => {
-  // Initialize workflow services after main initialization
-  initializeWorkflowServices();
-}).catch(() => {
-  // Silent error handling for stdio transport compatibility
-});
+init()
+  .then(() => {
+    // Initialize workflow services after main initialization
+    initializeWorkflowServices();
+  })
+  .catch(() => {
+    // Silent error handling for stdio transport compatibility
+  });

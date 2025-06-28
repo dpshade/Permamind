@@ -46,12 +46,12 @@ export interface MemoryMetadata {
 
 export type MemoryType =
   | "conversation"
+  | "enhancement"
   | "knowledge"
+  | "performance"
   | "procedure"
   | "reasoning"
-  | "workflow"
-  | "enhancement"
-  | "performance";
+  | "workflow";
 
 export interface ReasoningStep {
   confidence: number; // 0-1
@@ -68,16 +68,16 @@ export interface ReasoningTrace {
 
 export type RelationshipType =
   | "causes"
-  | "contradicts"
-  | "extends"
-  | "references"
-  | "supports"
-  | "inherits"
   | "composes"
-  | "enhances"
-  | "triggers"
+  | "contradicts"
   | "depends_on"
-  | "replaces";
+  | "enhances"
+  | "extends"
+  | "inherits"
+  | "references"
+  | "replaces"
+  | "supports"
+  | "triggers";
 
 export interface SearchFilters {
   domain?: string;

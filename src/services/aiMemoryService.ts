@@ -284,12 +284,12 @@ const aiService = (): AIMemoryService => {
           },
           memoryTypeDistribution: {
             conversation: 0,
+            enhancement: 0,
             knowledge: 0,
+            performance: 0,
             procedure: 0,
             reasoning: 0,
             workflow: 0,
-            enhancement: 0,
-            performance: 0,
           },
           totalMemories: 0,
         };
@@ -469,28 +469,46 @@ function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
     tags.push({ name: "workflow_id", value: workflowMemory.workflowId });
   }
   if (workflowMemory.workflowVersion) {
-    tags.push({ name: "workflow_version", value: workflowMemory.workflowVersion });
+    tags.push({
+      name: "workflow_version",
+      value: workflowMemory.workflowVersion,
+    });
   }
   if (workflowMemory.stage) {
     tags.push({ name: "workflow_stage", value: workflowMemory.stage });
   }
   if (workflowMemory.performance) {
-    tags.push({ name: "workflow_performance", value: JSON.stringify(workflowMemory.performance) });
+    tags.push({
+      name: "workflow_performance",
+      value: JSON.stringify(workflowMemory.performance),
+    });
   }
   if (workflowMemory.enhancement) {
-    tags.push({ name: "workflow_enhancement", value: JSON.stringify(workflowMemory.enhancement) });
+    tags.push({
+      name: "workflow_enhancement",
+      value: JSON.stringify(workflowMemory.enhancement),
+    });
   }
-  if (workflowMemory.dependencies && Array.isArray(workflowMemory.dependencies)) {
+  if (
+    workflowMemory.dependencies &&
+    Array.isArray(workflowMemory.dependencies)
+  ) {
     workflowMemory.dependencies.forEach((dep: string) => {
       tags.push({ name: "workflow_dependency", value: dep });
     });
   }
-  if (workflowMemory.capabilities && Array.isArray(workflowMemory.capabilities)) {
+  if (
+    workflowMemory.capabilities &&
+    Array.isArray(workflowMemory.capabilities)
+  ) {
     workflowMemory.capabilities.forEach((cap: string) => {
       tags.push({ name: "workflow_capability", value: cap });
     });
   }
-  if (workflowMemory.requirements && Array.isArray(workflowMemory.requirements)) {
+  if (
+    workflowMemory.requirements &&
+    Array.isArray(workflowMemory.requirements)
+  ) {
     workflowMemory.requirements.forEach((req: string) => {
       tags.push({ name: "workflow_requirement", value: req });
     });
@@ -550,35 +568,39 @@ function eventToAIMemory(event: Record<string, unknown>): AIMemory {
   }
   if (event.workflow_performance) {
     try {
-      workflowMemory.performance = JSON.parse(event.workflow_performance as string);
+      workflowMemory.performance = JSON.parse(
+        event.workflow_performance as string,
+      );
     } catch {
       // Ignore invalid JSON
     }
   }
   if (event.workflow_enhancement) {
     try {
-      workflowMemory.enhancement = JSON.parse(event.workflow_enhancement as string);
+      workflowMemory.enhancement = JSON.parse(
+        event.workflow_enhancement as string,
+      );
     } catch {
       // Ignore invalid JSON
     }
   }
-  
+
   // Handle arrays
   if (event.workflow_dependency) {
-    const deps = Array.isArray(event.workflow_dependency) 
-      ? event.workflow_dependency as string[]
+    const deps = Array.isArray(event.workflow_dependency)
+      ? (event.workflow_dependency as string[])
       : [event.workflow_dependency as string];
     workflowMemory.dependencies = deps;
   }
   if (event.workflow_capability) {
     const caps = Array.isArray(event.workflow_capability)
-      ? event.workflow_capability as string[]
+      ? (event.workflow_capability as string[])
       : [event.workflow_capability as string];
     workflowMemory.capabilities = caps;
   }
   if (event.workflow_requirement) {
     const reqs = Array.isArray(event.workflow_requirement)
-      ? event.workflow_requirement as string[]
+      ? (event.workflow_requirement as string[])
       : [event.workflow_requirement as string];
     workflowMemory.requirements = reqs;
   }
@@ -598,12 +620,12 @@ function generateAnalytics(memories: AIMemory[]): MemoryAnalytics {
   // Ensure all types are represented
   const typeDistribution: Record<MemoryType, number> = {
     conversation: memoryTypeDistribution.conversation || 0,
+    enhancement: memoryTypeDistribution.enhancement || 0,
     knowledge: memoryTypeDistribution.knowledge || 0,
+    performance: memoryTypeDistribution.performance || 0,
     procedure: memoryTypeDistribution.procedure || 0,
     reasoning: memoryTypeDistribution.reasoning || 0,
     workflow: memoryTypeDistribution.workflow || 0,
-    enhancement: memoryTypeDistribution.enhancement || 0,
-    performance: memoryTypeDistribution.performance || 0,
   };
 
   const importanceDistribution = memories.reduce(

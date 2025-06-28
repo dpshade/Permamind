@@ -7,6 +7,7 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ### Initial Setup
 
 1. **Claude creates a data processing workflow** using the MCP tools:
+
    ```typescript
    // Claude calls: workflow_create_memory
    {
@@ -32,6 +33,7 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ### Self-Enhancement Cycle Begins
 
 3. **Performance analysis identifies issues** (after ~10 executions):
+
    ```typescript
    // WorkflowPerformanceTracker.identifyEnhancements() finds:
    [
@@ -39,18 +41,19 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
        type: "performance_optimization",
        description: "Execution time increasing by 15% over last 5 runs",
        impact: 0.8,
-       confidence: 0.9
+       confidence: 0.9,
      },
      {
-       type: "quality_improvement", 
+       type: "quality_improvement",
        description: "Error rate above acceptable threshold (5% vs 2% target)",
        impact: 0.6,
-       confidence: 0.85
-     }
-   ]
+       confidence: 0.85,
+     },
+   ];
    ```
 
 4. **User provides feedback** that triggers more enhancements:
+
    ```typescript
    // Claude calls: workflow_process_feedback
    {
@@ -58,7 +61,7 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
      feedback: "The CSV parser keeps failing on files with special characters",
      rating: 2.5
    }
-   
+
    // This generates:
    {
      type: "bug_fix",
@@ -71,29 +74,31 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ### Learning from Other Workflows
 
 5. **Another workflow shares a solution**:
+
    ```typescript
    // Someone else created "csv-parser-v2" that handles special characters well
    // The relationship manager detects this opportunity:
-   
-   relationshipManager.findCollaborationOpportunities("data-processor-v1")
+
+   relationshipManager.findCollaborationOpportunities("data-processor-v1");
    // Returns: potentialPartners: ["csv-parser-v2"]
-   
+
    // Creates inheritance relationship:
    relationshipManager.createRelationship(
-     "data-processor-v2", 
-     "csv-parser-v2", 
-     "inherits", 
-     0.8
-   )
+     "data-processor-v2",
+     "csv-parser-v2",
+     "inherits",
+     0.8,
+   );
    ```
 
 ### Enhancement Application
 
 6. **The enhancement engine applies improvements**:
+
    ```typescript
    // Background cycle runs every 5 minutes
    enhancementEngine.runEnhancementCycle("data-processor-v1")
-   
+
    // Results in:
    {
      enhancements: [
@@ -110,17 +115,18 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ### Ecosystem Learning
 
 7. **Knowledge spreads to other workflows**:
+
    ```typescript
    // Any workflow that inherits from or depends on data-processor-v1
    // automatically gets enhancement propagation:
-   
+
    relationshipManager.propagateEnhancement(
      "data-processor-v1",
      csvParserEnhancement,
-     "gradual"  // Apply over time, not immediately
-   )
-   
-   // Workflows like "report-generator" and "data-analyzer" 
+     "gradual", // Apply over time, not immediately
+   );
+
+   // Workflows like "report-generator" and "data-analyzer"
    // that depend on data-processor-v1 get notified and can
    // inherit the improvements
    ```
@@ -128,6 +134,7 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ### Continuous Improvement
 
 8. **Performance improves measurably**:
+
    ```typescript
    // After enhancements, new metrics show:
    {
@@ -140,11 +147,12 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
    ```
 
 9. **Analytics confirm ecosystem health**:
+
    ```typescript
-   analyticsService.getEcosystemHealthScore()
+   analyticsService.getEcosystemHealthScore();
    // Returns: 0.87 (87% healthy ecosystem)
-   
-   analyticsService.generateRecommendations()
+
+   analyticsService.generateRecommendations();
    // Returns: [
    //   "Consider creating composition between data-processor-v2 and report-generator",
    //   "Error handling patterns from data-processor-v2 could benefit 3 other workflows",
@@ -155,11 +163,13 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ## Key Self-Enhancement Mechanisms
 
 ### 1. **Automatic Performance Monitoring**
+
 - Every workflow execution is tracked
 - Trends are analyzed (improving/degrading)
 - Thresholds trigger enhancement identification
 
 ### 2. **Multi-Source Learning**
+
 - **Self-learning**: From its own performance data
 - **Peer learning**: From related workflows in the ecosystem
 - **User feedback**: Direct human input and ratings
@@ -168,18 +178,21 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 - **Emergent**: Discovering unexpected optimization opportunities
 
 ### 3. **Relationship-Based Knowledge Sharing**
+
 - Workflows can inherit improvements from parents
 - Compositions share optimizations across components
 - Dependencies propagate relevant enhancements
 - High-performing workflows influence others
 
 ### 4. **Decentralized Storage**
+
 - All memories stored permanently on Arweave
 - No central point of failure
 - Workflows can discover and learn from any other workflow
 - Knowledge persists forever and is truly owned by the creator
 
 ### 5. **Background Processing**
+
 - Enhancement cycles run continuously
 - No human intervention required
 - Workflows improve while you sleep
@@ -188,6 +201,7 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 ## Real-World Impact
 
 **Before Enhancement:**
+
 - Manual workflow optimization
 - Isolated improvements don't spread
 - Performance degradation goes unnoticed
@@ -195,6 +209,7 @@ Let's follow a complete example of how a workflow becomes self-enhancing in the 
 - No learning between similar workflows
 
 **After Enhancement:**
+
 - Workflows automatically get better over time
 - Best practices spread across the ecosystem
 - Performance issues caught and fixed immediately

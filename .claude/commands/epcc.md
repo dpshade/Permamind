@@ -7,6 +7,7 @@ A structured development workflow for systematic feature implementation and bug 
 Execute development tasks using this 4-phase approach:
 
 ### 1. 🔍 EXPLORE Phase
+
 **Understand the codebase and requirements**
 
 - Use search tools (Grep, Glob, Task) to understand existing code patterns
@@ -15,7 +16,8 @@ Execute development tasks using this 4-phase approach:
 - Analyze code conventions and architectural patterns
 - Document findings and constraints
 
-### 2. 📋 PLAN Phase  
+### 2. 📋 PLAN Phase
+
 **Create structured implementation plan**
 
 - Use TodoWrite to create detailed task breakdown
@@ -25,6 +27,7 @@ Execute development tasks using this 4-phase approach:
 - Define success criteria
 
 ### 3. 💻 CODE Phase
+
 **Implement with systematic execution**
 
 - Mark todos as in_progress before starting each task
@@ -35,6 +38,7 @@ Execute development tasks using this 4-phase approach:
 - Run type checks and lints throughout development
 
 ### 4. ✅ COMMIT Phase
+
 **Validate and commit changes**
 
 - Run full test suite if available
@@ -52,7 +56,7 @@ Execute development tasks using this 4-phase approach:
 ## Example Workflow
 
 1. **Explore**: Search for existing authentication patterns
-2. **Plan**: Break down login feature into 5 specific tasks  
+2. **Plan**: Break down login feature into 5 specific tasks
 3. **Code**: Implement each task systematically, updating todos
 4. **Commit**: Run tests, validate changes, create commit
 
@@ -68,6 +72,7 @@ Execute development tasks using this 4-phase approach:
 ## Integration with Prime
 
 Use with `/prime` command for full context loading:
+
 1. Run `/prime` to load all documentation context
 2. Run `/epcc <task>` to execute structured development
 

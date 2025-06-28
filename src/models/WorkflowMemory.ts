@@ -1,158 +1,183 @@
-import { AIMemory, MemoryType, RelationshipType, MemoryAnalytics, SearchFilters } from "./AIMemory.js";
+import {
+  AIMemory,
+  MemoryAnalytics,
+  MemoryType,
+  RelationshipType,
+  SearchFilters,
+} from "./AIMemory.js";
 
 // Workflow memory types and relationship types are now part of the base MemoryType and RelationshipType
 
-export interface WorkflowMemory extends AIMemory {
-  workflowId: string;
-  workflowVersion: string;
-  stage: WorkflowStage;
-  performance?: WorkflowPerformance;
-  enhancement?: WorkflowEnhancement;
-  dependencies: string[];
-  capabilities: string[];
-  requirements: string[];
+export interface CollaborationMetrics {
+  influenceScore: number; // 0-1 workflow influence measure
+  knowledgeExchange: number; // Count of knowledge transfers
+  networkDensity: number; // 0-1 connectivity measure
+  peerLearning: number; // Count of peer learning events
+  workflowSharing: number; // Count of shared workflows
 }
 
-export type WorkflowStage = 
-  | "planning"
-  | "execution" 
-  | "evaluation"
-  | "optimization"
-  | "archived";
+export interface Enhancement {
+  actualImpact?: number; // Measured improvement 0-1
+  code?: string; // Code changes if applicable
+  description: string;
+  id: string;
+  impact: number; // Expected improvement 0-1
+  parameters?: Record<string, any>; // Parameter adjustments
+  type: EnhancementType;
+  validation: ValidationResult;
+}
 
-export interface WorkflowPerformance {
-  executionTime: number;           // milliseconds
-  success: boolean;
-  errorRate: number;               // 0-1
-  resourceUsage: ResourceMetrics;
-  qualityScore: number;            // 0-1
-  userSatisfaction?: number;       // 0-1
-  completionRate: number;          // 0-1
-  retryCount: number;
-  lastExecuted: string;            // ISO timestamp
+export interface EnhancementEffectiveness {
+  averageImpact: number; // 0-1
+  bySource: Record<
+    LearningSource,
+    {
+      averageImpact: number;
+      count: number;
+      successRate: number;
+    }
+  >;
+  byType: Record<
+    EnhancementType,
+    {
+      averageImpact: number;
+      count: number;
+      successRate: number;
+    }
+  >;
+  successRate: number; // 0-1
+}
+
+export type EnhancementType =
+  | "bug_fix" // Error correction
+  | "error_handling" // Better error management
+  | "feature_add" // New capability
+  | "logic_improve" // Decision logic enhancement
+  | "optimization" // Performance improvement
+  | "parameter_tune" // Parameter optimization
+  | "refactor" // Code restructuring
+  | "user_experience"; // UX improvement
+
+export interface ErrorHandlingStrategy {
+  escalationPolicy?: string[]; // Notification recipients
+  fallbackWorkflow?: string;
+  maxRetries: number;
+  onFailure: "abort" | "continue" | "fallback" | "retry";
+  retryDelay: number; // milliseconds
+}
+
+export type ExecutionStrategy =
+  | "adaptive" // Dynamic strategy selection
+  | "conditional" // Execute based on conditions
+  | "parallel" // Execute workflows simultaneously
+  | "pipeline" // Output of one feeds into next
+  | "sequential"; // Execute workflows in order
+
+export interface FeedbackLoop {
+  actionable: boolean;
+  feedback: string;
+  priority: "high" | "low" | "medium";
+  source: string;
+  timestamp: string;
+  type: "peer" | "performance" | "system" | "user";
+}
+
+export interface LearningEfficiency {
+  adaptabilityScore: number; // 0-1 adaptation to new situations
+  knowledgeRetention: number; // 0-1 knowledge persistence
+  learningRate: number; // Improvements per unit time
+  transferEfficiency: number; // 0-1 cross-domain learning
+}
+
+export interface LearningModel {
+  accuracy: number; // 0-1
+  lastUpdated: string;
+  parameters: Record<string, any>;
+  trainingData: TrainingDataPoint[];
+  type: "reinforcement" | "supervised" | "transfer" | "unsupervised";
+}
+
+export type LearningSource =
+  | "analytics" // Performance data analysis
+  | "emergent" // Discovered through combination
+  | "error" // Error-driven improvement
+  | "peer" // Learning from other workflows
+  | "self" // Self-optimization
+  | "user"; // User feedback
+
+export interface OptimizationTarget {
+  achieved: boolean;
+  metric:
+    | "execution_time"
+    | "quality_score"
+    | "resource_usage"
+    | "success_rate"
+    | "user_satisfaction";
+  targetValue: number;
+  weight: number; // 0-1 relative importance
+}
+
+export interface PerformanceStats {
+  averageExecutionTime: number;
+  averageQualityScore: number; // 0-1
+  averageResourceUsage: ResourceMetrics;
+  reliabilityScore: number; // 0-1
+  successRate: number; // 0-1
+  totalExecutions: number;
+  userRating?: number; // 0-5
+}
+
+export interface PerformanceTrend {
+  confidence: number; // 0-1
+  metric: string;
+  timeWindow: string; // e.g., "1h", "1d", "1w"
+  trend: "declining" | "improving" | "stable";
+  values: {
+    timestamp: string;
+    value: number;
+  }[];
+}
+
+export interface ResourceAllocation {
+  maxConcurrentWorkflows: number;
+  memoryLimit: number; // MB
+  priority: "high" | "low" | "medium";
+  timeLimit: number; // milliseconds
 }
 
 export interface ResourceMetrics {
-  memoryUsage: number;             // MB
-  cpuTime: number;                 // milliseconds
+  cpuTime: number; // milliseconds
+  memoryUsage: number; // MB
   networkRequests: number;
   storageOperations: number;
   toolCalls: number;
 }
 
-export interface WorkflowEnhancement {
-  previousVersion?: string;
-  improvements: Enhancement[];
-  learningSource: LearningSource;
-  confidence: number;              // 0-1
-  validationResults: ValidationResult[];
-  appliedAt: string;               // ISO timestamp
+export interface RetryPolicy {
+  backoffStrategy: "exponential" | "fixed" | "linear";
+  initialDelay: number; // milliseconds
+  maxAttempts: number;
+  maxDelay: number; // milliseconds
 }
 
-export type LearningSource = 
-  | "self"          // Self-optimization
-  | "peer"          // Learning from other workflows
-  | "user"          // User feedback
-  | "analytics"     // Performance data analysis
-  | "error"         // Error-driven improvement
-  | "emergent";     // Discovered through combination
-
-export interface Enhancement {
-  id: string;
-  type: EnhancementType;
-  description: string;
-  impact: number;                  // Expected improvement 0-1
-  actualImpact?: number;           // Measured improvement 0-1
-  validation: ValidationResult;
-  code?: string;                   // Code changes if applicable
-  parameters?: Record<string, any>; // Parameter adjustments
-}
-
-export type EnhancementType = 
-  | "optimization"   // Performance improvement
-  | "bug_fix"        // Error correction
-  | "feature_add"    // New capability
-  | "refactor"       // Code restructuring
-  | "parameter_tune" // Parameter optimization
-  | "logic_improve"  // Decision logic enhancement
-  | "error_handling" // Better error management
-  | "user_experience"; // UX improvement
-
-export interface ValidationResult {
-  isValid: boolean;
-  confidence: number;              // 0-1
-  testResults: TestResult[];
-  riskAssessment: RiskLevel;
-  approvedBy?: string;             // Public key of approver
-  validatedAt: string;             // ISO timestamp
-}
-
-export interface TestResult {
-  testName: string;
-  passed: boolean;
-  score?: number;                  // 0-1
-  details?: string;
-  executionTime?: number;          // milliseconds
-}
-
-export type RiskLevel = "low" | "medium" | "high" | "critical";
-
-// Workflow registry and discovery types
-export interface WorkflowRegistryEntry {
-  id: string;
-  name: string;
-  description: string;
-  category: WorkflowCategory;
-  capabilities: string[];
-  requirements: string[];
-  performance: PerformanceStats;
-  hubId: string;
-  creator: string;                 // Public key
-  version: string;
-  enhancementCount: number;
-  createdAt: string;
-  updatedAt: string;
-  tags: string[];
-}
-
-export type WorkflowCategory = 
-  | "data_processing"
-  | "analysis"
-  | "communication"
-  | "automation"
-  | "decision_making"
-  | "creative"
-  | "problem_solving"
-  | "coordination"
-  | "monitoring"
-  | "optimization";
-
-export interface PerformanceStats {
-  averageExecutionTime: number;
-  successRate: number;             // 0-1
-  averageQualityScore: number;     // 0-1
-  totalExecutions: number;
-  averageResourceUsage: ResourceMetrics;
-  reliabilityScore: number;        // 0-1
-  userRating?: number;             // 0-5
-}
+export type RiskLevel = "critical" | "high" | "low" | "medium";
 
 // Self-enhancement system types
 export interface SelfEnhancementLoop {
-  workflowId: string;
   currentVersion: string;
   enhancementHistory: Enhancement[];
+  feedbackLoops: FeedbackLoop[];
   learningModel: LearningModel;
   optimizationTargets: OptimizationTarget[];
-  feedbackLoops: FeedbackLoop[];
+  workflowId: string;
 }
 
-export interface LearningModel {
-  type: "reinforcement" | "supervised" | "unsupervised" | "transfer";
-  parameters: Record<string, any>;
-  trainingData: TrainingDataPoint[];
-  accuracy: number;                // 0-1
-  lastUpdated: string;
+export interface TestResult {
+  details?: string;
+  executionTime?: number; // milliseconds
+  passed: boolean;
+  score?: number; // 0-1
+  testName: string;
 }
 
 export interface TrainingDataPoint {
@@ -162,132 +187,124 @@ export interface TrainingDataPoint {
   timestamp: string;
 }
 
-export interface OptimizationTarget {
-  metric: "execution_time" | "success_rate" | "quality_score" | "resource_usage" | "user_satisfaction";
-  targetValue: number;
-  weight: number;                  // 0-1 relative importance
-  achieved: boolean;
-}
-
-export interface FeedbackLoop {
-  type: "performance" | "user" | "peer" | "system";
-  source: string;
-  feedback: string;
-  actionable: boolean;
-  priority: "low" | "medium" | "high";
-  timestamp: string;
-}
-
-// Workflow coordination and composition types
-export interface WorkflowComposition {
-  id: string;
-  name: string;
-  description: string;
-  workflows: WorkflowStep[];
-  executionStrategy: ExecutionStrategy;
-  errorHandling: ErrorHandlingStrategy;
-  resourceAllocation: ResourceAllocation;
-}
-
-export interface WorkflowStep {
-  workflowId: string;
-  order: number;
-  condition?: string;              // Conditional execution logic
-  timeout?: number;                // milliseconds
-  retryPolicy?: RetryPolicy;
-  inputMapping?: Record<string, string>;
-  outputMapping?: Record<string, string>;
-}
-
-export type ExecutionStrategy = 
-  | "sequential"    // Execute workflows in order
-  | "parallel"      // Execute workflows simultaneously
-  | "conditional"   // Execute based on conditions
-  | "pipeline"      // Output of one feeds into next
-  | "adaptive";     // Dynamic strategy selection
-
-export interface ErrorHandlingStrategy {
-  onFailure: "abort" | "continue" | "retry" | "fallback";
-  maxRetries: number;
-  retryDelay: number;              // milliseconds
-  fallbackWorkflow?: string;
-  escalationPolicy?: string[];     // Notification recipients
-}
-
-export interface ResourceAllocation {
-  maxConcurrentWorkflows: number;
-  memoryLimit: number;             // MB
-  timeLimit: number;               // milliseconds
-  priority: "low" | "medium" | "high";
-}
-
-export interface RetryPolicy {
-  maxAttempts: number;
-  backoffStrategy: "linear" | "exponential" | "fixed";
-  initialDelay: number;            // milliseconds
-  maxDelay: number;                // milliseconds
+export interface ValidationResult {
+  approvedBy?: string; // Public key of approver
+  confidence: number; // 0-1
+  isValid: boolean;
+  riskAssessment: RiskLevel;
+  testResults: TestResult[];
+  validatedAt: string; // ISO timestamp
 }
 
 // Analytics and monitoring types
 export interface WorkflowAnalytics extends MemoryAnalytics {
-  workflowDistribution: Record<WorkflowCategory, number>;
-  enhancementEffectiveness: EnhancementEffectiveness;
-  performanceTrends: PerformanceTrend[];
   collaborationMetrics: CollaborationMetrics;
+  enhancementEffectiveness: EnhancementEffectiveness;
   learningEfficiency: LearningEfficiency;
+  performanceTrends: PerformanceTrend[];
+  workflowDistribution: Record<WorkflowCategory, number>;
 }
 
-export interface EnhancementEffectiveness {
-  averageImpact: number;           // 0-1
-  successRate: number;             // 0-1
-  byType: Record<EnhancementType, {
-    count: number;
-    averageImpact: number;
-    successRate: number;
-  }>;
-  bySource: Record<LearningSource, {
-    count: number;
-    averageImpact: number;
-    successRate: number;
-  }>;
+export type WorkflowCategory =
+  | "analysis"
+  | "automation"
+  | "communication"
+  | "coordination"
+  | "creative"
+  | "data_processing"
+  | "decision_making"
+  | "monitoring"
+  | "optimization"
+  | "problem_solving";
+
+// Workflow coordination and composition types
+export interface WorkflowComposition {
+  description: string;
+  errorHandling: ErrorHandlingStrategy;
+  executionStrategy: ExecutionStrategy;
+  id: string;
+  name: string;
+  resourceAllocation: ResourceAllocation;
+  workflows: WorkflowStep[];
 }
 
-export interface PerformanceTrend {
-  metric: string;
-  timeWindow: string;              // e.g., "1h", "1d", "1w"
-  values: {
-    timestamp: string;
-    value: number;
-  }[];
-  trend: "improving" | "declining" | "stable";
-  confidence: number;              // 0-1
+export interface WorkflowEnhancement {
+  appliedAt: string; // ISO timestamp
+  confidence: number; // 0-1
+  improvements: Enhancement[];
+  learningSource: LearningSource;
+  previousVersion?: string;
+  validationResults: ValidationResult[];
 }
 
-export interface CollaborationMetrics {
-  workflowSharing: number;         // Count of shared workflows
-  knowledgeExchange: number;       // Count of knowledge transfers
-  peerLearning: number;            // Count of peer learning events
-  networkDensity: number;          // 0-1 connectivity measure
-  influenceScore: number;          // 0-1 workflow influence measure
+export interface WorkflowMemory extends AIMemory {
+  capabilities: string[];
+  dependencies: string[];
+  enhancement?: WorkflowEnhancement;
+  performance?: WorkflowPerformance;
+  requirements: string[];
+  stage: WorkflowStage;
+  workflowId: string;
+  workflowVersion: string;
 }
 
-export interface LearningEfficiency {
-  learningRate: number;            // Improvements per unit time
-  knowledgeRetention: number;      // 0-1 knowledge persistence
-  transferEfficiency: number;      // 0-1 cross-domain learning
-  adaptabilityScore: number;       // 0-1 adaptation to new situations
+export interface WorkflowPerformance {
+  completionRate: number; // 0-1
+  errorRate: number; // 0-1
+  executionTime: number; // milliseconds
+  lastExecuted: string; // ISO timestamp
+  qualityScore: number; // 0-1
+  resourceUsage: ResourceMetrics;
+  retryCount: number;
+  success: boolean;
+  userSatisfaction?: number; // 0-1
+}
+
+// Workflow registry and discovery types
+export interface WorkflowRegistryEntry {
+  capabilities: string[];
+  category: WorkflowCategory;
+  createdAt: string;
+  creator: string; // Public key
+  description: string;
+  enhancementCount: number;
+  hubId: string;
+  id: string;
+  name: string;
+  performance: PerformanceStats;
+  requirements: string[];
+  tags: string[];
+  updatedAt: string;
+  version: string;
 }
 
 // Extended search filters for workflow memories
 export interface WorkflowSearchFilters extends SearchFilters {
-  workflowId?: string;
-  workflowCategory?: WorkflowCategory;
-  stage?: WorkflowStage;
-  performanceThreshold?: number;   // Minimum quality score
+  createdAfter?: string; // ISO timestamp
+  createdBefore?: string; // ISO timestamp
   enhancementType?: EnhancementType;
-  learningSource?: LearningSource;
-  hasPerformanceData?: boolean;
   hasEnhancements?: boolean;
-  createdAfter?: string;           // ISO timestamp
-  createdBefore?: string;          // ISO timestamp
+  hasPerformanceData?: boolean;
+  learningSource?: LearningSource;
+  performanceThreshold?: number; // Minimum quality score
+  stage?: WorkflowStage;
+  workflowCategory?: WorkflowCategory;
+  workflowId?: string;
+}
+
+export type WorkflowStage =
+  | "archived"
+  | "evaluation"
+  | "execution"
+  | "optimization"
+  | "planning";
+
+export interface WorkflowStep {
+  condition?: string; // Conditional execution logic
+  inputMapping?: Record<string, string>;
+  order: number;
+  outputMapping?: Record<string, string>;
+  retryPolicy?: RetryPolicy;
+  timeout?: number; // milliseconds
+  workflowId: string;
 }
