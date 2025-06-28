@@ -121,7 +121,7 @@ describe("Cross-platform Compatibility Tests", () => {
 
     for (const file of binFiles) {
       const content = readFileSync(file, "utf8");
-      expect(content.startsWith("#!/usr/bin/env node")).toBe(true);
+      expect(content.startsWith("#!/usr/local/bin/node")).toBe(true);
     }
   });
 

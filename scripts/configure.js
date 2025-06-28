@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/local/bin/node
 
 /**
  * Cross-platform configuration helper for Permamind
