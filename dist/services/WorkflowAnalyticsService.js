@@ -371,34 +371,98 @@ export class WorkflowAnalyticsService {
         const requirements = workflow.requirements || [];
         // Analyze content and capabilities to determine category
         const keywords = {
-            analysis: ['analyze', 'research', 'investigate', 'study', 'examine', 'evaluate'],
-            automation: ['automate', 'schedule', 'batch', 'trigger', 'workflow', 'pipeline'],
-            communication: ['notify', 'email', 'message', 'alert', 'communicate', 'broadcast'],
-            coordination: ['coordinate', 'orchestrate', 'manage', 'sync', 'align', 'integrate'],
-            creative: ['generate', 'create', 'design', 'compose', 'brainstorm', 'innovate'],
-            data_processing: ['process', 'transform', 'parse', 'filter', 'aggregate', 'clean'],
-            decision_making: ['decide', 'choose', 'select', 'prioritize', 'recommend', 'classify'],
-            monitoring: ['monitor', 'track', 'watch', 'observe', 'check', 'measure'],
-            optimization: ['optimize', 'improve', 'enhance', 'tune', 'refine', 'accelerate'],
-            problem_solving: ['solve', 'fix', 'resolve', 'troubleshoot', 'debug', 'diagnose']
+            analysis: [
+                "analyze",
+                "research",
+                "investigate",
+                "study",
+                "examine",
+                "evaluate",
+            ],
+            automation: [
+                "automate",
+                "schedule",
+                "batch",
+                "trigger",
+                "workflow",
+                "pipeline",
+            ],
+            communication: [
+                "notify",
+                "email",
+                "message",
+                "alert",
+                "communicate",
+                "broadcast",
+            ],
+            coordination: [
+                "coordinate",
+                "orchestrate",
+                "manage",
+                "sync",
+                "align",
+                "integrate",
+            ],
+            creative: [
+                "generate",
+                "create",
+                "design",
+                "compose",
+                "brainstorm",
+                "innovate",
+            ],
+            data_processing: [
+                "process",
+                "transform",
+                "parse",
+                "filter",
+                "aggregate",
+                "clean",
+            ],
+            decision_making: [
+                "decide",
+                "choose",
+                "select",
+                "prioritize",
+                "recommend",
+                "classify",
+            ],
+            monitoring: ["monitor", "track", "watch", "observe", "check", "measure"],
+            optimization: [
+                "optimize",
+                "improve",
+                "enhance",
+                "tune",
+                "refine",
+                "accelerate",
+            ],
+            problem_solving: [
+                "solve",
+                "fix",
+                "resolve",
+                "troubleshoot",
+                "debug",
+                "diagnose",
+            ],
         };
         // Score each category
         const scores = {};
         for (const [category, terms] of Object.entries(keywords)) {
             let score = 0;
             // Check content
-            score += terms.filter(term => content.includes(term)).length * 2;
+            score += terms.filter((term) => content.includes(term)).length * 2;
             // Check capabilities
-            score += capabilities.filter((cap) => terms.some(term => cap.toLowerCase().includes(term))).length * 3;
+            score +=
+                capabilities.filter((cap) => terms.some((term) => cap.toLowerCase().includes(term))).length * 3;
             // Check requirements
-            score += requirements.filter((req) => terms.some(term => req.toLowerCase().includes(term))).length;
+            score += requirements.filter((req) => terms.some((term) => req.toLowerCase().includes(term))).length;
             scores[category] = score;
         }
         // Return category with highest score, or null if no clear category
         const maxScore = Math.max(...Object.values(scores));
         if (maxScore === 0)
             return null;
-        return Object.entries(scores).find(([_, score]) => score === maxScore)?.[0] || null;
+        return (Object.entries(scores).find(([_, score]) => score === maxScore)?.[0] || null);
     }
     getEnhancementTypes() {
         return [

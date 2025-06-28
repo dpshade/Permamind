@@ -374,21 +374,23 @@ export class WorkflowEnhancementEngine {
       // Calculate actual impact based on validation confidence and expected impact
       const validationConfidence = enhancement.validation.confidence || 0.5;
       const baseImpact = enhancement.impact * validationConfidence;
-      
+
       // Add some variance based on enhancement risk level
       const riskLevel = enhancement.validation.riskAssessment;
-      const riskMultiplier = riskLevel === "low" ? 0.95 : 
-                           riskLevel === "medium" ? 0.85 : 0.7;
-      
+      const riskMultiplier =
+        riskLevel === "low" ? 0.95 : riskLevel === "medium" ? 0.85 : 0.7;
+
       enhancement.actualImpact = baseImpact * riskMultiplier;
-      
+
       // Mark enhancement as applied
       enhancement.validation.validatedAt = new Date().toISOString();
       // Note: appliedAt would be tracked separately in the enhancement system
     } else {
       // Enhancement failed validation, mark with minimal impact
       enhancement.actualImpact = 0;
-      console.warn(`Enhancement ${enhancement.id} was not applied due to validation failure`);
+      console.warn(
+        `Enhancement ${enhancement.id} was not applied due to validation failure`,
+      );
     }
   }
 

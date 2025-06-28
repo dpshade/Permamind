@@ -5,7 +5,6 @@ import {
 } from "../models/WorkflowMemory.js";
 import { fetchEvents, getZones } from "../relay.js";
 import { aiMemoryService } from "./aiMemoryService.js";
-import { hubRegistryService } from "./registry.js";
 
 /**
  * Service for discovering workflows across different Permamind hubs
@@ -132,7 +131,7 @@ export class CrossHubDiscoveryService {
           }
         } catch (error) {
           // Skip unreachable or non-responsive hubs
-          const processId = (zone as any).spec?.processId || 'unknown';
+          const processId = (zone as any).spec?.processId || "unknown";
           console.warn(`Failed to query hub ${processId}:`, error);
         }
       }

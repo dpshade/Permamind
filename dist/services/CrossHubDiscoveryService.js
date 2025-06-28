@@ -54,7 +54,7 @@ export class CrossHubDiscoveryService {
                 }
                 catch (error) {
                     // Skip unreachable or non-responsive hubs
-                    const processId = zone.spec?.processId || 'unknown';
+                    const processId = zone.spec?.processId || "unknown";
                     console.warn(`Failed to query hub ${processId}:`, error);
                 }
             }

@@ -234,8 +234,7 @@ export class WorkflowEnhancementEngine {
             const baseImpact = enhancement.impact * validationConfidence;
             // Add some variance based on enhancement risk level
             const riskLevel = enhancement.validation.riskAssessment;
-            const riskMultiplier = riskLevel === "low" ? 0.95 :
-                riskLevel === "medium" ? 0.85 : 0.7;
+            const riskMultiplier = riskLevel === "low" ? 0.95 : riskLevel === "medium" ? 0.85 : 0.7;
             enhancement.actualImpact = baseImpact * riskMultiplier;
             // Mark enhancement as applied
             enhancement.validation.validatedAt = new Date().toISOString();

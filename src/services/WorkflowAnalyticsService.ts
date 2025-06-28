@@ -532,52 +532,125 @@ export class WorkflowAnalyticsService {
     return distribution;
   }
 
-  private categorizeWorkflow(workflow: WorkflowMemory): WorkflowCategory | null {
+  private categorizeWorkflow(
+    workflow: WorkflowMemory,
+  ): WorkflowCategory | null {
     const content = workflow.content.toLowerCase();
     const capabilities = (workflow as any).capabilities || [];
     const requirements = (workflow as any).requirements || [];
-    
+
     // Analyze content and capabilities to determine category
     const keywords = {
-      analysis: ['analyze', 'research', 'investigate', 'study', 'examine', 'evaluate'],
-      automation: ['automate', 'schedule', 'batch', 'trigger', 'workflow', 'pipeline'],
-      communication: ['notify', 'email', 'message', 'alert', 'communicate', 'broadcast'],
-      coordination: ['coordinate', 'orchestrate', 'manage', 'sync', 'align', 'integrate'],
-      creative: ['generate', 'create', 'design', 'compose', 'brainstorm', 'innovate'],
-      data_processing: ['process', 'transform', 'parse', 'filter', 'aggregate', 'clean'],
-      decision_making: ['decide', 'choose', 'select', 'prioritize', 'recommend', 'classify'],
-      monitoring: ['monitor', 'track', 'watch', 'observe', 'check', 'measure'],
-      optimization: ['optimize', 'improve', 'enhance', 'tune', 'refine', 'accelerate'],
-      problem_solving: ['solve', 'fix', 'resolve', 'troubleshoot', 'debug', 'diagnose']
+      analysis: [
+        "analyze",
+        "research",
+        "investigate",
+        "study",
+        "examine",
+        "evaluate",
+      ],
+      automation: [
+        "automate",
+        "schedule",
+        "batch",
+        "trigger",
+        "workflow",
+        "pipeline",
+      ],
+      communication: [
+        "notify",
+        "email",
+        "message",
+        "alert",
+        "communicate",
+        "broadcast",
+      ],
+      coordination: [
+        "coordinate",
+        "orchestrate",
+        "manage",
+        "sync",
+        "align",
+        "integrate",
+      ],
+      creative: [
+        "generate",
+        "create",
+        "design",
+        "compose",
+        "brainstorm",
+        "innovate",
+      ],
+      data_processing: [
+        "process",
+        "transform",
+        "parse",
+        "filter",
+        "aggregate",
+        "clean",
+      ],
+      decision_making: [
+        "decide",
+        "choose",
+        "select",
+        "prioritize",
+        "recommend",
+        "classify",
+      ],
+      monitoring: ["monitor", "track", "watch", "observe", "check", "measure"],
+      optimization: [
+        "optimize",
+        "improve",
+        "enhance",
+        "tune",
+        "refine",
+        "accelerate",
+      ],
+      problem_solving: [
+        "solve",
+        "fix",
+        "resolve",
+        "troubleshoot",
+        "debug",
+        "diagnose",
+      ],
     };
 
     // Score each category
-    const scores: Record<WorkflowCategory, number> = {} as Record<WorkflowCategory, number>;
-    
+    const scores: Record<WorkflowCategory, number> = {} as Record<
+      WorkflowCategory,
+      number
+    >;
+
     for (const [category, terms] of Object.entries(keywords)) {
       let score = 0;
-      
+
       // Check content
-      score += terms.filter(term => content.includes(term)).length * 2;
-      
+      score += terms.filter((term) => content.includes(term)).length * 2;
+
       // Check capabilities
-      score += capabilities.filter((cap: string) => 
-        terms.some(term => cap.toLowerCase().includes(term))
-      ).length * 3;
-      
+      score +=
+        capabilities.filter((cap: string) =>
+          terms.some((term) => cap.toLowerCase().includes(term)),
+        ).length * 3;
+
       // Check requirements
-      score += requirements.filter((req: string) => 
-        terms.some(term => req.toLowerCase().includes(term))
+      score += requirements.filter((req: string) =>
+        terms.some((term) => req.toLowerCase().includes(term)),
       ).length;
-      
+
       scores[category as WorkflowCategory] = score;
     }
 
     // Return category with highest score, or null if no clear category
     const maxScore = Math.max(...Object.values(scores));
     if (maxScore === 0) return null;
-    
-    return Object.entries(scores).find(([_, score]) => score === maxScore)?.[0] as WorkflowCategory || null;
+
+    return (
+      (Object.entries(scores).find(
+        ([_, score]) => score === maxScore,
+      )?.[0] as WorkflowCategory) || null
+    );
   }
 
   private getEnhancementTypes(): EnhancementType[] {

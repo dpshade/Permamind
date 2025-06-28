@@ -68,24 +68,31 @@ export interface AIMemoryService {
   // Utility functions
   eventToAIMemory: (event: Record<string, unknown>) => AIMemory;
 
-  findShortestPath: (hubId: string, fromId: string, toId: string) => Promise<string[]>;
+  findShortestPath: (
+    hubId: string,
+    fromId: string,
+    toId: string,
+  ) => Promise<string[]>;
 
   getContextMemories: (hubId: string, contextId: string) => Promise<AIMemory[]>;
 
   // Analytics
   getMemoryAnalytics: (hubId: string, p?: string) => Promise<MemoryAnalytics>;
   // Relationship analysis methods
-  getMemoryRelationships: (hubId: string, memoryId?: string) => Promise<MemoryLink[]>;
+  getMemoryRelationships: (
+    hubId: string,
+    memoryId?: string,
+  ) => Promise<MemoryLink[]>;
 
   getReasoningChain: (
     hubId: string,
     chainId: string,
   ) => Promise<null | ReasoningTrace>;
   getRelationshipAnalytics: (hubId: string) => Promise<{
-    totalLinks: number;
     averageStrength: number;
-    topRelationshipTypes: Array<{type: string, count: number}>;
-    strongestConnections: Array<{from: string, to: string, strength: number}>;
+    strongestConnections: Array<{ from: string; strength: number; to: string; }>;
+    topRelationshipTypes: Array<{ count: number; type: string; }>;
+    totalLinks: number;
   }>;
   linkMemories: (
     signer: JWKInterface,
@@ -221,16 +228,16 @@ const aiService = (): AIMemoryService => {
       try {
         const filter = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 1000,
           tags: { ai_type: ["link"] },
-          limit: 1000
         };
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
-        
+
         const links = new Map<string, Set<string>>();
         const visited = new Set<string>();
         const cycles: string[] = [];
-        
+
         // Build adjacency list from memory links
         events.forEach((event: any) => {
           const fromId = event.from_memory_id;
@@ -240,7 +247,7 @@ const aiService = (): AIMemoryService => {
             links.get(fromId)!.add(toId);
           }
         });
-        
+
         // DFS to detect cycles
         const dfs = (nodeId: string, path: Set<string>): void => {
           if (path.has(nodeId)) {
@@ -248,22 +255,22 @@ const aiService = (): AIMemoryService => {
             return;
           }
           if (visited.has(nodeId)) return;
-          
+
           visited.add(nodeId);
           path.add(nodeId);
-          
+
           const neighbors = links.get(nodeId) || new Set();
-          neighbors.forEach(neighbor => dfs(neighbor, path));
-          
+          neighbors.forEach((neighbor) => dfs(neighbor, path));
+
           path.delete(nodeId);
         };
-        
-        links.keys().forEach(nodeId => {
+
+        links.keys().forEach((nodeId) => {
           if (!visited.has(nodeId)) {
             dfs(nodeId, new Set());
           }
         });
-        
+
         return cycles;
       } catch (error) {
         console.error("Error detecting circular references:", error);
@@ -273,18 +280,22 @@ const aiService = (): AIMemoryService => {
 
     eventToAIMemory: eventToAIMemory,
 
-    findShortestPath: async (hubId: string, fromId: string, toId: string): Promise<string[]> => {
+    findShortestPath: async (
+      hubId: string,
+      fromId: string,
+      toId: string,
+    ): Promise<string[]> => {
       try {
         const filter = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 1000,
           tags: { ai_type: ["link"] },
-          limit: 1000
         };
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
-        
+
         const graph = new Map<string, string[]>();
-        
+
         // Build adjacency list
         events.forEach((event: any) => {
           const from = event.from_memory_id;
@@ -294,29 +305,31 @@ const aiService = (): AIMemoryService => {
             graph.get(from)!.push(to);
           }
         });
-        
+
         // BFS to find shortest path
-        const queue: Array<{id: string, path: string[]}> = [{id: fromId, path: [fromId]}];
+        const queue: Array<{ id: string; path: string[] }> = [
+          { id: fromId, path: [fromId] },
+        ];
         const visited = new Set<string>();
-        
+
         while (queue.length > 0) {
-          const {id, path} = queue.shift()!;
-          
+          const { id, path } = queue.shift()!;
+
           if (id === toId) {
             return path;
           }
-          
+
           if (visited.has(id)) continue;
           visited.add(id);
-          
+
           const neighbors = graph.get(id) || [];
-          neighbors.forEach(neighbor => {
+          neighbors.forEach((neighbor) => {
             if (!visited.has(neighbor)) {
-              queue.push({id: neighbor, path: [...path, neighbor]});
+              queue.push({ id: neighbor, path: [...path, neighbor] });
             }
           });
         }
-        
+
         return []; // No path found
       } catch (error) {
         console.error("Error finding shortest path:", error);
@@ -396,25 +409,28 @@ const aiService = (): AIMemoryService => {
         };
       }
     },
-    getMemoryRelationships: async (hubId: string, memoryId?: string): Promise<MemoryLink[]> => {
+    getMemoryRelationships: async (
+      hubId: string,
+      memoryId?: string,
+    ): Promise<MemoryLink[]> => {
       try {
         const filter: any = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 500,
           tags: { ai_type: ["link"] },
-          limit: 500
         };
-        
+
         if (memoryId) {
           filter.tags.from_memory_id = [memoryId];
         }
-        
+
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
-        
+
         return events.map((event: any) => ({
           strength: parseFloat(event.link_strength || "0.5"),
           targetId: event.to_memory_id || "",
-          type: (event.link_type || "references") as RelationshipType
+          type: (event.link_type || "references") as RelationshipType,
         }));
       } catch (error) {
         console.error("Error getting memory relationships:", error);
@@ -447,62 +463,73 @@ const aiService = (): AIMemoryService => {
       }
     },
 
-    getRelationshipAnalytics: async (hubId: string): Promise<{
-      totalLinks: number;
+    getRelationshipAnalytics: async (
+      hubId: string,
+    ): Promise<{
       averageStrength: number;
-      topRelationshipTypes: Array<{type: string, count: number}>;
-      strongestConnections: Array<{from: string, to: string, strength: number}>;
+      strongestConnections: Array<{
+        from: string;
+        strength: number;
+        to: string;
+      }>;
+      topRelationshipTypes: Array<{ count: number; type: string; }>;
+      totalLinks: number;
     }> => {
       try {
         const links = await aiMemoryService.getMemoryRelationships(hubId);
-        
+
         const totalLinks = links.length;
-        const averageStrength = totalLinks > 0 
-          ? links.reduce((sum, link) => sum + link.strength, 0) / totalLinks 
-          : 0;
-        
+        const averageStrength =
+          totalLinks > 0
+            ? links.reduce((sum, link) => sum + link.strength, 0) / totalLinks
+            : 0;
+
         // Count relationship types
         const typeCount = new Map<string, number>();
-        links.forEach(link => {
+        links.forEach((link) => {
           typeCount.set(link.type, (typeCount.get(link.type) || 0) + 1);
         });
-        
+
         const topRelationshipTypes = Array.from(typeCount.entries())
-          .map(([type, count]) => ({type, count}))
+          .map(([type, count]) => ({ count, type }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
-        
+
         // Get events for connection analysis
         const eventsFilter = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 500,
           tags: { ai_type: ["link"] },
-          limit: 500
         };
         const _eventsFilters = JSON.stringify([eventsFilter]);
         const linkEvents = await fetchEvents(hubId, _eventsFilters);
-        
+
         const strongestConnections = linkEvents
-          .sort((a: any, b: any) => parseFloat(b.link_strength || "0") - parseFloat(a.link_strength || "0"))
+          .sort(
+            (a: any, b: any) =>
+              parseFloat(b.link_strength || "0") -
+              parseFloat(a.link_strength || "0"),
+          )
           .slice(0, 10)
           .map((event: any) => ({
             from: event.from_memory_id || "",
+            strength: parseFloat(event.link_strength || "0"),
             to: event.to_memory_id || "",
-            strength: parseFloat(event.link_strength || "0")
           }));
-        
+
         return {
-          totalLinks,
           averageStrength,
+          strongestConnections,
           topRelationshipTypes,
-          strongestConnections
+          totalLinks,
         };
       } catch (error) {
         console.error("Error getting relationship analytics:", error);
         return {
-          totalLinks: 0,
           averageStrength: 0,
+          strongestConnections: [],
           topRelationshipTypes: [],
-          strongestConnections: []
+          totalLinks: 0,
         };
       }
     },
