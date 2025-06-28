@@ -5,7 +5,7 @@
 **Tweet 1/🧵:**
 🧠 Just shipped something wild: An ecosystem where Claude workflows become self-enhancing & collaborate with each other
 
-Imagine your AI getting better at its job while you sleep, learning from other AIs, and storing everything permanently on Arweave 
+The future of collaborative AI lives on AO - imagine your AI getting better while you sleep, learning from other AIs, stored permanently
 
 Here's how it works... 🧵
 
@@ -16,7 +16,7 @@ Here's how it works... 🧵
 ⚡ **The Solution**: Workflows that:
 - Track their own performance automatically
 - Learn from other workflows in the ecosystem  
-- Store knowledge permanently on Arweave
+- Store knowledge permanently on AO
 - Get better over time without human intervention
 - Share improvements across the network
 
