@@ -90,8 +90,8 @@ export interface AIMemoryService {
   ) => Promise<null | ReasoningTrace>;
   getRelationshipAnalytics: (hubId: string) => Promise<{
     averageStrength: number;
-    strongestConnections: Array<{ from: string; strength: number; to: string; }>;
-    topRelationshipTypes: Array<{ count: number; type: string; }>;
+    strongestConnections: Array<{ from: string; strength: number; to: string }>;
+    topRelationshipTypes: Array<{ count: number; type: string }>;
     totalLinks: number;
   }>;
   linkMemories: (
@@ -472,7 +472,7 @@ const aiService = (): AIMemoryService => {
         strength: number;
         to: string;
       }>;
-      topRelationshipTypes: Array<{ count: number; type: string; }>;
+      topRelationshipTypes: Array<{ count: number; type: string }>;
       totalLinks: number;
     }> => {
       try {

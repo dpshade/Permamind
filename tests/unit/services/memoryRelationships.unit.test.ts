@@ -380,35 +380,52 @@ describe("Memory Relationships", () => {
 
   describe("Relationship Retrieval and Analysis", () => {
     it("should retrieve all relationships for a memory", async () => {
-      // This functionality doesn't exist yet - test will fail
-      // Highlighting need for relationship retrieval methods
-      await expect(aiMemoryService.getMemoryRelationships()).rejects.toThrow(
-        "getMemoryRelationships not implemented yet",
-      );
+      // Test that the method is now implemented and returns an array
+      const hubId = "test-hub";
+      const relationships = await aiMemoryService.getMemoryRelationships(hubId);
+
+      expect(Array.isArray(relationships)).toBe(true);
+      // Should return empty array when no relationships exist (mocked fetchEvents returns [])
+      expect(relationships).toEqual([]);
     });
 
     it("should calculate relationship strength statistics", async () => {
-      // This functionality doesn't exist yet - test will fail
-      // Highlighting need for relationship analytics
-      await expect(aiMemoryService.getRelationshipAnalytics()).rejects.toThrow(
-        "getRelationshipAnalytics not implemented yet",
-      );
+      // Test that the method is now implemented and returns analytics object
+      const hubId = "test-hub";
+      const analytics = await aiMemoryService.getRelationshipAnalytics(hubId);
+
+      expect(analytics).toHaveProperty("totalLinks");
+      expect(analytics).toHaveProperty("averageStrength");
+      expect(analytics).toHaveProperty("topRelationshipTypes");
+      expect(analytics).toHaveProperty("strongestConnections");
+
+      // Should return zero values when no relationships exist
+      expect(analytics.totalLinks).toBe(0);
+      expect(analytics.averageStrength).toBe(0);
+      expect(Array.isArray(analytics.topRelationshipTypes)).toBe(true);
+      expect(Array.isArray(analytics.strongestConnections)).toBe(true);
     });
 
     it("should find shortest path between memories", async () => {
-      // This functionality doesn't exist yet - test will fail
-      // Highlighting need for graph traversal algorithms
-      await expect(aiMemoryService.findShortestPath()).rejects.toThrow(
-        "findShortestPath not implemented yet",
-      );
+      // Test that the method is now implemented and returns a path array
+      const hubId = "test-hub";
+      const fromId = "memory1";
+      const toId = "memory2";
+      const path = await aiMemoryService.findShortestPath(hubId, fromId, toId);
+
+      expect(Array.isArray(path)).toBe(true);
+      // Should return empty array when no path exists (mocked fetchEvents returns [])
+      expect(path).toEqual([]);
     });
 
     it("should detect circular references in memory graphs", async () => {
-      // This functionality doesn't exist yet - test will fail
-      // Highlighting need for cycle detection
-      await expect(aiMemoryService.detectCircularReferences()).rejects.toThrow(
-        "detectCircularReferences not implemented yet",
-      );
+      // Test that the method is now implemented and returns cycles array
+      const hubId = "test-hub";
+      const cycles = await aiMemoryService.detectCircularReferences(hubId);
+
+      expect(Array.isArray(cycles)).toBe(true);
+      // Should return empty array when no cycles exist (mocked fetchEvents returns [])
+      expect(cycles).toEqual([]);
     });
   });
 
