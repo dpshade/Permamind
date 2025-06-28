@@ -48,7 +48,10 @@ export type MemoryType =
   | "conversation"
   | "knowledge"
   | "procedure"
-  | "reasoning";
+  | "reasoning"
+  | "workflow"
+  | "enhancement"
+  | "performance";
 
 export interface ReasoningStep {
   confidence: number; // 0-1
@@ -68,7 +71,13 @@ export type RelationshipType =
   | "contradicts"
   | "extends"
   | "references"
-  | "supports";
+  | "supports"
+  | "inherits"
+  | "composes"
+  | "enhances"
+  | "triggers"
+  | "depends_on"
+  | "replaces";
 
 export interface SearchFilters {
   domain?: string;
