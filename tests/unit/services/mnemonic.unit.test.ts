@@ -1,14 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { generateMnemonic, getKeyFromMnemonic, validateMnemonic, pkcs8ToJwk } from "../../../src/mnemonic.js";
+
+import {
+  generateMnemonic,
+  getKeyFromMnemonic,
+  pkcs8ToJwk,
+  validateMnemonic,
+} from "../../../src/mnemonic.js";
 
 describe("Mnemonic Generation and Key Derivation", () => {
   describe("generateMnemonic", () => {
     it("should generate a valid 12-word mnemonic", async () => {
       const mnemonic = await generateMnemonic();
-      
+
       expect(typeof mnemonic).toBe("string");
       expect(mnemonic.trim().split(/\s+/)).toHaveLength(12);
-      
+
       // Validate the generated mnemonic
       const isValid = await validateMnemonic(mnemonic);
       expect(isValid).toBe(true);
@@ -17,16 +23,16 @@ describe("Mnemonic Generation and Key Derivation", () => {
     it("should generate different mnemonics on multiple calls", async () => {
       const mnemonic1 = await generateMnemonic();
       const mnemonic2 = await generateMnemonic();
-      
+
       expect(mnemonic1).not.toBe(mnemonic2);
     });
 
     it("should generate mnemonics with valid BIP39 words", async () => {
       const mnemonic = await generateMnemonic();
       const words = mnemonic.split(" ");
-      
+
       // Each word should be a valid BIP39 word (basic check for format)
-      words.forEach(word => {
+      words.forEach((word) => {
         expect(word).toMatch(/^[a-z]+$/); // Only lowercase letters
         expect(word.length).toBeGreaterThan(2); // Reasonable word length
       });
@@ -36,7 +42,7 @@ describe("Mnemonic Generation and Key Derivation", () => {
       const start = Date.now();
       await generateMnemonic();
       const duration = Date.now() - start;
-      
+
       expect(duration).toBeLessThan(100);
     });
   });
@@ -45,7 +51,7 @@ describe("Mnemonic Generation and Key Derivation", () => {
     it("should validate a correctly generated mnemonic", async () => {
       const mnemonic = await generateMnemonic();
       const isValid = await validateMnemonic(mnemonic);
-      
+
       expect(isValid).toBe(true);
     });
 
@@ -80,11 +86,12 @@ describe("Mnemonic Generation and Key Derivation", () => {
 
   describe("getKeyFromMnemonic", () => {
     // Use a shared test mnemonic to avoid multiple slow key generations
-    const testMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-    
+    const testMnemonic =
+      "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
     it("should derive a valid JWK from mnemonic", async () => {
       const jwk = await getKeyFromMnemonic(testMnemonic);
-      
+
       // Check JWK structure
       expect(jwk).toHaveProperty("kty", "RSA");
       expect(jwk).toHaveProperty("n"); // modulus
@@ -95,7 +102,7 @@ describe("Mnemonic Generation and Key Derivation", () => {
       expect(jwk).toHaveProperty("dp"); // first factor CRT exponent
       expect(jwk).toHaveProperty("dq"); // second factor CRT exponent
       expect(jwk).toHaveProperty("qi"); // first CRT coefficient
-      
+
       // Check that the modulus 'n' is approximately 4096 bits
       // Base64 encoded 4096-bit number should be around 683-684 characters
       const modulusLength = jwk.n!.length;
@@ -105,9 +112,8 @@ describe("Mnemonic Generation and Key Derivation", () => {
 
     it("should reject invalid mnemonics", async () => {
       const invalidMnemonic = "invalid mnemonic phrase here";
-      
-      await expect(getKeyFromMnemonic(invalidMnemonic))
-        .rejects.toThrow();
+
+      await expect(getKeyFromMnemonic(invalidMnemonic)).rejects.toThrow();
     }, 10000);
   });
 
@@ -116,11 +122,12 @@ describe("Mnemonic Generation and Key Derivation", () => {
   describe("Regression Tests", () => {
     it("should maintain compatibility with existing mnemonics", async () => {
       // Test with a known valid mnemonic to ensure backwards compatibility
-      const knownMnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-      
+      const knownMnemonic =
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+
       const isValid = await validateMnemonic(knownMnemonic);
       expect(isValid).toBe(true);
-      
+
       // Should be able to derive a key without throwing
       const jwk = await getKeyFromMnemonic(knownMnemonic);
       expect(jwk).toHaveProperty("kty", "RSA");
@@ -153,13 +160,15 @@ describe("Mnemonic Generation and Key Derivation", () => {
     it("should generate mnemonics quickly", async () => {
       const iterations = 10;
       const start = Date.now();
-      
-      const promises = Array(iterations).fill(0).map(() => generateMnemonic());
+
+      const promises = Array(iterations)
+        .fill(0)
+        .map(() => generateMnemonic());
       await Promise.all(promises);
-      
+
       const duration = Date.now() - start;
       const avgDuration = duration / iterations;
-      
+
       // Should average under 50ms per generation (the key optimization)
       expect(avgDuration).toBeLessThan(50);
     });
