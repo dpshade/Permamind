@@ -3,7 +3,7 @@ import {
   WorkflowMemory,
   WorkflowPerformance,
 } from "../models/WorkflowMemory.js";
-import { fetchEvents } from "../relay.js";
+import { fetchEvents, getZones } from "../relay.js";
 import { aiMemoryService } from "./aiMemoryService.js";
 import { hubRegistryService } from "./registry.js";
 
@@ -115,23 +115,25 @@ export class CrossHubDiscoveryService {
 
     try {
       // Get all registered zones from the hub registry
-      // Note: In actual implementation, this would use the real getZones method
-      // For now, we'll simulate this with a placeholder
-      const zones: any[] = []; // Placeholder for demo
+      const zones = await getZones(HUB_REGISTRY_ID(), "{}", 0, 100);
 
       const hubs: HubInfo[] = [];
 
       for (const zone of zones) {
         try {
           // Check if this hub has public workflows
-          const hubInfo = await this.queryHubInfo(zone.spec.processId);
-          if (hubInfo) {
-            hubs.push(hubInfo);
-            this.discoveredHubs.set(zone.spec.processId, hubInfo);
+          const processId = (zone as any).spec?.processId;
+          if (processId) {
+            const hubInfo = await this.queryHubInfo(processId);
+            if (hubInfo) {
+              hubs.push(hubInfo);
+              this.discoveredHubs.set(processId, hubInfo);
+            }
           }
         } catch (error) {
           // Skip unreachable or non-responsive hubs
-          console.warn(`Failed to query hub ${zone.spec.processId}:`, error);
+          const processId = (zone as any).spec?.processId || 'unknown';
+          console.warn(`Failed to query hub ${processId}:`, error);
         }
       }
 

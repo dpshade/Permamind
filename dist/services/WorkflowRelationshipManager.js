@@ -329,8 +329,41 @@ export class WorkflowRelationshipManager {
         return inheritors;
     }
     hasComplementaryCapabilities(workflowId1, workflowId2) {
-        // This would analyze workflow capabilities - placeholder implementation
-        return Math.random() > 0.7; // 30% chance of complementary capabilities
+        // Check if workflows have complementary relationship types in their links
+        const links1 = this.relationships.get(workflowId1) || [];
+        const links2 = this.relationships.get(workflowId2) || [];
+        // Look for complementary relationship patterns
+        const hasProducerConsumer = this.hasProducerConsumerPattern(links1, links2);
+        const hasRequirementCapabilityMatch = this.hasRequirementCapabilityMatch(links1, links2);
+        const hasComplementaryTypes = this.hasComplementaryRelationshipTypes(links1, links2);
+        return hasProducerConsumer || hasRequirementCapabilityMatch || hasComplementaryTypes;
+    }
+    hasProducerConsumerPattern(links1, links2) {
+        // Check if one workflow produces what the other consumes
+        // Since MemoryLink.type is RelationshipType, we check for semantic relationships
+        const outputs1 = links1.filter(l => ["enhances", "supports", "triggers"].includes(l.type));
+        const inputs2 = links2.filter(l => ["depends_on", "references"].includes(l.type));
+        return outputs1.some(output => inputs2.some(input => input.targetId === output.targetId));
+    }
+    hasRequirementCapabilityMatch(links1, links2) {
+        // Check if one workflow's requirements match the other's capabilities
+        const requirements1 = links1.filter(l => l.type === "depends_on");
+        const capabilities2 = links2.filter(l => ["enhances", "supports"].includes(l.type));
+        return requirements1.some(req => capabilities2.some(cap => cap.targetId === req.targetId));
+    }
+    hasComplementaryRelationshipTypes(links1, links2) {
+        // Check for complementary relationship patterns using actual RelationshipType values
+        const types1 = new Set(links1.map(l => l.type));
+        const types2 = new Set(links2.map(l => l.type));
+        const complementaryPairs = [
+            ["enhances", "depends_on"],
+            ["supports", "references"],
+            ["triggers", "causes"],
+            ["extends", "inherits"],
+            ["composes", "inherits"]
+        ];
+        return complementaryPairs.some(([type1, type2]) => (types1.has(type1) && types2.has(type2)) ||
+            (types1.has(type2) && types2.has(type1)));
     }
     hasDirectRelationship(workflowId1, workflowId2) {
         const links = this.relationships.get(workflowId1) || [];

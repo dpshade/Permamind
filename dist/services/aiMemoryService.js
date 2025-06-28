@@ -96,14 +96,99 @@ const aiService = () => {
                 throw new Error(`Failed to create memory context: ${e}`);
             }
         },
-        detectCircularReferences: async () => {
-            // Minimal implementation for TDD
-            throw new Error("detectCircularReferences not implemented yet");
+        detectCircularReferences: async (hubId) => {
+            try {
+                const filter = {
+                    kinds: [MEMORY_KINDS.AI_MEMORY],
+                    tags: { ai_type: ["link"] },
+                    limit: 1000
+                };
+                const _filters = JSON.stringify([filter]);
+                const events = await fetchEvents(hubId, _filters);
+                const links = new Map();
+                const visited = new Set();
+                const cycles = [];
+                // Build adjacency list from memory links
+                events.forEach((event) => {
+                    const fromId = event.from_memory_id;
+                    const toId = event.to_memory_id;
+                    if (fromId && toId) {
+                        if (!links.has(fromId))
+                            links.set(fromId, new Set());
+                        links.get(fromId).add(toId);
+                    }
+                });
+                // DFS to detect cycles
+                const dfs = (nodeId, path) => {
+                    if (path.has(nodeId)) {
+                        cycles.push(Array.from(path).join(" -> ") + " -> " + nodeId);
+                        return;
+                    }
+                    if (visited.has(nodeId))
+                        return;
+                    visited.add(nodeId);
+                    path.add(nodeId);
+                    const neighbors = links.get(nodeId) || new Set();
+                    neighbors.forEach(neighbor => dfs(neighbor, path));
+                    path.delete(nodeId);
+                };
+                links.keys().forEach(nodeId => {
+                    if (!visited.has(nodeId)) {
+                        dfs(nodeId, new Set());
+                    }
+                });
+                return cycles;
+            }
+            catch (error) {
+                console.error("Error detecting circular references:", error);
+                return [];
+            }
         },
         eventToAIMemory: eventToAIMemory,
-        findShortestPath: async () => {
-            // Minimal implementation for TDD
-            throw new Error("findShortestPath not implemented yet");
+        findShortestPath: async (hubId, fromId, toId) => {
+            try {
+                const filter = {
+                    kinds: [MEMORY_KINDS.AI_MEMORY],
+                    tags: { ai_type: ["link"] },
+                    limit: 1000
+                };
+                const _filters = JSON.stringify([filter]);
+                const events = await fetchEvents(hubId, _filters);
+                const graph = new Map();
+                // Build adjacency list
+                events.forEach((event) => {
+                    const from = event.from_memory_id;
+                    const to = event.to_memory_id;
+                    if (from && to) {
+                        if (!graph.has(from))
+                            graph.set(from, []);
+                        graph.get(from).push(to);
+                    }
+                });
+                // BFS to find shortest path
+                const queue = [{ id: fromId, path: [fromId] }];
+                const visited = new Set();
+                while (queue.length > 0) {
+                    const { id, path } = queue.shift();
+                    if (id === toId) {
+                        return path;
+                    }
+                    if (visited.has(id))
+                        continue;
+                    visited.add(id);
+                    const neighbors = graph.get(id) || [];
+                    neighbors.forEach(neighbor => {
+                        if (!visited.has(neighbor)) {
+                            queue.push({ id: neighbor, path: [...path, neighbor] });
+                        }
+                    });
+                }
+                return []; // No path found
+            }
+            catch (error) {
+                console.error("Error finding shortest path:", error);
+                return [];
+            }
         },
         getContextMemories: async (hubId, contextId) => {
             try {
@@ -162,9 +247,28 @@ const aiService = () => {
                 };
             }
         },
-        getMemoryRelationships: async () => {
-            // Minimal implementation for TDD
-            throw new Error("getMemoryRelationships not implemented yet");
+        getMemoryRelationships: async (hubId, memoryId) => {
+            try {
+                const filter = {
+                    kinds: [MEMORY_KINDS.AI_MEMORY],
+                    tags: { ai_type: ["link"] },
+                    limit: 500
+                };
+                if (memoryId) {
+                    filter.tags.from_memory_id = [memoryId];
+                }
+                const _filters = JSON.stringify([filter]);
+                const events = await fetchEvents(hubId, _filters);
+                return events.map((event) => ({
+                    strength: parseFloat(event.link_strength || "0.5"),
+                    targetId: event.to_memory_id || "",
+                    type: (event.link_type || "references")
+                }));
+            }
+            catch (error) {
+                console.error("Error getting memory relationships:", error);
+                return [];
+            }
         },
         getReasoningChain: async (hubId, chainId) => {
             try {
@@ -187,9 +291,54 @@ const aiService = () => {
                 return null;
             }
         },
-        getRelationshipAnalytics: async () => {
-            // Minimal implementation for TDD
-            throw new Error("getRelationshipAnalytics not implemented yet");
+        getRelationshipAnalytics: async (hubId) => {
+            try {
+                const links = await aiMemoryService.getMemoryRelationships(hubId);
+                const totalLinks = links.length;
+                const averageStrength = totalLinks > 0
+                    ? links.reduce((sum, link) => sum + link.strength, 0) / totalLinks
+                    : 0;
+                // Count relationship types
+                const typeCount = new Map();
+                links.forEach(link => {
+                    typeCount.set(link.type, (typeCount.get(link.type) || 0) + 1);
+                });
+                const topRelationshipTypes = Array.from(typeCount.entries())
+                    .map(([type, count]) => ({ type, count }))
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 5);
+                // Get events for connection analysis
+                const eventsFilter = {
+                    kinds: [MEMORY_KINDS.AI_MEMORY],
+                    tags: { ai_type: ["link"] },
+                    limit: 500
+                };
+                const _eventsFilters = JSON.stringify([eventsFilter]);
+                const linkEvents = await fetchEvents(hubId, _eventsFilters);
+                const strongestConnections = linkEvents
+                    .sort((a, b) => parseFloat(b.link_strength || "0") - parseFloat(a.link_strength || "0"))
+                    .slice(0, 10)
+                    .map((event) => ({
+                    from: event.from_memory_id || "",
+                    to: event.to_memory_id || "",
+                    strength: parseFloat(event.link_strength || "0")
+                }));
+                return {
+                    totalLinks,
+                    averageStrength,
+                    topRelationshipTypes,
+                    strongestConnections
+                };
+            }
+            catch (error) {
+                console.error("Error getting relationship analytics:", error);
+                return {
+                    totalLinks: 0,
+                    averageStrength: 0,
+                    topRelationshipTypes: [],
+                    strongestConnections: []
+                };
+            }
         },
         linkMemories: async (signer, hubId, sourceId, targetId, relationship) => {
             try {
