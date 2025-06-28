@@ -19,6 +19,20 @@ function question(query) {
   return new Promise(resolve => rl.question(query, resolve));
 }
 
+function showBanner() {
+  const banner = `
+ ██████╗ ███████╗██████╗ ███╗   ███╗ █████╗ ███╗   ███╗██╗███╗   ██╗██████╗ 
+ ██╔══██╗██╔════╝██╔══██╗████╗ ████║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗
+ ██████╔╝█████╗  ██████╔╝██╔████╔██║███████║██╔████╔██║██║██╔██╗ ██║██║  ██║
+ ██╔═══╝ ██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║  ██║
+ ██║     ███████╗██║  ██║██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██████╔╝
+ ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═════╝ 
+                                                                              
+🧠 Immortal Memory Layer for AI Agents • Built on Arweave • Powered by AO
+`;
+  console.log(banner);
+}
+
 function detectOS() {
   const os = platform();
   switch (os) {
@@ -230,16 +244,18 @@ async function testServerConnection(seedPhrase) {
 }
 
 async function main() {
-  // console.log removed
-  // console.log removed
+  // Show welcome banner
+  showBanner();
+  console.log(`🚀 Permamind Setup Wizard`);
   
   const os = detectOS();
-  // console.log removed
+  console.log(`🖥️  Detected OS: ${os}`);
+  console.log('');
   
   // Check if permamind is built
   const distPath = join(__dirname, '..', 'dist');
   if (!existsSync(distPath)) {
-    console.error('Error: Permamind is not built. Please run: npm run build');
+    console.error('❌ Error: Permamind is not built. Please run: npm run build');
     process.exit(1);
   }
   
