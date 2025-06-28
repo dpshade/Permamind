@@ -48,11 +48,11 @@ For more information, visit: ${packageJson.homepage}
 `;
 
 function showVersion() {
-  process.stderr.write(`permamind v${packageJson.version}`);
+  process.stdout.write(`permamind v${packageJson.version}\n`);
 }
 
 function showHelp() {
-  process.stderr.write(HELP_TEXT);
+  process.stdout.write(HELP_TEXT);
 }
 
 async function generateSeedPhrase() {
@@ -456,10 +456,10 @@ if (args.length === 0) {
       break;
       
     case '--info':
-      process.stderr.write(`Permamind MCP Server v${packageJson.version}`);
-      process.stderr.write(`Description: ${packageJson.description}`);
-      process.stderr.write(`Repository: ${packageJson.repository.url}`);
-      process.stderr.write(`Author: ${packageJson.author}`);
+      process.stdout.write(`Permamind MCP Server v${packageJson.version}\n`);
+      process.stdout.write(`Description: ${packageJson.description}\n`);
+      process.stdout.write(`Repository: ${packageJson.repository.url}\n`);
+      process.stdout.write(`Author: ${packageJson.author}\n`);
       break;
       
     default:
