@@ -1,21 +1,18 @@
 import { JWKInterface } from "arweave/node/lib/wallet.js";
 import {
+  generateMnemonic as bip39Generate,
   validateMnemonic as bip39Validate,
   mnemonicToSeed,
   wordlists,
 } from "bip39-web-crypto";
-import { generateKeyPair, getKeyPairFromSeed } from "human-crypto-keys";
+import { getKeyPairFromSeed } from "human-crypto-keys";
 
 /**
  * Generate a 12 word mnemonic for an Arweave key
  * @returns {string} - a promise resolving to a 12 word mnemonic seed phrase
  */
 export async function generateMnemonic() {
-  const keys = await generateKeyPair(
-    { id: "rsa", modulusLength: 4096 },
-    { privateKeyFormat: "pkcs1-pem" },
-  );
-  return keys.mnemonic;
+  return await bip39Generate(128, undefined, wordlists.english);
 }
 
 export async function getKeyFromMnemonic(mnemonic: string) {
