@@ -26,21 +26,25 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Build TypeScript
+    - name: Clean and Build TypeScript
       run: |
+        echo "Cleaning dist directory..."
+        rm -rf dist/
         echo "Running TypeScript build..."
-        npm run build
+        npx tsc --build
         echo "Build completed with exit code: $?"
     
     - name: Verify build output
       run: |
+        echo "Checking if dist directory exists..."
+        if [ ! -d "dist" ]; then
+          echo "ERROR: dist directory does not exist!"
+          exit 1
+        fi
         echo "Checking dist directory structure..."
-        ls -la dist/
-        echo "Checking services directory..."
-        ls -la dist/services/ || echo "Services directory not found"
-        echo "Checking specific workflow services..."
-        ls -la dist/services/Workflow* || echo "Workflow services not found"
-        ls -la dist/services/CrossHub* || echo "CrossHub services not found"
+        find dist -type f -name "*.js" | head -20
+        echo "Checking for workflow services specifically..."
+        find dist -name "*Workflow*.js" -o -name "*CrossHub*.js" || echo "No workflow/crosshub services found"
     
     - name: Run linting
       run: npm run format:check
