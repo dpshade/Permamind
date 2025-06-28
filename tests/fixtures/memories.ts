@@ -1,7 +1,6 @@
 import {
   AIMemory,
   MemoryLink,
-  MemoryType,
   ReasoningTrace,
 } from "../../src/models/AIMemory.js";
 

@@ -10,7 +10,7 @@ describe("CLI Tests", () => {
     // Ensure project is built
     try {
       execSync("npm run build", { cwd: projectRoot, stdio: "pipe" });
-    } catch (error) {
+    } catch {
       console.warn("Build failed, tests may not work properly");
     }
   });

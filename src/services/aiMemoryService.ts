@@ -63,24 +63,24 @@ export interface AIMemoryService {
     p: string,
   ) => Promise<string>;
 
-  detectCircularReferences: (hubId: string) => Promise<string[]>;
+  detectCircularReferences: () => Promise<string[]>;
   // Utility functions
-  eventToAIMemory: (event: any) => AIMemory;
+  eventToAIMemory: (event: Record<string, unknown>) => AIMemory;
 
-  findShortestPath: (sourceId: string, targetId: string) => Promise<string[]>;
+  findShortestPath: () => Promise<string[]>;
 
   getContextMemories: (hubId: string, contextId: string) => Promise<AIMemory[]>;
 
   // Analytics
   getMemoryAnalytics: (hubId: string, p?: string) => Promise<MemoryAnalytics>;
   // Relationship analysis methods
-  getMemoryRelationships: (memoryId: string) => Promise<MemoryLink[]>;
+  getMemoryRelationships: () => Promise<MemoryLink[]>;
 
   getReasoningChain: (
     hubId: string,
     chainId: string,
   ) => Promise<null | ReasoningTrace>;
-  getRelationshipAnalytics: (hubId: string) => Promise<any>;
+  getRelationshipAnalytics: () => Promise<unknown>;
   linkMemories: (
     signer: JWKInterface,
     hubId: string,
@@ -211,17 +211,14 @@ const aiService = (): AIMemoryService => {
       }
     },
 
-    detectCircularReferences: async (hubId: string): Promise<string[]> => {
+    detectCircularReferences: async (): Promise<string[]> => {
       // Minimal implementation for TDD
       throw new Error("detectCircularReferences not implemented yet");
     },
 
     eventToAIMemory: eventToAIMemory,
 
-    findShortestPath: async (
-      sourceId: string,
-      targetId: string,
-    ): Promise<string[]> => {
+    findShortestPath: async (): Promise<string[]> => {
       // Minimal implementation for TDD
       throw new Error("findShortestPath not implemented yet");
     },
@@ -239,9 +236,12 @@ const aiService = (): AIMemoryService => {
         const events = await fetchEvents(hubId, _filters);
 
         return events
-          .filter((event) => event.Content)
+          .filter(
+            (event): event is Record<string, unknown> =>
+              typeof event === "object" && event !== null && "Content" in event,
+          )
           .map((event) => eventToAIMemory(event));
-      } catch (error) {
+      } catch {
         return [];
       }
     },
@@ -251,7 +251,7 @@ const aiService = (): AIMemoryService => {
       p?: string,
     ): Promise<MemoryAnalytics> => {
       try {
-        const filter: any = {
+        const filter: Record<string, unknown> = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
         };
 
@@ -262,11 +262,14 @@ const aiService = (): AIMemoryService => {
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
         const aiMemories = events
-          .filter((event) => event.Content)
+          .filter(
+            (event): event is Record<string, unknown> =>
+              typeof event === "object" && event !== null && "Content" in event,
+          )
           .map((event) => eventToAIMemory(event));
 
         return generateAnalytics(aiMemories);
-      } catch (error) {
+      } catch {
         // Return default analytics on error
         return {
           accessPatterns: {
@@ -289,7 +292,7 @@ const aiService = (): AIMemoryService => {
         };
       }
     },
-    getMemoryRelationships: async (memoryId: string): Promise<MemoryLink[]> => {
+    getMemoryRelationships: async (): Promise<MemoryLink[]> => {
       // Minimal implementation for TDD
       throw new Error("getMemoryRelationships not implemented yet");
     },
@@ -308,18 +311,18 @@ const aiService = (): AIMemoryService => {
 
         if (events.length === 0) return null;
 
-        const event = events[0];
+        const event = events[0] as Record<string, unknown>;
         return {
-          chainId: event.chainId,
-          outcome: event.outcome || "",
-          steps: JSON.parse(event.steps || "[]"),
+          chainId: event.chainId as string,
+          outcome: (event.outcome as string) || "",
+          steps: JSON.parse((event.steps as string) || "[]"),
         };
-      } catch (error) {
+      } catch {
         return null;
       }
     },
 
-    getRelationshipAnalytics: async (hubId: string): Promise<any> => {
+    getRelationshipAnalytics: async (): Promise<unknown> => {
       // Minimal implementation for TDD
       throw new Error("getRelationshipAnalytics not implemented yet");
     },
@@ -367,7 +370,7 @@ const aiService = (): AIMemoryService => {
       filters?: SearchFilters,
     ): Promise<AIMemory[]> => {
       try {
-        const filter: any = {
+        const filter: Record<string, unknown> = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
         };
 
@@ -378,31 +381,38 @@ const aiService = (): AIMemoryService => {
         // Add filter conditions based on AI-specific tags
         if (filters?.memoryType) {
           filter.tags = filter.tags || {};
-          filter.tags.ai_type = [filters.memoryType];
+          (filter.tags as Record<string, unknown>).ai_type = [
+            filters.memoryType,
+          ];
         }
 
         if (filters?.importanceThreshold) {
           // Note: This would require hub-side filtering support
           filter.tags = filter.tags || {};
-          filter.tags.ai_importance_min = [
+          (filter.tags as Record<string, unknown>).ai_importance_min = [
             filters.importanceThreshold.toString(),
           ];
         }
 
         if (filters?.sessionId) {
           filter.tags = filter.tags || {};
-          filter.tags.ai_session = [filters.sessionId];
+          (filter.tags as Record<string, unknown>).ai_session = [
+            filters.sessionId,
+          ];
         }
 
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
 
         const aiMemories = events
-          .filter((event) => event.Content)
+          .filter(
+            (event): event is Record<string, unknown> =>
+              typeof event === "object" && event !== null && "Content" in event,
+          )
           .map((event) => eventToAIMemory(event))
           .filter((memory) => matchesFilters(memory, filters));
 
-        return rankMemoriesByRelevance(aiMemories, query);
+        return rankMemoriesByRelevance(aiMemories);
       } catch (error) {
         throw new Error(`Failed to search memories: ${error}`);
       }
@@ -453,25 +463,26 @@ function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
   return tags;
 }
 
-function eventToAIMemory(event: any): AIMemory {
+function eventToAIMemory(event: Record<string, unknown>): AIMemory {
   const baseMemory: Memory = {
-    content: event.Content,
-    id: event.Id,
-    p: event.p,
-    role: event.r || event.role || "user",
-    timestamp: event.Timestamp,
+    content: event.Content as string,
+    id: event.Id as string,
+    p: event.p as string,
+    role: (event.r as string) || (event.role as string) || "user",
+    timestamp: event.Timestamp as string,
   };
 
   // Parse AI-specific fields with defaults
-  const importance = parseFloat(event.ai_importance || "0.5");
-  const memoryType: MemoryType = event.ai_type || "conversation";
+  const importance = parseFloat((event.ai_importance as string) || "0.5");
+  const memoryType: MemoryType =
+    (event.ai_type as MemoryType) || "conversation";
   const context: MemoryContext = event.ai_context
-    ? JSON.parse(event.ai_context)
+    ? JSON.parse(event.ai_context as string)
     : {};
 
   // Add domain from event tags if available
   if (event.ai_domain) {
-    context.domain = event.ai_domain;
+    context.domain = event.ai_domain as string;
   }
 
   const aiMemory: AIMemory = {
@@ -484,8 +495,8 @@ function eventToAIMemory(event: any): AIMemory {
       lastAccessed: new Date().toISOString(),
       tags: event.ai_tag
         ? Array.isArray(event.ai_tag)
-          ? event.ai_tag
-          : [event.ai_tag]
+          ? (event.ai_tag as string[])
+          : [event.ai_tag as string]
         : [],
     },
   };
@@ -579,10 +590,7 @@ function matchesFilters(memory: AIMemory, filters?: SearchFilters): boolean {
   return true;
 }
 
-function rankMemoriesByRelevance(
-  memories: AIMemory[],
-  query?: string,
-): AIMemory[] {
+function rankMemoriesByRelevance(memories: AIMemory[]): AIMemory[] {
   return memories.sort((a, b) => {
     // Primary sort: importance score
     if (a.importance !== b.importance) {

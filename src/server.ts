@@ -36,7 +36,7 @@ async function init() {
       HUB_REGISTRY_ID(),
       publicKey,
     );
-    hubId = zone.spec.processId;
+    hubId = (zone.spec as { processId: string }).processId;
   } catch (e) {
     if (
       e ==
@@ -93,8 +93,8 @@ server.addTool({
     try {
       await memoryService.createEvent(keyPair, hubId, tags);
       return "Added Memory";
-    } catch (e) {
-      return String(e);
+    } catch (error) {
+      return String(error);
     }
   },
   name: "addMemory",
@@ -223,8 +223,8 @@ server.addTool({
         aiMemory,
       );
       return result;
-    } catch (e) {
-      return `Error: ${e}`;
+    } catch (error) {
+      return `Error: ${error}`;
     }
   },
   name: "addMemoryEnhanced",
@@ -287,8 +287,8 @@ server.addTool({
         filters,
       );
       return JSON.stringify(memories);
-    } catch (e) {
-      return `Error: ${e}`;
+    } catch (error) {
+      return `Error: ${error}`;
     }
   },
   name: "searchMemoriesAdvanced",
@@ -342,8 +342,8 @@ server.addTool({
         relationship,
       );
       return result;
-    } catch (e) {
-      return `Error: ${e}`;
+    } catch (error) {
+      return `Error: ${error}`;
     }
   },
   name: "linkMemories",
@@ -385,8 +385,8 @@ server.addTool({
         args.p,
       );
       return result;
-    } catch (e) {
-      return `Error: ${e}`;
+    } catch (error) {
+      return `Error: ${error}`;
     }
   },
   name: "addReasoningChain",
@@ -417,8 +417,8 @@ server.addTool({
     try {
       const analytics = await aiMemoryService.getMemoryAnalytics(hubId, args.p);
       return JSON.stringify(analytics);
-    } catch (e) {
-      return `Error: ${e}`;
+    } catch (error) {
+      return `Error: ${error}`;
     }
   },
   name: "getMemoryAnalytics",
@@ -449,8 +449,8 @@ server.addTool({
         args.p,
       );
       return JSON.stringify(results);
-    } catch (e) {
-      return `Error: ${e}`;
+    } catch (error) {
+      return `Error: ${error}`;
     }
   },
   name: "addMemoriesBatch",
@@ -493,6 +493,6 @@ server.start({
 });
 
 // Initialize in background (silent for stdio transport)
-init().catch((err) => {
-  // Silent error handling for stdio transport
+init().catch(() => {
+  // Silent error handling for stdio transport compatibility
 });

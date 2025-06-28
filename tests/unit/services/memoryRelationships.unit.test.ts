@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MemoryLink, RelationshipType } from "../../../src/models/AIMemory.js";
 import { aiMemoryService } from "../../../src/services/aiMemoryService.js";
-import { memoryRelationships } from "../../fixtures/memories.js";
 import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 
 vi.mock("../../../src/relay.js", () => ({
@@ -383,33 +382,33 @@ describe("Memory Relationships", () => {
     it("should retrieve all relationships for a memory", async () => {
       // This functionality doesn't exist yet - test will fail
       // Highlighting need for relationship retrieval methods
-      await expect(
-        aiMemoryService.getMemoryRelationships("memory_123"),
-      ).rejects.toThrow("getMemoryRelationships not implemented yet");
+      await expect(aiMemoryService.getMemoryRelationships()).rejects.toThrow(
+        "getMemoryRelationships not implemented yet",
+      );
     });
 
     it("should calculate relationship strength statistics", async () => {
       // This functionality doesn't exist yet - test will fail
       // Highlighting need for relationship analytics
-      await expect(
-        aiMemoryService.getRelationshipAnalytics(mockHubId),
-      ).rejects.toThrow("getRelationshipAnalytics not implemented yet");
+      await expect(aiMemoryService.getRelationshipAnalytics()).rejects.toThrow(
+        "getRelationshipAnalytics not implemented yet",
+      );
     });
 
     it("should find shortest path between memories", async () => {
       // This functionality doesn't exist yet - test will fail
       // Highlighting need for graph traversal algorithms
-      await expect(
-        aiMemoryService.findShortestPath("memory_A", "memory_Z"),
-      ).rejects.toThrow("findShortestPath not implemented yet");
+      await expect(aiMemoryService.findShortestPath()).rejects.toThrow(
+        "findShortestPath not implemented yet",
+      );
     });
 
     it("should detect circular references in memory graphs", async () => {
       // This functionality doesn't exist yet - test will fail
       // Highlighting need for cycle detection
-      await expect(
-        aiMemoryService.detectCircularReferences(mockHubId),
-      ).rejects.toThrow("detectCircularReferences not implemented yet");
+      await expect(aiMemoryService.detectCircularReferences()).rejects.toThrow(
+        "detectCircularReferences not implemented yet",
+      );
     });
   });
 
