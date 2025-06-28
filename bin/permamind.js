@@ -63,13 +63,29 @@ async function generateSeedPhrase() {
 
   try {
     // Import the mnemonic generation functionality
-    const { generateMnemonic } = await import('../dist/mnemonic.js');
-    const seedPhrase = generateMnemonic();
+    let generateMnemonic;
+    try {
+      ({ generateMnemonic } = await import('../dist/mnemonic.js'));
+    } catch (importErr) {
+      // Try to build if dist is missing
+      const distPath = join(__dirname, '..', 'dist');
+      if (!existsSync(distPath)) {
+        process.stderr.write('📦 Building permamind...\n');
+        execSync('npm run build', { 
+          cwd: join(__dirname, '..'),
+          stdio: 'inherit' 
+        });
+        ({ generateMnemonic } = await import('../dist/mnemonic.js'));
+      } else {
+        throw importErr;
+      }
+    }
+    const seedPhrase = await generateMnemonic();
     
-    process.stderr.write('🎲 Generated new seed phrase:');
-    process.stderr.write(seedPhrase);
-    process.stderr.write('\n⚠️  IMPORTANT: Store this seed phrase securely!');
-    process.stderr.write('Without it, you will lose access to your Arweave wallet and stored memories.');
+    process.stderr.write('🎲 Generated new seed phrase:\n');
+    process.stderr.write(seedPhrase + '\n');
+    process.stderr.write('\n⚠️  IMPORTANT: Store this seed phrase securely!\n');
+    process.stderr.write('Without it, you will lose access to your Arweave wallet and stored memories.\n');
 
     const save = await new Promise(resolve => {
       rl.question('\nWould you like to save this seed phrase? (y/n): ', resolve);
@@ -208,13 +224,29 @@ async function importSeedPhrase() {
 
     // Validate the seed phrase by trying to import it
     try {
-      const { validateMnemonic } = await import('../dist/mnemonic.js');
+      let validateMnemonic;
+      try {
+        ({ validateMnemonic } = await import('../dist/mnemonic.js'));
+      } catch (importErr) {
+        // Try to build if dist is missing
+        const distPath = join(__dirname, '..', 'dist');
+        if (!existsSync(distPath)) {
+          process.stderr.write('📦 Building permamind for validation...\n');
+          execSync('npm run build', { 
+            cwd: join(__dirname, '..'),
+            stdio: 'inherit' 
+          });
+          ({ validateMnemonic } = await import('../dist/mnemonic.js'));
+        } else {
+          throw importErr;
+        }
+      }
       if (!(await validateMnemonic(seedPhrase.trim()))) {
         console.error('❌ Invalid seed phrase. Please check and try again.');
         process.exit(1);
       }
     } catch (err) {
-      console.warn('⚠️  Could not validate seed phrase (build required)');
+      console.warn('⚠️  Could not validate seed phrase:', err.message);
     }
 
     const choice = await new Promise(resolve => {
