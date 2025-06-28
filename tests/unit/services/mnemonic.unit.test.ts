@@ -1,9 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import {
   generateMnemonic,
   getKeyFromMnemonic,
-  pkcs8ToJwk,
   validateMnemonic,
 } from "../../../src/mnemonic.js";
 
