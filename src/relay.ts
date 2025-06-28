@@ -76,8 +76,8 @@ export const fetchEvents = async (
   try {
     // @ts-ignore
     const message = FetchEvents(filters);
-    //console.log(message)
-    //console.log(processId)
+    //// console.log removed
+    //// console.log removed
     const result = await read(processId, message);
 
     if (result) {

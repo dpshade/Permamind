@@ -29,8 +29,8 @@ export async function send(
   tags: any[],
   data: null | string,
 ) {
-  //console.log("data");
-  //console.log(data);
+  //// console.log removed
+  //// console.log removed
   // The only 2 mandatory parameters here are process and signer
   // connect to the extension
   // @ts-ignore
@@ -58,12 +58,12 @@ export async function send(
 // @ts-ignore
 export const read = async (processId, tags) => {
   //await sleep(300)
-  //console.log("reading data")
+  //// console.log removed
   // The only 2 mandatory parameters here are process and signer
   // connect to the extension
   // @ts-ignore
-  //console.log(processId)
-  //console.log(tags)
+  //// console.log removed
+  //// console.log removed
   const result = await dryrun({
     CU_URL: CU_URL(),
 
@@ -78,7 +78,7 @@ export const read = async (processId, tags) => {
     // Tags that the process will use as input.
     tags: tags,
   });
-  //console.log(result)
+  //// console.log removed
   if (result.Messages) {
     const message = result.Messages.pop();
     return message;

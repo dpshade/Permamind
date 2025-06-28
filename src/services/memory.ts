@@ -37,7 +37,7 @@ const service = (): MemoryService => {
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
         for (let i = 0; i < events.length; i++) {
-          //console.log(events[i])
+          //// console.log removed
           if (events[i].Content) {
             const memory = memoryFactory(events[i]);
             memories.push(memory);
@@ -61,7 +61,7 @@ const service = (): MemoryService => {
         const _filters = JSON.stringify([filter, filter2]);
         const events = await fetchEvents(hubId, _filters);
         for (let i = 0; i < events.length; i++) {
-          //console.log(events[i])
+          //// console.log removed
           if (events[i].Content) {
             const memory = memoryFactory(events[i]);
             memories.push(memory);
@@ -96,7 +96,7 @@ const service = (): MemoryService => {
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
         for (let i = 0; i < events.length; i++) {
-          //console.log(events[i])
+          //// console.log removed
           if (events[i].Content) {
             const memory = memoryFactory(events[i]);
             memories.push(memory);

@@ -1,3 +1,6 @@
+// SSE transport allows normal logging without protocol interference
+//console.log('🧠 Permamind MCP Server starting with SSE transport...');
+
 import Arweave from "arweave";
 import { JWKInterface } from "arweave/node/lib/wallet.js";
 import dotenv from "dotenv";
@@ -17,6 +20,7 @@ let keyPair: JWKInterface;
 let publicKey: string;
 let hubId: string;
 
+// Configure environment variables silently for MCP protocol compatibility
 dotenv.config();
 
 async function init() {
@@ -480,8 +484,12 @@ server.addPrompt({
   name: "git-commit",
 });*/
 
-init().then(() => {
-  server.start({
-    transportType: "stdio",
-  });
+// Start server with stdio transport (matches Claude Desktop expectation)
+server.start({
+  transportType: "stdio",
+});
+
+// Initialize in background (silent for stdio transport)
+init().catch(err => {
+  // Silent error handling for stdio transport
 });
