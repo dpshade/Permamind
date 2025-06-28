@@ -29,6 +29,13 @@ jobs:
     - name: Build TypeScript
       run: npm run build
     
+    - name: Verify build output
+      run: |
+        echo "Checking dist directory structure..."
+        ls -la dist/
+        echo "Checking services directory..."
+        ls -la dist/services/ || echo "Services directory not found"
+    
     - name: Run linting
       run: npm run format:check
     
