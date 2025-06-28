@@ -112,11 +112,31 @@ async function generateSeedPhrase() {
   try {
     // Import the mnemonic generation functionality
     const { generateMnemonic } = await import('../dist/mnemonic.js');
-    return generateMnemonic();
+    return await generateMnemonic();
   } catch (err) {
-    console.error('Error: Could not generate seed phrase. Make sure permamind is built.');
-    console.error('Run: npm run build');
-    process.exit(1);
+    // Try to build the project if dist is missing
+    const distPath = join(__dirname, '..', 'dist');
+    if (!existsSync(distPath)) {
+      console.log('📦 Building permamind...');
+      try {
+        execSync('npm run build', { 
+          cwd: join(__dirname, '..'),
+          stdio: 'inherit' 
+        });
+        // Try importing again after build
+        const { generateMnemonic } = await import('../dist/mnemonic.js');
+        return await generateMnemonic();
+      } catch (buildErr) {
+        console.error('❌ Error: Could not build permamind.');
+        console.error('This may happen with global installations.');
+        console.error('Try installing locally instead: npm install permamind');
+        process.exit(1);
+      }
+    } else {
+      console.error('❌ Error: Could not generate seed phrase.');
+      console.error('Module import failed:', err.message);
+      process.exit(1);
+    }
   }
 }
 
