@@ -12,21 +12,35 @@ export class CrossHubDiscoveryService {
      */
     async discoverByCapability(capability) {
         const hubs = await this.discoverHubs();
+        // Optimize: limit to top 6 most active hubs for capability search
+        const activeHubs = hubs
+            .filter((hub) => hub.hasPublicWorkflows)
+            .sort((a, b) => b.workflowCount - a.workflowCount)
+            .slice(0, 6); // Limit to top 6 hubs for speed
         const workflows = [];
-        for (const hub of hubs) {
-            if (!hub.hasPublicWorkflows)
-                continue;
+        // Add timeout wrapper
+        const withTimeout = (promise, timeoutMs) => {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs)),
+            ]);
+        };
+        // Process hubs in parallel for speed
+        const hubPromises = activeHubs.map(async (hub) => {
             try {
-                const hubWorkflows = await this.queryHubWorkflows(hub.processId, {
-                    capabilities: [capability],
-                });
-                workflows.push(...hubWorkflows);
+                return await withTimeout(this.queryHubWorkflows(hub.processId, { capabilities: [capability] }), 3000 // 3s timeout per hub
+                );
             }
             catch (error) {
                 console.warn(`Failed to query workflows from hub ${hub.processId}:`, error);
+                return [];
             }
-        }
-        return this.rankWorkflows(workflows);
+        });
+        const allHubResults = await Promise.all(hubPromises);
+        allHubResults.forEach((hubWorkflows) => workflows.push(...hubWorkflows));
+        // Limit results for faster processing
+        const limitedWorkflows = workflows.slice(0, 30); // Process max 30 workflows
+        return this.rankWorkflows(limitedWorkflows);
     }
     /**
      * Discover all Permamind hubs in the network
@@ -291,25 +305,38 @@ export class CrossHubDiscoveryService {
      */
     async searchGlobalWorkflows(query, filters = {}) {
         const hubs = await this.discoverHubs();
+        // Optimize: limit to top 8 most active hubs for faster search
+        const activeHubs = hubs
+            .filter((hub) => hub.hasPublicWorkflows)
+            .filter((hub) => !filters.minReputationScore || hub.reputationScore >= filters.minReputationScore)
+            .sort((a, b) => b.workflowCount - a.workflowCount)
+            .slice(0, 8); // Limit to top 8 hubs
         const workflows = [];
-        for (const hub of hubs) {
-            if (!hub.hasPublicWorkflows)
-                continue;
-            // Skip hubs that don't meet reputation threshold
-            if (filters.minReputationScore &&
-                hub.reputationScore < filters.minReputationScore) {
-                continue;
-            }
+        // Add timeout wrapper
+        const withTimeout = (promise, timeoutMs) => {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) => setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs)),
+            ]);
+        };
+        // Process hubs in parallel for speed
+        const hubPromises = activeHubs.map(async (hub) => {
             try {
-                const hubWorkflows = await this.queryHubWorkflows(hub.processId, filters);
-                const filteredWorkflows = hubWorkflows.filter((w) => this.matchesQuery(w, query));
-                workflows.push(...filteredWorkflows);
+                const hubWorkflows = await withTimeout(this.queryHubWorkflows(hub.processId, filters), 4000 // 4s timeout per hub
+                );
+                return hubWorkflows.filter((w) => this.matchesQuery(w, query));
             }
             catch (error) {
                 console.warn(`Failed to search workflows in hub ${hub.processId}:`, error);
+                return [];
             }
-        }
-        return this.rankWorkflows(workflows, filters);
+        });
+        // Wait for all hub searches with overall timeout
+        const allHubResults = await Promise.all(hubPromises);
+        allHubResults.forEach((hubWorkflows) => workflows.push(...hubWorkflows));
+        // Limit results for faster processing
+        const limitedWorkflows = workflows.slice(0, 50); // Process max 50 workflows
+        return this.rankWorkflows(limitedWorkflows, filters);
     }
     /**
      * Calculate reputation score for an event-based workflow
