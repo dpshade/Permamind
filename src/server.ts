@@ -146,8 +146,18 @@ function startEnhancementCycleForWorkflow(workflowId: string) {
       targetValue: 0.8,
       weight: 0.3,
     },
-    { achieved: false, metric: "success_rate" as const, targetValue: 0.95, weight: 0.4 },
-    { achieved: false, metric: "quality_score" as const, targetValue: 0.9, weight: 0.3 },
+    {
+      achieved: false,
+      metric: "success_rate" as const,
+      targetValue: 0.95,
+      weight: 0.4,
+    },
+    {
+      achieved: false,
+      metric: "quality_score" as const,
+      targetValue: 0.9,
+      weight: 0.3,
+    },
   ];
 
   workflowServices.enhancementEngine.initializeEnhancementLoop(
