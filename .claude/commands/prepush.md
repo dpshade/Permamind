@@ -4,7 +4,7 @@ A systematic workflow that mirrors GitHub Actions CI/CD pipeline locally to prev
 
 ## Workflow Overview
 
-Execute comprehensive pre-push validation using this 8-phase approach that simulates the exact CI environment:
+Execute comprehensive pre-push validation using this 9-phase approach that simulates the exact CI environment:
 
 ### Phase 1: 🚦 PRE-FLIGHT CHECKS
 
@@ -61,6 +61,44 @@ Execute comprehensive pre-push validation using this 8-phase approach that simul
 - Provide specific commands for manual fixes
 - Re-run checks after auto-fixes to confirm resolution
 
+### Phase 3.5: 🧹 LOGGING CLEANUP
+
+**Remove all debug logging statements for clean production code**
+
+- **Debug Pattern Removal**: Scan and remove debug console.log statements with patterns:
+  - `[HUB COMPARISON DEBUG]`
+  - `[WORKFLOW SAVE DEBUG]`
+  - `[WORKFLOW SEARCH DEBUG]`
+  - `[WORKFLOW QUERY DEBUG]`
+  - `[ENHANCEMENT SAVE DEBUG]`
+  - `[COMPOSITION SAVE DEBUG]`
+  - `[TAG CREATION DEBUG]`
+- **Service File Cleanup**: Remove standalone console.log/console.warn statements in:
+  - `src/server.ts` (lines 70-78, 681-695, 1018-1019, 1138-1139)
+  - `src/services/WorkflowHubService.ts` (lines 131, 337-356, 403-422)
+  - `src/services/aiMemoryService.ts` (lines 632-738)
+  - `src/services/WorkflowEnhancementEngine.ts`
+- **Preservation Rules**:
+  - Preserve user-facing CLI output in `bin/` directory
+  - Preserve example/demo logging in `examples/` directory
+  - Preserve test logging for debugging purposes
+  - Preserve error handling console.error for critical failures
+
+**Validation Commands:**
+
+```bash
+# Scan for debug logging patterns
+grep -r "\[.*DEBUG\]" src/ || echo "✅ No debug logging found"
+grep -r "console\.log" src/ --exclude-dir=examples || echo "✅ No console.log found"
+grep -r "console\.warn" src/ | grep -v "error handling" || echo "✅ Clean console.warn usage"
+```
+
+**Auto-Fix Integration:**
+
+- Provide specific sed commands to remove debug statements
+- Re-run TypeScript build to update dist/ files
+- Verify no logging artifacts remain in production code
+
 ### Phase 4: 🔨 BUILD VERIFICATION
 
 **Simulate exact CI build process**
@@ -79,7 +117,7 @@ Execute comprehensive pre-push validation using this 8-phase approach that simul
 - Monitor bundle size changes
 - Alert on missing or unexpected build outputs
 
-### Phase 5: 🧪 TEST EXECUTION
+### Phase 6: 🧪 TEST EXECUTION
 
 **Run complete test suite with coverage analysis**
 
@@ -100,7 +138,7 @@ Execute comprehensive pre-push validation using this 8-phase approach that simul
 - Identify critical files with zero coverage
 - Suggest test generation for uncovered code
 
-### Phase 6: 🔒 SECURITY & AUDIT
+### Phase 7: 🔒 SECURITY & AUDIT
 
 **Security validation and dependency scanning**
 
@@ -118,7 +156,7 @@ Execute comprehensive pre-push validation using this 8-phase approach that simul
 - Monitor new dependencies for security issues
 - Alert on critical or high-severity vulnerabilities
 
-### Phase 7: ⚡ PERFORMANCE VALIDATION
+### Phase 8: ⚡ PERFORMANCE VALIDATION
 
 **Performance regression detection and optimization**
 
@@ -139,14 +177,15 @@ Execute comprehensive pre-push validation using this 8-phase approach that simul
 - Bundle size trend analysis
 - Memory usage optimization opportunities
 
-### Phase 8: ✅ FINAL VALIDATION & PUSH READINESS
+### Phase 9: ✅ FINAL VALIDATION & PUSH READINESS
 
 **Comprehensive status summary and confidence scoring**
 
 - **Confidence Score Calculation** (0-100%):
   - Phase 1-3 failures: -20 points each (critical)
-  - Phase 4-5 failures: -15 points each (major)
-  - Phase 6-7 failures: -10 points each (moderate)
+  - Phase 3.5 (logging) failures: -15 points (major - debug code in production)
+  - Phase 4-6 failures: -15 points each (major)
+  - Phase 7-8 failures: -10 points each (moderate)
   - Performance degradation: -5 points
 - **Detailed Status Report**:
   - ✅ Passed phases with timing
