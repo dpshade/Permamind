@@ -71,15 +71,16 @@ export class CrossHubDiscoveryService {
   private discoveredHubs: Map<string, HubInfo> = new Map();
   private discoveryInterval: number = 300000; // 5 minutes
   private lastDiscoveryTime: number = 0;
+  private statisticsCache: Map<string, { data: any; timestamp: number }> =
+    new Map();
   private workflowCache: Map<string, CrossHubWorkflow[]> = new Map();
-  private statisticsCache: Map<string, { data: any; timestamp: number }> = new Map();
 
   /**
    * Find workflows across all hubs by capability
    */
   async discoverByCapability(capability: string): Promise<CrossHubWorkflow[]> {
     const hubs = await this.discoverHubs();
-    
+
     // Optimize: limit to top 6 most active hubs for capability search
     const activeHubs = hubs
       .filter((hub) => hub.hasPublicWorkflows)
@@ -89,11 +90,14 @@ export class CrossHubDiscoveryService {
     const workflows: CrossHubWorkflow[] = [];
 
     // Add timeout wrapper
-    const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+    const withTimeout = <T>(
+      promise: Promise<T>,
+      timeoutMs: number,
+    ): Promise<T> => {
       return Promise.race([
         promise,
         new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs)
+          setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs),
         ),
       ]);
     };
@@ -103,10 +107,13 @@ export class CrossHubDiscoveryService {
       try {
         return await withTimeout(
           this.queryHubWorkflows(hub.processId, { capabilities: [capability] }),
-          3000 // 3s timeout per hub
+          3000, // 3s timeout per hub
         );
       } catch (error) {
-        console.warn(`Failed to query workflows from hub ${hub.processId}:`, error);
+        console.warn(
+          `Failed to query workflows from hub ${hub.processId}:`,
+          error,
+        );
         return [];
       }
     });
@@ -231,6 +238,21 @@ export class CrossHubDiscoveryService {
   }
 
   /**
+   * Get cached network statistics instantly (no network calls)
+   */
+  getCachedNetworkStatistics(): {
+    averageReputationScore: number;
+    networkHealthScore: number;
+    topCapabilities: string[];
+    totalHubs: number;
+    totalPublicWorkflows: number;
+  } | null {
+    const cacheKey = "network_statistics";
+    const cachedStats = this.statisticsCache.get(cacheKey);
+    return cachedStats ? cachedStats.data : null;
+  }
+
+  /**
    * Get network statistics
    */
   async getNetworkStatistics(): Promise<{
@@ -263,7 +285,7 @@ export class CrossHubDiscoveryService {
     try {
       // Get hubs with much shorter timeout
       const hubs = await withTimeout(this.discoverHubs(), 10000); // 10s timeout
-      
+
       // For speed, limit to first 10 most active hubs and use sampling
       const activeHubs = hubs
         .filter((hub) => hub.hasPublicWorkflows)
@@ -273,7 +295,6 @@ export class CrossHubDiscoveryService {
       const allWorkflows: CrossHubWorkflow[] = [];
 
       // Process all hubs in parallel with much shorter timeout per hub
-      const concurrencyLimit = 10; // Increase concurrency
       const workflowPromises = activeHubs.map(async (hub) => {
         try {
           return await withTimeout(
@@ -335,7 +356,7 @@ export class CrossHubDiscoveryService {
       return result;
     } catch (error) {
       console.warn("Failed to get network statistics:", error);
-      
+
       // Return cached data if available, even if stale
       if (cachedStats) {
         return cachedStats.data;
@@ -350,21 +371,6 @@ export class CrossHubDiscoveryService {
         totalPublicWorkflows: 0,
       };
     }
-  }
-
-  /**
-   * Get cached network statistics instantly (no network calls)
-   */
-  getCachedNetworkStatistics(): {
-    averageReputationScore: number;
-    networkHealthScore: number;
-    topCapabilities: string[];
-    totalHubs: number;
-    totalPublicWorkflows: number;
-  } | null {
-    const cacheKey = "network_statistics";
-    const cachedStats = this.statisticsCache.get(cacheKey);
-    return cachedStats ? cachedStats.data : null;
   }
 
   /**
@@ -456,22 +462,29 @@ export class CrossHubDiscoveryService {
     filters: DiscoveryFilters = {},
   ): Promise<CrossHubWorkflow[]> {
     const hubs = await this.discoverHubs();
-    
+
     // Optimize: limit to top 8 most active hubs for faster search
     const activeHubs = hubs
       .filter((hub) => hub.hasPublicWorkflows)
-      .filter((hub) => !filters.minReputationScore || hub.reputationScore >= filters.minReputationScore)
+      .filter(
+        (hub) =>
+          !filters.minReputationScore ||
+          hub.reputationScore >= filters.minReputationScore,
+      )
       .sort((a, b) => b.workflowCount - a.workflowCount)
       .slice(0, 8); // Limit to top 8 hubs
 
     const workflows: CrossHubWorkflow[] = [];
 
     // Add timeout wrapper
-    const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+    const withTimeout = <T>(
+      promise: Promise<T>,
+      timeoutMs: number,
+    ): Promise<T> => {
       return Promise.race([
         promise,
         new Promise<T>((_, reject) =>
-          setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs)
+          setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs),
         ),
       ]);
     };
@@ -481,11 +494,14 @@ export class CrossHubDiscoveryService {
       try {
         const hubWorkflows = await withTimeout(
           this.queryHubWorkflows(hub.processId, filters),
-          4000 // 4s timeout per hub
+          4000, // 4s timeout per hub
         );
         return hubWorkflows.filter((w) => this.matchesQuery(w, query));
       } catch (error) {
-        console.warn(`Failed to search workflows in hub ${hub.processId}:`, error);
+        console.warn(
+          `Failed to search workflows in hub ${hub.processId}:`,
+          error,
+        );
         return [];
       }
     });

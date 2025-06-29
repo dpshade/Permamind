@@ -1381,8 +1381,8 @@ server.addTool({
             }
             else {
                 return JSON.stringify({
-                    message: "No cached statistics available. Use getNetworkStatistics to fetch fresh data.",
                     cached: false,
+                    message: "No cached statistics available. Use getNetworkStatistics to fetch fresh data.",
                 });
             }
         }
@@ -1508,8 +1508,7 @@ server.addTool({
                 method: () => withTimeout(discoveryService.searchGlobalWorkflows(args.userRequest, {
                     minPerformanceScore: 0.3,
                     minReputationScore: 0.3,
-                }), 8000 // 8s timeout
-                ),
+                }), 8000),
                 type: "search",
                 weight: 1.0,
             });
@@ -1517,8 +1516,7 @@ server.addTool({
             if (args.capabilities) {
                 const firstCapability = args.capabilities.split(",")[0].trim();
                 strategies.push({
-                    method: () => withTimeout(discoveryService.discoverByCapability(firstCapability), 6000 // 6s timeout
-                    ),
+                    method: () => withTimeout(discoveryService.discoverByCapability(firstCapability), 6000),
                     type: "capability",
                     weight: 0.8,
                 });
@@ -1530,8 +1528,7 @@ server.addTool({
                     .slice(0, 2) // Limit to first 2 requirements
                     .map((r) => r.trim());
                 strategies.push({
-                    method: () => withTimeout(discoveryService.findWorkflowsForRequirements(requirementsList), 6000 // 6s timeout
-                    ),
+                    method: () => withTimeout(discoveryService.findWorkflowsForRequirements(requirementsList), 6000),
                     type: "requirements",
                     weight: 0.9,
                 });
@@ -1552,8 +1549,7 @@ server.addTool({
                 }
             });
             // Add overall timeout for all searches combined
-            const searchWithTimeout = withTimeout(Promise.all(searchPromises), 15000 // 15s total timeout
-            );
+            const searchWithTimeout = withTimeout(Promise.all(searchPromises), 15000);
             const allResults = await searchWithTimeout;
             const flatResults = allResults.flat();
             // Early termination if we have enough high-quality results

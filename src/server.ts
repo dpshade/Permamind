@@ -1574,8 +1574,9 @@ server.addTool({
         return JSON.stringify(cachedStats);
       } else {
         return JSON.stringify({
-          message: "No cached statistics available. Use getNetworkStatistics to fetch fresh data.",
           cached: false,
+          message:
+            "No cached statistics available. Use getNetworkStatistics to fetch fresh data.",
         });
       }
     } catch (error) {
@@ -1699,11 +1700,14 @@ server.addTool({
       const discoveryService = workflowServices.crossHubDiscovery;
 
       // Add timeout wrapper for fast responses
-      const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+      const withTimeout = <T>(
+        promise: Promise<T>,
+        timeoutMs: number,
+      ): Promise<T> => {
         return Promise.race([
           promise,
           new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Search timed out")), timeoutMs)
+            setTimeout(() => reject(new Error("Search timed out")), timeoutMs),
           ),
         ]);
       };
@@ -1719,7 +1723,7 @@ server.addTool({
               minPerformanceScore: 0.3,
               minReputationScore: 0.3,
             }),
-            8000 // 8s timeout
+            8000, // 8s timeout
           ),
         type: "search",
         weight: 1.0,
@@ -1732,7 +1736,7 @@ server.addTool({
           method: () =>
             withTimeout(
               discoveryService.discoverByCapability(firstCapability),
-              6000 // 6s timeout
+              6000, // 6s timeout
             ),
           type: "capability",
           weight: 0.8,
@@ -1749,7 +1753,7 @@ server.addTool({
           method: () =>
             withTimeout(
               discoveryService.findWorkflowsForRequirements(requirementsList),
-              6000 // 6s timeout
+              6000, // 6s timeout
             ),
           type: "requirements",
           weight: 0.9,
@@ -1774,7 +1778,7 @@ server.addTool({
       // Add overall timeout for all searches combined
       const searchWithTimeout = withTimeout(
         Promise.all(searchPromises),
-        15000 // 15s total timeout
+        15000, // 15s total timeout
       );
 
       const allResults = await searchWithTimeout;
