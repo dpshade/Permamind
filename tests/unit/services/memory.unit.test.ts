@@ -13,13 +13,13 @@ vi.mock("../../../src/messageFactory.js", () => ({
 }));
 
 describe("MemoryService", () => {
-  const mockMemoryService = memoryService();
+  const mockMemoryService = memoryService;
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe("getAll", () => {
+  describe("fetch", () => {
     it("should retrieve all memories from hub", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
       const { memoryFactory } = await import("../../../src/messageFactory.js");
@@ -42,7 +42,7 @@ describe("MemoryService", () => {
         importance: 0.5,
       }));
 
-      const memories = await mockMemoryService.getAll(mockHubId);
+      const memories = await mockMemoryService.fetch(mockHubId);
 
       expect(memories).toHaveLength(2);
       expect(memories[0].content).toBe("Test memory 1");
@@ -55,7 +55,7 @@ describe("MemoryService", () => {
 
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
-      const memories = await mockMemoryService.getAll(mockHubId);
+      const memories = await mockMemoryService.fetch(mockHubId);
 
       expect(memories).toHaveLength(0);
       expect(fetchEvents).toHaveBeenCalledWith(mockHubId, expect.any(String));
@@ -66,13 +66,13 @@ describe("MemoryService", () => {
 
       vi.mocked(fetchEvents).mockRejectedValue(new Error("Network error"));
 
-      const memories = await mockMemoryService.getAll(mockHubId);
+      const memories = await mockMemoryService.fetch(mockHubId);
 
       expect(memories).toHaveLength(0);
     });
   });
 
-  describe("getByUser", () => {
+  describe("fetchByUser", () => {
     it("should retrieve memories for specific user", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
       const { memoryFactory } = await import("../../../src/messageFactory.js");
@@ -96,7 +96,7 @@ describe("MemoryService", () => {
         importance: 0.5,
       }));
 
-      const memories = await mockMemoryService.getByUser(mockHubId, testUser);
+      const memories = await mockMemoryService.fetchByUser(mockHubId, testUser);
 
       expect(memories).toHaveLength(1);
       expect(memories[0].p).toBe(testUser);
@@ -111,7 +111,7 @@ describe("MemoryService", () => {
 
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
-      const memories = await mockMemoryService.getByUser(
+      const memories = await mockMemoryService.fetchByUser(
         mockHubId,
         "unknown-user",
       );

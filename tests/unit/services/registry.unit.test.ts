@@ -17,7 +17,7 @@ vi.mock("../../../src/relay.js", () => ({
 }));
 
 describe("HubRegistryService", () => {
-  const service = hubRegistryService();
+  const service = hubRegistryService;
   const mockProfileData = {
     displayName: "Test User",
     description: "Test Description",
