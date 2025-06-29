@@ -85,8 +85,9 @@ function startBackgroundEnhancementCycles() {
             // Extract unique workflow IDs
             const workflowIds = new Set();
             allMemories.forEach((memory) => {
-                if (memory.workflowId) {
-                    workflowIds.add(memory.workflowId);
+                const workflowMemory = memory;
+                if (workflowMemory.workflowId) {
+                    workflowIds.add(workflowMemory.workflowId);
                 }
             });
             // Start enhancement cycles for new workflows
@@ -96,7 +97,7 @@ function startBackgroundEnhancementCycles() {
                 }
             }
         }
-        catch (error) {
+        catch {
             // Silent error handling for background processes
         }
     }, 60000); // Check every minute
@@ -128,7 +129,7 @@ function startEnhancementCycleForWorkflow(workflowId) {
             const timeout = setTimeout(runEnhancementCycle, nextInterval);
             enhancementIntervals.set(workflowId, timeout);
         }
-        catch (error) {
+        catch {
             // Silent error handling, retry in 1 hour
             const timeout = setTimeout(runEnhancementCycle, 3600000);
             enhancementIntervals.set(workflowId, timeout);
@@ -515,6 +516,8 @@ server.addTool({
         title: "Add Workflow Memory",
     },
     description: `Store workflow execution memories with performance metrics, enhancement tracking, and stage information. 
+    IMPORTANT: Before creating a new workflow, ALWAYS use the findWorkflowNetworkFirst tool to search for existing workflows 
+    that might accomplish the same task. Only use this tool to document NEW workflows after confirming none exist on the network.
     Use this for documenting workflow executions, tracking improvements, and building workflow intelligence.`,
     execute: async (args) => {
         try {
@@ -1050,34 +1053,20 @@ server.addTool({
         title: "Create Workflow Composition",
     },
     description: `Create a composition of multiple workflows that can be executed together. 
+    IMPORTANT: Before creating a new composition, use findWorkflowNetworkFirst to search for existing workflow compositions 
+    that might already solve your orchestration needs. This promotes reuse and learning from the community.
     Enables building complex workflows from simpler components and workflow reuse.`,
     execute: async (args) => {
         try {
-            const composition = {
-                description: args.description,
-                errorHandling: {
-                    maxRetries: args.maxRetries || 3,
-                    onFailure: args.onFailure || "abort",
-                    retryDelay: args.retryDelay || 1000,
-                },
-                executionStrategy: args.executionStrategy,
-                id: args.compositionId,
-                name: args.name,
-                resourceAllocation: {
-                    maxConcurrentWorkflows: args.maxConcurrent || 1,
-                    memoryLimit: args.memoryLimit || 1024,
-                    priority: args.priority || "medium",
-                    timeLimit: args.timeLimit || 300000,
-                },
-                workflows: JSON.parse(args.workflowSteps),
-            };
+            // Parse workflow steps for composition
+            const workflowSteps = JSON.parse(args.workflowSteps);
             const compositionMemory = {
                 content: `Workflow composition: ${args.name}`,
                 context: {
                     domain: "workflow_composition",
                     topic: "workflow_orchestration",
                 },
-                dependencies: JSON.parse(args.workflowSteps).map((step) => step.workflowId),
+                dependencies: workflowSteps.map((step) => step.workflowId),
                 importance: 0.8,
                 memoryType: "procedure",
                 metadata: {
@@ -1156,7 +1145,7 @@ server.addTool({
                 return "Workflow services not initialized";
             }
             switch (args.action) {
-                case "force_cycle":
+                case "force_cycle": {
                     if (!args.workflowId) {
                         return "workflowId required for force_cycle action";
                     }
@@ -1165,6 +1154,7 @@ server.addTool({
                         message: `Enhancement cycle completed for ${args.workflowId}`,
                         result,
                     });
+                }
                 case "start":
                     if (args.workflowId) {
                         startEnhancementCycleForWorkflow(args.workflowId);
@@ -1180,13 +1170,13 @@ server.addTool({
                         return `Stopped enhancement cycle for workflow ${args.workflowId}`;
                     }
                     else {
-                        enhancementIntervals.forEach((interval, workflowId) => {
+                        enhancementIntervals.forEach((interval) => {
                             clearTimeout(interval);
                         });
                         enhancementIntervals.clear();
                         return "Stopped all enhancement cycles";
                     }
-                case "status":
+                case "status": {
                     const activeWorkflows = Array.from(enhancementIntervals.keys());
                     const status = {
                         activeEnhancementCycles: activeWorkflows.length,
@@ -1194,6 +1184,7 @@ server.addTool({
                         workflowIds: activeWorkflows,
                     };
                     return JSON.stringify(status);
+                }
                 default:
                     return "Invalid action. Use: start, stop, status, or force_cycle";
             }
@@ -1237,7 +1228,7 @@ server.addTool({
                     }
                     workflows = await discoveryService.discoverByCapability(args.capability);
                     break;
-                case "requirements":
+                case "requirements": {
                     if (!args.requirements) {
                         return "requirements parameter required for requirements discovery";
                     }
@@ -1247,7 +1238,8 @@ server.addTool({
                     workflows =
                         await discoveryService.findWorkflowsForRequirements(requirementsList);
                     break;
-                case "search":
+                }
+                case "search": {
                     if (!args.query) {
                         return "query parameter required for search discovery";
                     }
@@ -1263,12 +1255,14 @@ server.addTool({
                     };
                     workflows = await discoveryService.searchGlobalWorkflows(args.query, filters);
                     break;
-                case "similar":
+                }
+                case "similar": {
                     if (!args.localWorkflowId) {
                         return "localWorkflowId parameter required for similarity discovery";
                     }
                     workflows = await discoveryService.findSimilarWorkflows(args.localWorkflowId, hubId);
                     break;
+                }
                 default:
                     return "Invalid discoveryType. Use: capability, requirements, similar, or search";
             }
@@ -1336,7 +1330,7 @@ server.addTool({
     },
     description: `Get statistics about the workflow ecosystem network including total hubs, workflows, 
     top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.`,
-    execute: async (args) => {
+    execute: async () => {
         try {
             if (!workflowServices) {
                 return "Workflow services not initialized";
@@ -1424,6 +1418,143 @@ server.addTool({
             .boolean()
             .optional()
             .describe("Force refresh of hub discovery cache"),
+    }),
+});
+// Network-First Workflow Discovery Tool
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Find Workflow (Network First)",
+    },
+    description: `PREFERRED: Always use this tool FIRST when a user needs a workflow for any task. 
+    This tool searches the global Permamind network to find existing workflows that match the user's needs 
+    before suggesting they create a new one. Just like how Permamind automatically stores memories, 
+    it should automatically search the network for workflows first.
+    
+    Provide a natural language description of what the user wants to accomplish, and this tool will:
+    1. Search for existing workflows across all hubs
+    2. Find workflows by capability, requirements, or similarity
+    3. Return ranked results with performance metrics
+    4. Suggest the best existing workflows to try first
+    5. Only recommend creating new workflows if none exist
+    
+    This promotes workflow reuse, learning from the community, and avoids duplicate work.`,
+    execute: async (args) => {
+        try {
+            if (!workflowServices) {
+                return "Workflow services not initialized. Please try again in a moment.";
+            }
+            const discoveryService = workflowServices.crossHubDiscovery;
+            // Multi-strategy search approach
+            const strategies = [];
+            // 1. Direct search for the user's description
+            strategies.push({
+                method: () => discoveryService.searchGlobalWorkflows(args.userRequest, {
+                    minPerformanceScore: 0.3,
+                    minReputationScore: 0.3,
+                }),
+                type: "search",
+                weight: 1.0,
+            });
+            // 2. Extract and search for capabilities if provided
+            if (args.capabilities) {
+                const capabilityList = args.capabilities
+                    .split(",")
+                    .map((c) => c.trim());
+                for (const capability of capabilityList) {
+                    strategies.push({
+                        method: () => discoveryService.discoverByCapability(capability),
+                        type: "capability",
+                        weight: 0.8,
+                    });
+                }
+            }
+            // 3. Search for requirements if provided
+            if (args.requirements) {
+                const requirementsList = args.requirements
+                    .split(",")
+                    .map((r) => r.trim());
+                strategies.push({
+                    method: () => discoveryService.findWorkflowsForRequirements(requirementsList),
+                    type: "requirements",
+                    weight: 0.9,
+                });
+            }
+            // Execute all search strategies in parallel
+            const searchPromises = strategies.map(async (strategy) => {
+                try {
+                    const results = await strategy.method();
+                    return results.map((workflow) => ({
+                        ...workflow,
+                        relevanceWeight: strategy.weight,
+                        searchStrategy: strategy.type,
+                    }));
+                }
+                catch (error) {
+                    console.warn(`Search strategy ${strategy.type} failed:`, error);
+                    return [];
+                }
+            });
+            const allResults = await Promise.all(searchPromises);
+            const flatResults = allResults.flat();
+            // Deduplicate by workflow ID and hub
+            const uniqueWorkflows = new Map();
+            flatResults.forEach((workflow) => {
+                const key = `${workflow.hubId}-${workflow.workflowId}`;
+                if (!uniqueWorkflows.has(key) ||
+                    uniqueWorkflows.get(key).relevanceWeight < workflow.relevanceWeight) {
+                    uniqueWorkflows.set(key, workflow);
+                }
+            });
+            // Sort by relevance score (combination of performance, reputation, and search relevance)
+            const rankedWorkflows = Array.from(uniqueWorkflows.values())
+                .map((workflow) => ({
+                ...workflow,
+                combinedScore: workflow.performanceScore * 0.4 +
+                    workflow.reputationScore * 0.4 +
+                    workflow.relevanceWeight * 0.2,
+            }))
+                .sort((a, b) => b.combinedScore - a.combinedScore)
+                .slice(0, args.maxResults || 10);
+            // Generate recommendations
+            const recommendations = [];
+            if (rankedWorkflows.length === 0) {
+                recommendations.push("No existing workflows found that match your requirements.", "Consider creating a new workflow and sharing it with the network.", "Use the addWorkflowMemory tool to document your new workflow.");
+            }
+            else {
+                recommendations.push(`Found ${rankedWorkflows.length} existing workflows that might help.`, "Review the top-ranked workflows first before creating a new one.", "Consider enhancing existing workflows rather than starting from scratch.");
+            }
+            return JSON.stringify({
+                networkFirst: true,
+                query: args.userRequest,
+                recommendations,
+                searchStrategies: strategies.map((s) => s.type),
+                totalFound: rankedWorkflows.length,
+                workflows: rankedWorkflows,
+            });
+        }
+        catch (error) {
+            return `Error: ${error}`;
+        }
+    },
+    name: "findWorkflowNetworkFirst",
+    parameters: z.object({
+        capabilities: z
+            .string()
+            .optional()
+            .describe("Comma-separated list of required capabilities"),
+        maxResults: z
+            .number()
+            .optional()
+            .describe("Maximum number of results to return (default: 10)"),
+        requirements: z
+            .string()
+            .optional()
+            .describe("Comma-separated list of specific requirements"),
+        userRequest: z
+            .string()
+            .describe("Natural language description of what the user wants to accomplish"),
     }),
 });
 /*server.addResource({

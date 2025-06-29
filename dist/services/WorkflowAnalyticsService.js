@@ -358,7 +358,8 @@ export class WorkflowAnalyticsService {
         for (const workflowList of this.workflowMemories.values()) {
             for (const workflow of workflowList) {
                 const category = this.categorizeWorkflow(workflow);
-                if (category && distribution.hasOwnProperty(category)) {
+                if (category &&
+                    Object.prototype.hasOwnProperty.call(distribution, category)) {
                     distribution[category]++;
                 }
             }
