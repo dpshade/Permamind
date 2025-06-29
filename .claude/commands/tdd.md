@@ -23,7 +23,7 @@ Execute comprehensive test-driven development using this 8-phase approach:
 
 - Run `npm run test:coverage` to generate coverage reports
 - Use Read to parse coverage reports (JSON/HTML) for detailed analysis
-- Use Glob to find all source files (`src/**/*.{ts,js}`) 
+- Use Glob to find all source files (`src/**/*.{ts,js}`)
 - Cross-reference source files with existing tests to find gaps
 - Prioritize missing tests by:
   - Code complexity (services > models > utilities)
@@ -124,6 +124,7 @@ Execute comprehensive test-driven development using this 8-phase approach:
 ```
 
 **Parameters:**
+
 - `target_scope` (optional): Focus on specific area (e.g., "services", "models", "workflow")
 - `--generate`: Automatically generate missing test files
 - `--report-only`: Only run analysis and reporting, no test generation
@@ -131,22 +132,26 @@ Execute comprehensive test-driven development using this 8-phase approach:
 ## Detailed Implementation Techniques
 
 ### Test Discovery
+
 - Use `Glob "**/*.{test,spec}.{js,ts}"` to find all test files
 - Use `Read vitest.config.ts` to understand test setup
 - Use `Grep "describe|it|test" tests/` to analyze test patterns
 
 ### Coverage Analysis
+
 - Use `Bash "npm run test:coverage"` to generate reports
 - Use `Read coverage/index.html` or `coverage/coverage-final.json` to parse results
 - Cross-reference with `Glob "src/**/*.{ts,js}"` for complete file inventory
 
 ### Test Generation
+
 - Create test templates based on existing patterns
 - Generate proper imports and mocks for each service
 - Follow naming convention: `${filename}.unit.test.ts`
 - Place in appropriate directory structure
 
 ### Quality Assessment
+
 - Use `Grep "vi.mock|jest.mock" tests/` to find mock usage
 - Use `Read` to analyze individual test files for patterns
 - Check for proper test structure and organization
@@ -182,6 +187,7 @@ Execute comprehensive test-driven development using this 8-phase approach:
 ## Testing Patterns for Permamind
 
 ### Service Testing Pattern
+
 ```typescript
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ServiceName } from "../../../src/services/ServiceName.js";
@@ -204,11 +210,11 @@ describe("ServiceName", () => {
     it("should handle normal operation", async () => {
       // Test implementation
     });
-    
+
     it("should handle edge cases", async () => {
       // Edge case testing
     });
-    
+
     it("should handle errors gracefully", async () => {
       // Error condition testing
     });
@@ -217,6 +223,7 @@ describe("ServiceName", () => {
 ```
 
 ### Model Testing Pattern
+
 ```typescript
 import { describe, it, expect } from "vitest";
 import { ModelName } from "../../../src/models/ModelName.js";
@@ -226,7 +233,7 @@ describe("ModelName", () => {
     it("should validate correct data", () => {
       // Validation testing
     });
-    
+
     it("should reject invalid data", () => {
       // Invalid data handling
     });

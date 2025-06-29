@@ -20,21 +20,21 @@ describe("WorkflowPerformanceTracker", () => {
   describe("recordPerformance", () => {
     it("should record performance data for a workflow", () => {
       const performanceData = {
-        executionTime: 1500,
-        success: true,
-        errorRate: 0.02,
-        qualityScore: 0.85,
         completionRate: 0.95,
-        retryCount: 1,
+        errorRate: 0.02,
+        executionTime: 1500,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.85,
         resourceUsage: {
-          memoryUsage: 120,
           cpuTime: 800,
+          memoryUsage: 120,
           networkRequests: 5,
           storageOperations: 3,
-          toolCalls: 7
+          toolCalls: 7,
         },
+        retryCount: 1,
+        success: true,
         userSatisfaction: 0.8,
-        lastExecuted: new Date().toISOString()
       };
 
       expect(() => {
@@ -44,20 +44,20 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should handle minimal performance data", () => {
       const minimalData = {
-        executionTime: 1000,
-        success: true,
-        errorRate: 0,
-        qualityScore: 0.7,
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0,
+        executionTime: 1000,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.7,
         resourceUsage: {
-          memoryUsage: 80,
           cpuTime: 500,
+          memoryUsage: 80,
           networkRequests: 2,
           storageOperations: 1,
-          toolCalls: 3
+          toolCalls: 3,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 0,
+        success: true,
       };
 
       expect(() => {
@@ -67,20 +67,20 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should handle multiple performance records for same workflow", () => {
       const baseData = {
-        executionTime: 1000,
-        success: true,
-        errorRate: 0.01,
-        qualityScore: 0.8,
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0.01,
+        executionTime: 1000,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.8,
         resourceUsage: {
-          memoryUsage: 100,
           cpuTime: 600,
+          memoryUsage: 100,
           networkRequests: 3,
           storageOperations: 2,
-          toolCalls: 5
+          toolCalls: 5,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 0,
+        success: true,
       };
 
       // Record multiple performances
@@ -88,7 +88,7 @@ describe("WorkflowPerformanceTracker", () => {
         expect(() => {
           performanceTracker.recordPerformance("workflow1", {
             ...baseData,
-            executionTime: 1000 + i * 100
+            executionTime: 1000 + i * 100,
           });
         }).not.toThrow();
       }
@@ -100,37 +100,37 @@ describe("WorkflowPerformanceTracker", () => {
       // Add some test performance data
       const testData = [
         {
-          executionTime: 1000,
-          success: true,
-          errorRate: 0.01,
-          qualityScore: 0.8,
           completionRate: 1.0,
-          retryCount: 0,
+          errorRate: 0.01,
+          executionTime: 1000,
+          lastExecuted: new Date().toISOString(),
+          qualityScore: 0.8,
           resourceUsage: {
-            memoryUsage: 100,
             cpuTime: 600,
+            memoryUsage: 100,
             networkRequests: 3,
             storageOperations: 2,
-            toolCalls: 5
+            toolCalls: 5,
           },
-          lastExecuted: new Date().toISOString()
+          retryCount: 0,
+          success: true,
         },
         {
-          executionTime: 1200,
-          success: true,
-          errorRate: 0.02,
-          qualityScore: 0.85,
           completionRate: 0.95,
-          retryCount: 1,
+          errorRate: 0.02,
+          executionTime: 1200,
+          lastExecuted: new Date().toISOString(),
+          qualityScore: 0.85,
           resourceUsage: {
-            memoryUsage: 120,
             cpuTime: 700,
+            memoryUsage: 120,
             networkRequests: 4,
             storageOperations: 3,
-            toolCalls: 6
+            toolCalls: 6,
           },
-          lastExecuted: new Date().toISOString()
-        }
+          retryCount: 1,
+          success: true,
+        },
       ];
 
       testData.forEach((data, index) => {
@@ -140,7 +140,7 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should return performance statistics for existing workflow", () => {
       const stats = performanceTracker.getPerformanceStats("testWorkflow");
-      
+
       expect(stats).toBeDefined();
       expect(stats.current).toBeDefined();
       expect(stats.average).toBeDefined();
@@ -150,7 +150,7 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should return current performance metrics", () => {
       const stats = performanceTracker.getPerformanceStats("testWorkflow");
-      
+
       expect(stats.current).toBeDefined();
       expect(typeof stats.current.qualityScore).toBe("number");
       expect(typeof stats.current.executionTime).toBe("number");
@@ -159,7 +159,7 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should return average performance metrics", () => {
       const stats = performanceTracker.getPerformanceStats("testWorkflow");
-      
+
       expect(stats.average).toBeDefined();
       expect(typeof stats.average.qualityScore).toBe("number");
       expect(typeof stats.average.executionTime).toBe("number");
@@ -169,9 +169,9 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should return performance trends", () => {
       const stats = performanceTracker.getPerformanceStats("testWorkflow");
-      
+
       expect(Array.isArray(stats.trend)).toBe(true);
-      stats.trend.forEach(trend => {
+      stats.trend.forEach((trend) => {
         expect(trend.metric).toBeDefined();
         expect(trend.timeWindow).toBeDefined();
         expect(["improving", "declining", "stable"]).toContain(trend.trend);
@@ -182,8 +182,10 @@ describe("WorkflowPerformanceTracker", () => {
     });
 
     it("should handle non-existent workflow", () => {
-      const stats = performanceTracker.getPerformanceStats("nonExistentWorkflow");
-      
+      const stats = performanceTracker.getPerformanceStats(
+        "nonExistentWorkflow",
+      );
+
       expect(stats).toBeDefined();
       expect(stats.current).toBeNull();
       expect(stats.average).toBeNull();
@@ -197,35 +199,37 @@ describe("WorkflowPerformanceTracker", () => {
       // Add declining performance data to trigger enhancements
       for (let i = 0; i < 5; i++) {
         performanceTracker.recordPerformance("decliningWorkflow", {
-          executionTime: 1000 + (i * 300), // Increasing execution time
-          success: i < 3, // Some failures
-          errorRate: 0.01 + (i * 0.05), // Increasing error rate
-          qualityScore: 0.9 - (i * 0.1), // Decreasing quality
-          completionRate: 1.0 - (i * 0.05), // Decreasing completion rate
-          retryCount: i > 2 ? 2 : 0,
+          completionRate: 1.0 - i * 0.05, // Decreasing completion rate
+          errorRate: 0.01 + i * 0.05, // Increasing error rate
+          executionTime: 1000 + i * 300, // Increasing execution time
+          lastExecuted: new Date().toISOString(),
+          qualityScore: 0.9 - i * 0.1, // Decreasing quality
           resourceUsage: {
-            memoryUsage: 100 + (i * 50), // Increasing memory usage
-            cpuTime: 600 + (i * 200),
+            cpuTime: 600 + i * 200,
+            memoryUsage: 100 + i * 50, // Increasing memory usage
             networkRequests: 3,
             storageOperations: 2,
-            toolCalls: 5
+            toolCalls: 5,
           },
-          lastExecuted: new Date().toISOString()
+          retryCount: i > 2 ? 2 : 0,
+          success: i < 3, // Some failures
         });
       }
     });
 
     it("should identify potential enhancements for declining performance", () => {
-      const enhancements = performanceTracker.identifyEnhancements("decliningWorkflow");
-      
+      const enhancements =
+        performanceTracker.identifyEnhancements("decliningWorkflow");
+
       expect(Array.isArray(enhancements)).toBe(true);
       expect(enhancements.length).toBeGreaterThan(0);
     });
 
     it("should return enhancement objects with required properties", () => {
-      const enhancements = performanceTracker.identifyEnhancements("decliningWorkflow");
-      
-      enhancements.forEach(enhancement => {
+      const enhancements =
+        performanceTracker.identifyEnhancements("decliningWorkflow");
+
+      enhancements.forEach((enhancement) => {
         expect(enhancement.id).toBeDefined();
         expect(enhancement.type).toBeDefined();
         expect(enhancement.description).toBeDefined();
@@ -236,42 +240,53 @@ describe("WorkflowPerformanceTracker", () => {
     });
 
     it("should identify different types of enhancements", () => {
-      const enhancements = performanceTracker.identifyEnhancements("decliningWorkflow");
-      
-      const enhancementTypes = enhancements.map(e => e.type);
-      expect(enhancementTypes.some(type => 
-        ["optimization", "error_handling", "parameter_tune", "refactor"].includes(type)
-      )).toBe(true);
+      const enhancements =
+        performanceTracker.identifyEnhancements("decliningWorkflow");
+
+      const enhancementTypes = enhancements.map((e) => e.type);
+      expect(
+        enhancementTypes.some((type) =>
+          [
+            "error_handling",
+            "optimization",
+            "parameter_tune",
+            "refactor",
+          ].includes(type),
+        ),
+      ).toBe(true);
     });
 
     it("should handle workflow with good performance", () => {
       // Add good performance data
       performanceTracker.recordPerformance("goodWorkflow", {
-        executionTime: 800,
-        success: true,
-        errorRate: 0.001,
-        qualityScore: 0.95,
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0.001,
+        executionTime: 800,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.95,
         resourceUsage: {
-          memoryUsage: 80,
           cpuTime: 400,
+          memoryUsage: 80,
           networkRequests: 2,
           storageOperations: 1,
-          toolCalls: 3
+          toolCalls: 3,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 0,
+        success: true,
       });
 
-      const enhancements = performanceTracker.identifyEnhancements("goodWorkflow");
-      
+      const enhancements =
+        performanceTracker.identifyEnhancements("goodWorkflow");
+
       expect(Array.isArray(enhancements)).toBe(true);
       // Good performance should result in fewer or no enhancement suggestions
     });
 
     it("should handle non-existent workflow", () => {
-      const enhancements = performanceTracker.identifyEnhancements("nonExistentWorkflow");
-      
+      const enhancements = performanceTracker.identifyEnhancements(
+        "nonExistentWorkflow",
+      );
+
       expect(Array.isArray(enhancements)).toBe(true);
       expect(enhancements.length).toBe(0);
     });
@@ -281,26 +296,27 @@ describe("WorkflowPerformanceTracker", () => {
     beforeEach(() => {
       // Add test performance data
       performanceTracker.recordPerformance("testWorkflow", {
-        executionTime: 1500,
-        success: true,
-        errorRate: 0.03,
-        qualityScore: 0.75,
         completionRate: 0.9,
-        retryCount: 1,
+        errorRate: 0.03,
+        executionTime: 1500,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.75,
         resourceUsage: {
-          memoryUsage: 150,
           cpuTime: 900,
+          memoryUsage: 150,
           networkRequests: 8,
           storageOperations: 5,
-          toolCalls: 10
+          toolCalls: 10,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 1,
+        success: true,
       });
     });
 
     it("should generate optimization recommendations", () => {
-      const recommendations = performanceTracker.generateOptimizationRecommendations("testWorkflow");
-      
+      const recommendations =
+        performanceTracker.generateOptimizationRecommendations("testWorkflow");
+
       expect(recommendations).toBeDefined();
       expect(Array.isArray(recommendations.recommendations)).toBe(true);
       expect(recommendations.priority).toBeDefined();
@@ -309,18 +325,22 @@ describe("WorkflowPerformanceTracker", () => {
     });
 
     it("should include actionable recommendations", () => {
-      const recommendations = performanceTracker.generateOptimizationRecommendations("testWorkflow");
-      
+      const recommendations =
+        performanceTracker.generateOptimizationRecommendations("testWorkflow");
+
       expect(Array.isArray(recommendations.recommendations)).toBe(true);
-      recommendations.recommendations.forEach(rec => {
+      recommendations.recommendations.forEach((rec) => {
         expect(typeof rec).toBe("string");
         expect(rec.length).toBeGreaterThan(0);
       });
     });
 
     it("should handle non-existent workflow", () => {
-      const recommendations = performanceTracker.generateOptimizationRecommendations("nonExistentWorkflow");
-      
+      const recommendations =
+        performanceTracker.generateOptimizationRecommendations(
+          "nonExistentWorkflow",
+        );
+
       expect(recommendations).toBeDefined();
       expect(Array.isArray(recommendations.recommendations)).toBe(true);
       expect(typeof recommendations.estimatedImpact).toBe("number");
@@ -331,32 +351,34 @@ describe("WorkflowPerformanceTracker", () => {
   describe("calculateTrendMetrics", () => {
     beforeEach(() => {
       // Add time-series performance data
-      const baseTime = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 days ago
-      
+      const baseTime = Date.now() - 7 * 24 * 60 * 60 * 1000; // 7 days ago
+
       for (let i = 0; i < 7; i++) {
-        const timestamp = new Date(baseTime + (i * 24 * 60 * 60 * 1000)).toISOString();
+        const timestamp = new Date(
+          baseTime + i * 24 * 60 * 60 * 1000,
+        ).toISOString();
         performanceTracker.recordPerformance("trendWorkflow", {
-          executionTime: 1000 - (i * 50), // Improving execution time
-          success: true,
-          errorRate: 0.05 - (i * 0.005), // Decreasing error rate
-          qualityScore: 0.7 + (i * 0.03), // Improving quality
-          completionRate: 0.9 + (i * 0.01),
-          retryCount: Math.max(0, 2 - i),
+          completionRate: 0.9 + i * 0.01,
+          errorRate: 0.05 - i * 0.005, // Decreasing error rate
+          executionTime: 1000 - i * 50, // Improving execution time
+          lastExecuted: timestamp,
+          qualityScore: 0.7 + i * 0.03, // Improving quality
           resourceUsage: {
-            memoryUsage: 120 - (i * 5),
-            cpuTime: 700 - (i * 30),
+            cpuTime: 700 - i * 30,
+            memoryUsage: 120 - i * 5,
             networkRequests: 4,
             storageOperations: 2,
-            toolCalls: 6
+            toolCalls: 6,
           },
-          lastExecuted: timestamp
+          retryCount: Math.max(0, 2 - i),
+          success: true,
         });
       }
     });
 
     it("should calculate trend metrics for workflow", () => {
       const stats = performanceTracker.getPerformanceStats("trendWorkflow");
-      
+
       expect(stats.trend).toBeDefined();
       expect(Array.isArray(stats.trend)).toBe(true);
       expect(stats.trend.length).toBeGreaterThan(0);
@@ -364,9 +386,11 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should detect improving trends", () => {
       const stats = performanceTracker.getPerformanceStats("trendWorkflow");
-      
+
       // Should detect some improving trends based on our test data
-      const improvingTrends = stats.trend.filter(t => t.trend === "improving");
+      const improvingTrends = stats.trend.filter(
+        (t) => t.trend === "improving",
+      );
       expect(improvingTrends.length).toBeGreaterThan(0);
     });
   });
@@ -374,25 +398,25 @@ describe("WorkflowPerformanceTracker", () => {
   describe("resource usage tracking", () => {
     it("should track resource usage metrics", () => {
       const performanceData = {
-        executionTime: 1200,
-        success: true,
-        errorRate: 0.01,
-        qualityScore: 0.8,
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0.01,
+        executionTime: 1200,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.8,
         resourceUsage: {
-          memoryUsage: 256,
           cpuTime: 1500,
+          memoryUsage: 256,
           networkRequests: 12,
           storageOperations: 8,
-          toolCalls: 15
+          toolCalls: 15,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 0,
+        success: true,
       };
 
       performanceTracker.recordPerformance("resourceWorkflow", performanceData);
       const stats = performanceTracker.getPerformanceStats("resourceWorkflow");
-      
+
       expect(stats.current).toBeDefined();
       expect(stats.current.resourceUsage).toBeDefined();
       expect(stats.current.resourceUsage.memoryUsage).toBe(256);
@@ -406,20 +430,20 @@ describe("WorkflowPerformanceTracker", () => {
   describe("edge cases", () => {
     it("should handle invalid quality scores", () => {
       const invalidData = {
-        executionTime: 1000,
-        success: true,
-        errorRate: 0,
-        qualityScore: 1.5, // Invalid - greater than 1
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0,
+        executionTime: 1000,
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 1.5, // Invalid - greater than 1
         resourceUsage: {
-          memoryUsage: 100,
           cpuTime: 600,
+          memoryUsage: 100,
           networkRequests: 3,
           storageOperations: 2,
-          toolCalls: 5
+          toolCalls: 5,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 0,
+        success: true,
       };
 
       expect(() => {
@@ -429,20 +453,20 @@ describe("WorkflowPerformanceTracker", () => {
 
     it("should handle negative execution times", () => {
       const invalidData = {
-        executionTime: -500, // Invalid negative time
-        success: true,
-        errorRate: 0,
-        qualityScore: 0.8,
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0,
+        executionTime: -500, // Invalid negative time
+        lastExecuted: new Date().toISOString(),
+        qualityScore: 0.8,
         resourceUsage: {
-          memoryUsage: 100,
           cpuTime: 600,
+          memoryUsage: 100,
           networkRequests: 3,
           storageOperations: 2,
-          toolCalls: 5
+          toolCalls: 5,
         },
-        lastExecuted: new Date().toISOString()
+        retryCount: 0,
+        success: true,
       };
 
       expect(() => {

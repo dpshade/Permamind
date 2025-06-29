@@ -544,7 +544,9 @@ describe("WorkflowHubService Tests", () => {
 
       // Mock the getHubStatistics method
       const originalMethod = workflowHubService.getHubStatistics;
-      workflowHubService.getHubStatistics = vi.fn().mockResolvedValue(mockStats);
+      workflowHubService.getHubStatistics = vi
+        .fn()
+        .mockResolvedValue(mockStats);
 
       const stats = await workflowHubService.getHubStatistics();
 
@@ -568,7 +570,9 @@ describe("WorkflowHubService Tests", () => {
 
       // Mock the getHubStatistics method
       const originalMethod = workflowHubService.getHubStatistics;
-      workflowHubService.getHubStatistics = vi.fn().mockResolvedValue(emptyStats);
+      workflowHubService.getHubStatistics = vi
+        .fn()
+        .mockResolvedValue(emptyStats);
 
       const stats = await workflowHubService.getHubStatistics();
 

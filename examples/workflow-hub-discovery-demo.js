@@ -31,8 +31,12 @@ async function demonstrateWorkflowHubDiscovery() {
 
     console.log(`Retrieved hub statistics in ${statsTime}ms`);
     console.log(`Total workflows: ${stats.totalPublicWorkflows}`);
-    console.log(`Average reputation: ${(stats.averageReputationScore * 100).toFixed(1)}%`);
-    console.log(`Network health: ${(stats.networkHealthScore * 100).toFixed(1)}%`);
+    console.log(
+      `Average reputation: ${(stats.averageReputationScore * 100).toFixed(1)}%`,
+    );
+    console.log(
+      `Network health: ${(stats.networkHealthScore * 100).toFixed(1)}%`,
+    );
     console.log("");
 
     // Test 2: Capability-based Discovery
@@ -60,11 +64,10 @@ async function demonstrateWorkflowHubDiscovery() {
     console.log("3. Requirements-based Discovery");
     console.log("-------------------------------");
     const reqStart = Date.now();
-    const automationWorkflows =
-      await workflowHubService.searchByRequirements([
-        "automation",
-        "scheduling",
-      ]);
+    const automationWorkflows = await workflowHubService.searchByRequirements([
+      "automation",
+      "scheduling",
+    ]);
     const reqTime = Date.now() - reqStart;
 
     console.log(
@@ -122,7 +125,9 @@ async function demonstrateWorkflowHubDiscovery() {
     console.log(
       `Average Reputation Score: ${networkStats.averageReputationScore.toFixed(3)}`,
     );
-    console.log(`Network Health Score: ${networkStats.networkHealthScore.toFixed(3)}`);
+    console.log(
+      `Network Health Score: ${networkStats.networkHealthScore.toFixed(3)}`,
+    );
     console.log("");
 
     // Performance Summary

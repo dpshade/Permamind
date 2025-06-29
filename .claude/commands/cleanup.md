@@ -98,28 +98,33 @@ Execute comprehensive codebase cleanup using this 8-phase approach:
 ```
 
 **Parameters:**
+
 - `target_area` (optional): Focus on specific area (e.g., "tests", "docs", "services")
 
 ## Detailed Analysis Techniques
 
 ### Architecture Mapping
+
 - Use `Glob "**/*.{ts,js}"` to find all source files
 - Use `Grep "import.*from" src/` to map dependencies
 - Use `Read` on main entry points to understand service initialization
 - Create mental model of intended vs actual architecture
 
 ### Dead Code Detection
+
 - Use `Grep "export.*{" src/` to find all exports
 - Use `Grep "import.*{" src/` to find all imports
 - Cross-reference to find unused exports
 - Use `Bash "npm ls --depth=0"` to check dependency usage
 
 ### Legacy Pattern Search
+
 - Use `Grep "class.*Service" src/` to find all services
 - Use `Grep "TODO|FIXME|XXX|HACK|BUG" src/` for technical debt
 - Use `Grep "deprecated|legacy|old" src/` for known legacy code
 
 ### Documentation Validation
+
 - Use `Glob "**/*.md"` to find all documentation
 - Use `Read` to check documentation against actual implementation
 - Use `Grep "```" docs/` to find code examples for validation
