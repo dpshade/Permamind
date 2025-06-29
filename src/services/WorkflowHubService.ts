@@ -333,20 +333,13 @@ export class WorkflowHubService {
 
       const filterString = JSON.stringify([velocityFilter]);
 
-      // DEBUG: Log the search parameters
-      console.log(
         `[WORKFLOW SEARCH DEBUG] Searching in hard-coded hub: ${WORKFLOW_HUB_ID}`,
       );
-      console.log(`[WORKFLOW SEARCH DEBUG] Search capability: ${capability}`);
-      console.log(`[WORKFLOW SEARCH DEBUG] Filter:`, velocityFilter);
 
       const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
 
-      console.log(`[WORKFLOW SEARCH DEBUG] Found ${events.length} events`);
 
-      // DEBUG: Log detailed information about each event
       events.forEach((event: any, index) => {
-        console.log(`[WORKFLOW SEARCH DEBUG] Event ${index + 1}:`, {
           ai_tag: event.ai_tag,
           ai_type: event.ai_type,
           allTags: Object.keys(event).filter(
@@ -403,22 +396,15 @@ export class WorkflowHubService {
 
       const filterString = JSON.stringify([velocityFilter]);
 
-      // DEBUG: Log the search parameters for query search
-      console.log(
         `[WORKFLOW QUERY DEBUG] Searching in hard-coded hub: ${WORKFLOW_HUB_ID}`,
       );
-      console.log(`[WORKFLOW QUERY DEBUG] Search query: "${query}"`);
-      console.log(`[WORKFLOW QUERY DEBUG] Filter:`, velocityFilter);
 
       const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
 
-      console.log(
         `[WORKFLOW QUERY DEBUG] Found ${events.length} events before query filtering`,
       );
 
-      // DEBUG: Log detailed information about each event
       events.slice(0, 3).forEach((event: any, index) => {
-        console.log(`[WORKFLOW QUERY DEBUG] Event ${index + 1}:`, {
           ai_tag: event.ai_tag,
           ai_type: event.ai_type,
           allTags: Object.keys(event).filter(

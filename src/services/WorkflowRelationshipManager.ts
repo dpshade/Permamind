@@ -396,10 +396,6 @@ export class WorkflowRelationshipManager {
   ): void {
     // This would integrate with the workflow execution system
     // For now, we'll just track the inheritance
-    console.log(
-      `Applying inherited enhancement from ${sourceId} to ${workflowId}:`,
-      enhancement.description,
-    );
   }
 
   private calculateCollaborationPotential(workflowId: string): number {

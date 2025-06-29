@@ -365,9 +365,6 @@ export class WorkflowEnhancementEngine {
     enhancement: Enhancement,
   ): Promise<void> {
     // Apply the enhancement to the workflow
-    console.log(
-      `Applying enhancement ${enhancement.id} to workflow ${workflowId}`,
-    );
 
     // Apply the enhancement based on its type and validation status
     if (enhancement.validation?.isValid) {
