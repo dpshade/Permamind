@@ -1720,14 +1720,16 @@ server.addTool({
         method: () =>
           withTimeout(
             discoveryService.searchGlobalWorkflows(args.userRequest, {
-              minPerformanceScore: 0.3,
-              minReputationScore: 0.3,
+              minPerformanceScore: 0.1,
+              minReputationScore: 0.1,
             }),
-            8000, // 8s timeout
+            25000, // 25s timeout - increased for reliability
           ),
         type: "search",
         weight: 1.0,
       });
+
+      // Skip expanded search for now to avoid timeouts - the main search is working fine
 
       // 2. Only search for first capability if provided (limit to 1 for speed)
       if (args.capabilities) {
@@ -1763,25 +1765,25 @@ server.addTool({
       // Execute search strategies with overall timeout and early termination
       const searchPromises = strategies.map(async (strategy) => {
         try {
+          console.log(`[DEBUG] Starting ${strategy.type} search strategy...`);
           const results = await strategy.method();
+          console.log(`[DEBUG] ${strategy.type} strategy found ${results.length} workflows`);
           return results.map((workflow) => ({
             ...workflow,
             relevanceWeight: strategy.weight,
             searchStrategy: strategy.type,
           }));
         } catch (error) {
-          console.warn(`Search strategy ${strategy.type} failed:`, error);
+          console.warn(`Search strategy ${strategy.type} failed:`, String(error));
           return [];
         }
       });
 
-      // Add overall timeout for all searches combined
-      const searchWithTimeout = withTimeout(
-        Promise.all(searchPromises),
-        15000, // 15s total timeout
-      );
-
-      const allResults = await searchWithTimeout;
+      // Execute searches with Promise.allSettled to handle individual failures gracefully
+      const searchResults = await Promise.allSettled(searchPromises);
+      const allResults = searchResults
+        .filter(result => result.status === 'fulfilled')
+        .map(result => result.value);
       const flatResults = allResults.flat();
 
       // Early termination if we have enough high-quality results
@@ -1808,12 +1810,17 @@ server.addTool({
         .map((workflow) => ({
           ...workflow,
           combinedScore:
-            workflow.performanceScore * 0.4 +
+            (workflow.performanceMetrics?.qualityScore || 0.5) * 0.4 +
             workflow.reputationScore * 0.4 +
             workflow.relevanceWeight * 0.2,
         }))
         .sort((a, b) => b.combinedScore - a.combinedScore)
         .slice(0, args.maxResults || 10);
+
+      console.log(`[DEBUG] Final results: ${rankedWorkflows.length} workflows`);
+      rankedWorkflows.forEach(w => 
+        console.log(`[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`)
+      );
 
       // Generate recommendations
       const recommendations = [];
