@@ -1,4 +1,6 @@
-# X (Twitter) Content: Velocity Protocol Integration for Cross-Hub Discovery
+# X (Twitter) Content: Velocity Protocol Integration for Cross-Hub Discovery [ARCHIVED]
+
+> **📋 ARCHITECTURE CHANGE NOTE**: This marketing content describes the original cross-hub implementation that was later replaced with a simplified WorkflowHubService architecture focusing on a single dedicated workflow hub for better performance and reliability.
 
 ## Thread 1: The Technical Breakthrough (Main Launch)
 

@@ -1,8 +1,10 @@
-# Cross-Hub Workflow Discovery with Velocity Protocol Integration
+# Cross-Hub Workflow Discovery with Velocity Protocol Integration [ARCHIVED]
+
+> **📋 ARCHITECTURE CHANGE NOTE**: This PR describes the original cross-hub implementation that was later replaced with a simplified WorkflowHubService architecture focusing on a single dedicated workflow hub for better performance and reliability.
 
 ## 🌐 Overview
 
-This PR implements **decentralized workflow discovery** across Permamind hubs, enabling workflows to discover, learn from, and enhance each other across the entire network while maintaining full **Velocity protocol compliance**.
+This PR implemented **decentralized workflow discovery** across Permamind hubs, enabling workflows to discover, learn from, and enhance each other across the entire network while maintaining full **Velocity protocol compliance**.
 
 ## ✨ Key Features
 

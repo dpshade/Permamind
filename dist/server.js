@@ -7,11 +7,11 @@ import { z } from "zod";
 import { HUB_REGISTRY_ID } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
-import { WorkflowHubService } from "./services/WorkflowHubService.js";
 import { memoryService } from "./services/memory.js";
 import { hubRegistryService } from "./services/registry.js";
 import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
 import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.js";
+import { WorkflowHubService, } from "./services/WorkflowHubService.js";
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
 let keyPair;
@@ -62,10 +62,10 @@ function initializeWorkflowServices() {
     const workflowHub = new WorkflowHubService();
     workflowServices = {
         analyticsService,
-        workflowHub,
         enhancementEngine,
         performanceTracker,
         relationshipManager,
+        workflowHub,
     };
     // Start background enhancement cycles
     startBackgroundEnhancementCycles();
@@ -1348,10 +1348,14 @@ server.addTool({
             };
             // Parse optional filters
             if (args.capabilities) {
-                searchFilters.capabilities = args.capabilities.split(",").map(c => c.trim());
+                searchFilters.capabilities = args.capabilities
+                    .split(",")
+                    .map((c) => c.trim());
             }
             if (args.requirements) {
-                searchFilters.requirements = args.requirements.split(",").map(r => r.trim());
+                searchFilters.requirements = args.requirements
+                    .split(",")
+                    .map((r) => r.trim());
             }
             // Use the progressive search from WorkflowHubService
             const workflows = await workflowHub.findWorkflows(args.userRequest, searchFilters);
@@ -1360,10 +1364,10 @@ server.addTool({
                 .slice(0, args.maxResults || 10)
                 .map((workflow) => ({
                 ...workflow,
-                searchStrategy: "progressive_broad_narrow",
-                relevanceWeight: 1.0,
                 combinedScore: (workflow.performanceMetrics?.qualityScore || 0.5) * 0.4 +
                     workflow.reputationScore * 0.6,
+                relevanceWeight: 1.0,
+                searchStrategy: "progressive_broad_narrow",
             }));
             // Generate recommendations based on Claude Desktop learning
             const recommendations = [];
@@ -1378,9 +1382,9 @@ server.addTool({
             }
             return JSON.stringify({
                 networkFirst: true,
-                searchStrategy: "progressive_broad_narrow",
                 query: args.userRequest,
                 recommendations,
+                searchStrategy: "progressive_broad_narrow",
                 totalFound: rankedWorkflows.length,
                 workflows: rankedWorkflows,
             });

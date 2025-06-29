@@ -6,10 +6,10 @@ const WORKFLOW_HUB_ID = "HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg";
  * Applies progressive broad-to-narrow search strategy based on Claude Desktop learnings
  */
 export class WorkflowHubService {
-    workflowCache = new Map();
-    statisticsCache = null;
     cacheTimeout = 120000; // 2 minutes
+    statisticsCache = null;
     statsTimeout = 300000; // 5 minutes
+    workflowCache = new Map();
     /**
      * Progressive workflow discovery - starts broad, narrows when needed
      * Applies Claude Desktop learning: broad capability search first
@@ -20,7 +20,7 @@ export class WorkflowHubService {
         // Stage 2: Broad capability-based search
         const broadResults = await this.searchByCapability(primaryCapability, filters);
         // Stage 3: Quality threshold check - early return if good broad results
-        const highQualityBroad = broadResults.filter(w => w.reputationScore > 0.75);
+        const highQualityBroad = broadResults.filter((w) => w.reputationScore > 0.75);
         if (highQualityBroad.length >= 3) {
             // Return high-quality broad results immediately
             return this.rankWorkflows(highQualityBroad);
@@ -31,107 +31,76 @@ export class WorkflowHubService {
         return this.mergeAndRankResults(broadResults, specificResults);
     }
     /**
-     * Search workflows by specific capability
+     * Get cached statistics instantly (no network calls)
      */
-    async searchByCapability(capability, filters = {}) {
-        const cacheKey = `capability_${capability}_${JSON.stringify(filters)}`;
-        // Check cache first
-        if (this.workflowCache.has(cacheKey)) {
-            return this.workflowCache.get(cacheKey);
-        }
-        try {
-            const velocityFilter = {
-                kinds: ["10"], // AI_MEMORY events
-                limit: 100,
-                tags: {
-                    ai_type: ["workflow"],
-                    ai_tag: ["public", "discoverable"],
-                    workflow_capability: [capability],
-                },
-            };
-            // Add additional filters
-            this.applyFiltersToVelocityQuery(velocityFilter, filters);
-            const filterString = JSON.stringify([velocityFilter]);
-            const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-            const workflows = events
-                .map(event => this.convertEventToWorkflow(event))
-                .filter(workflow => this.matchesAdditionalFilters(workflow, filters));
-            // Cache results
-            this.workflowCache.set(cacheKey, workflows);
-            setTimeout(() => this.workflowCache.delete(cacheKey), this.cacheTimeout);
-            return workflows;
-        }
-        catch (error) {
-            console.warn(`Failed to search by capability ${capability}:`, error);
-            return [];
-        }
+    getCachedStatistics() {
+        return this.statisticsCache?.data || null;
     }
     /**
-     * Search workflows by text query
+     * Request enhancement patterns from a workflow
      */
-    async searchByQuery(query, filters = {}) {
-        const cacheKey = `query_${query}_${JSON.stringify(filters)}`;
-        // Check cache first
-        if (this.workflowCache.has(cacheKey)) {
-            return this.workflowCache.get(cacheKey);
-        }
+    async getEnhancementPatterns(workflowId) {
         try {
-            const velocityFilter = {
-                kinds: ["10"], // AI_MEMORY events
-                limit: 200,
-                tags: {
-                    ai_type: ["workflow"],
-                    ai_tag: ["public", "discoverable"],
-                },
-            };
-            // Add additional filters
-            this.applyFiltersToVelocityQuery(velocityFilter, filters);
-            const filterString = JSON.stringify([velocityFilter]);
-            const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-            const workflows = events
-                .map(event => this.convertEventToWorkflow(event))
-                .filter(workflow => this.matchesQuery(workflow, query))
-                .filter(workflow => this.matchesAdditionalFilters(workflow, filters));
-            // Cache results
-            this.workflowCache.set(cacheKey, workflows);
-            setTimeout(() => this.workflowCache.delete(cacheKey), this.cacheTimeout);
-            return workflows;
-        }
-        catch (error) {
-            console.warn(`Failed to search by query ${query}:`, error);
-            return [];
-        }
-    }
-    /**
-     * Search workflows by requirements
-     */
-    async searchByRequirements(requirements, filters = {}) {
-        const cacheKey = `requirements_${requirements.join(",")}_${JSON.stringify(filters)}`;
-        if (this.workflowCache.has(cacheKey)) {
-            return this.workflowCache.get(cacheKey);
-        }
-        try {
-            const velocityFilter = {
+            const enhancementFilter = {
                 kinds: ["10"],
-                limit: 100,
+                limit: 50,
                 tags: {
-                    ai_type: ["workflow"],
-                    ai_tag: ["public", "discoverable"],
-                    workflow_requirement: requirements,
+                    ai_tag: ["public", "shareable"],
+                    ai_type: ["enhancement"],
+                    workflow_id: [workflowId],
                 },
             };
-            this.applyFiltersToVelocityQuery(velocityFilter, filters);
-            const filterString = JSON.stringify([velocityFilter]);
+            const filterString = JSON.stringify([enhancementFilter]);
             const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-            const workflows = events
-                .map(event => this.convertEventToWorkflow(event))
-                .filter(workflow => this.matchesAdditionalFilters(workflow, filters));
-            this.workflowCache.set(cacheKey, workflows);
-            setTimeout(() => this.workflowCache.delete(cacheKey), this.cacheTimeout);
-            return workflows;
+            return events.map((event, index) => {
+                let enhancementData = {};
+                if (event.workflow_enhancement) {
+                    try {
+                        enhancementData =
+                            typeof event.workflow_enhancement === "string"
+                                ? JSON.parse(event.workflow_enhancement)
+                                : event.workflow_enhancement;
+                    }
+                    catch (error) {
+                        console.warn("Failed to parse enhancement data:", error);
+                    }
+                }
+                const applicableCapabilities = [];
+                if (event.workflow_capability) {
+                    if (Array.isArray(event.workflow_capability)) {
+                        applicableCapabilities.push(...event.workflow_capability);
+                    }
+                    else {
+                        applicableCapabilities.push(event.workflow_capability);
+                    }
+                }
+                return {
+                    applicableToCapabilities: applicableCapabilities,
+                    description: enhancementData.description ||
+                        event.Content ||
+                        "Performance improvement pattern",
+                    impact: parseFloat(enhancementData.impact || event.enhancement_impact || "0.1"),
+                    implementationHints: enhancementData.implementationHints || [
+                        "Review current implementation for bottlenecks",
+                        "Apply optimization incrementally",
+                        "Monitor performance impact",
+                    ],
+                    patternId: `pattern_${workflowId}_${event.Id || index}`,
+                    riskLevel: (enhancementData.riskLevel ||
+                        event.enhancement_risk ||
+                        "low"),
+                    sourceWorkflowId: workflowId,
+                    type: enhancementData.type || event.enhancement_type || "optimization",
+                    validationSteps: enhancementData.validationSteps || [
+                        "Test with sample data",
+                        "Measure performance improvement",
+                        "Validate output quality",
+                    ],
+                };
+            });
         }
         catch (error) {
-            console.warn(`Failed to search by requirements:`, error);
+            console.error("Failed to get enhancement patterns:", error);
             return [];
         }
     }
@@ -140,7 +109,8 @@ export class WorkflowHubService {
      */
     async getHubStatistics() {
         // Check cache first
-        if (this.statisticsCache && Date.now() - this.statisticsCache.timestamp < this.statsTimeout) {
+        if (this.statisticsCache &&
+            Date.now() - this.statisticsCache.timestamp < this.statsTimeout) {
             return this.statisticsCache.data;
         }
         try {
@@ -148,21 +118,22 @@ export class WorkflowHubService {
                 kinds: ["10"],
                 limit: 500, // Higher limit for comprehensive stats
                 tags: {
-                    ai_type: ["workflow"],
                     ai_tag: ["public", "discoverable"],
+                    ai_type: ["workflow"],
                 },
             };
             const filterString = JSON.stringify([velocityFilter]);
             const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-            const workflows = events.map(event => this.convertEventToWorkflow(event));
+            const workflows = events.map((event) => this.convertEventToWorkflow(event));
             const totalPublicWorkflows = workflows.length;
             const averageReputationScore = workflows.length > 0
-                ? workflows.reduce((sum, w) => sum + w.reputationScore, 0) / workflows.length
+                ? workflows.reduce((sum, w) => sum + w.reputationScore, 0) /
+                    workflows.length
                 : 0;
             // Count capability frequency
             const capabilityCount = new Map();
-            workflows.forEach(w => {
-                w.capabilities.forEach(cap => {
+            workflows.forEach((w) => {
+                w.capabilities.forEach((cap) => {
                     capabilityCount.set(cap, (capabilityCount.get(cap) || 0) + 1);
                 });
             });
@@ -200,75 +171,6 @@ export class WorkflowHubService {
         }
     }
     /**
-     * Get cached statistics instantly (no network calls)
-     */
-    getCachedStatistics() {
-        return this.statisticsCache?.data || null;
-    }
-    /**
-     * Request enhancement patterns from a workflow
-     */
-    async getEnhancementPatterns(workflowId) {
-        try {
-            const enhancementFilter = {
-                kinds: ["10"],
-                limit: 50,
-                tags: {
-                    ai_tag: ["public", "shareable"],
-                    ai_type: ["enhancement"],
-                    workflow_id: [workflowId],
-                },
-            };
-            const filterString = JSON.stringify([enhancementFilter]);
-            const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-            return events.map((event, index) => {
-                let enhancementData = {};
-                if (event.workflow_enhancement) {
-                    try {
-                        enhancementData = typeof event.workflow_enhancement === "string"
-                            ? JSON.parse(event.workflow_enhancement)
-                            : event.workflow_enhancement;
-                    }
-                    catch (error) {
-                        console.warn("Failed to parse enhancement data:", error);
-                    }
-                }
-                const applicableCapabilities = [];
-                if (event.workflow_capability) {
-                    if (Array.isArray(event.workflow_capability)) {
-                        applicableCapabilities.push(...event.workflow_capability);
-                    }
-                    else {
-                        applicableCapabilities.push(event.workflow_capability);
-                    }
-                }
-                return {
-                    applicableToCapabilities: applicableCapabilities,
-                    description: enhancementData.description || event.Content || "Performance improvement pattern",
-                    impact: parseFloat(enhancementData.impact || event.enhancement_impact || "0.1"),
-                    implementationHints: enhancementData.implementationHints || [
-                        "Review current implementation for bottlenecks",
-                        "Apply optimization incrementally",
-                        "Monitor performance impact",
-                    ],
-                    patternId: `pattern_${workflowId}_${event.Id || index}`,
-                    riskLevel: (enhancementData.riskLevel || event.enhancement_risk || "low"),
-                    sourceWorkflowId: workflowId,
-                    type: enhancementData.type || event.enhancement_type || "optimization",
-                    validationSteps: enhancementData.validationSteps || [
-                        "Test with sample data",
-                        "Measure performance improvement",
-                        "Validate output quality",
-                    ],
-                };
-            });
-        }
-        catch (error) {
-            console.error("Failed to get enhancement patterns:", error);
-            return [];
-        }
-    }
-    /**
      * Get search suggestions for improving discovery
      */
     getSearchSuggestions(query, foundWorkflows) {
@@ -278,7 +180,7 @@ export class WorkflowHubService {
         }
         else if (foundWorkflows.length < 3) {
             const capabilities = new Set();
-            foundWorkflows.forEach(workflow => workflow.capabilities.forEach(cap => capabilities.add(cap)));
+            foundWorkflows.forEach((workflow) => workflow.capabilities.forEach((cap) => capabilities.add(cap)));
             if (capabilities.size > 0) {
                 suggestions.push(`Try related capabilities: ${Array.from(capabilities).join(", ")}`, `Search for similar workflows using broader terms`);
             }
@@ -289,42 +191,109 @@ export class WorkflowHubService {
         return suggestions;
     }
     /**
-     * Extract primary capability from query for broad search
-     * Implements Claude Desktop learning: start with general capability
+     * Search workflows by specific capability
      */
-    extractPrimaryCapability(query) {
-        const queryLower = query.toLowerCase();
-        // Capability mapping: specific terms -> broad categories
-        const capabilityMap = {
-            // Data processing
-            "json": "format-conversion",
-            "xml": "format-conversion",
-            "csv": "format-conversion",
-            "parsing": "data-processing",
-            "validation": "data-processing",
-            "transformation": "data-processing",
-            // Analysis and reporting
-            "analysis": "data-analysis",
-            "analytics": "data-analysis",
-            "reporting": "data-analysis",
-            "insights": "data-analysis",
-            // Automation
-            "automation": "workflow-automation",
-            "orchestration": "workflow-automation",
-            "pipeline": "workflow-automation",
-            // Integration
-            "api": "integration",
-            "webhook": "integration",
-            "connector": "integration",
-        };
-        // Find the first matching capability
-        for (const [term, capability] of Object.entries(capabilityMap)) {
-            if (queryLower.includes(term)) {
-                return capability;
-            }
+    async searchByCapability(capability, filters = {}) {
+        const cacheKey = `capability_${capability}_${JSON.stringify(filters)}`;
+        // Check cache first
+        if (this.workflowCache.has(cacheKey)) {
+            return this.workflowCache.get(cacheKey);
         }
-        // Default broad capability
-        return "data-processing";
+        try {
+            const velocityFilter = {
+                kinds: ["10"], // AI_MEMORY events
+                limit: 100,
+                tags: {
+                    ai_tag: ["public", "discoverable"],
+                    ai_type: ["workflow"],
+                    workflow_capability: [capability],
+                },
+            };
+            // Add additional filters
+            this.applyFiltersToVelocityQuery(velocityFilter, filters);
+            const filterString = JSON.stringify([velocityFilter]);
+            const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
+            const workflows = events
+                .map((event) => this.convertEventToWorkflow(event))
+                .filter((workflow) => this.matchesAdditionalFilters(workflow, filters));
+            // Cache results
+            this.workflowCache.set(cacheKey, workflows);
+            setTimeout(() => this.workflowCache.delete(cacheKey), this.cacheTimeout);
+            return workflows;
+        }
+        catch (error) {
+            console.warn(`Failed to search by capability ${capability}:`, error);
+            return [];
+        }
+    }
+    /**
+     * Search workflows by text query
+     */
+    async searchByQuery(query, filters = {}) {
+        const cacheKey = `query_${query}_${JSON.stringify(filters)}`;
+        // Check cache first
+        if (this.workflowCache.has(cacheKey)) {
+            return this.workflowCache.get(cacheKey);
+        }
+        try {
+            const velocityFilter = {
+                kinds: ["10"], // AI_MEMORY events
+                limit: 200,
+                tags: {
+                    ai_tag: ["public", "discoverable"],
+                    ai_type: ["workflow"],
+                },
+            };
+            // Add additional filters
+            this.applyFiltersToVelocityQuery(velocityFilter, filters);
+            const filterString = JSON.stringify([velocityFilter]);
+            const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
+            const workflows = events
+                .map((event) => this.convertEventToWorkflow(event))
+                .filter((workflow) => this.matchesQuery(workflow, query))
+                .filter((workflow) => this.matchesAdditionalFilters(workflow, filters));
+            // Cache results
+            this.workflowCache.set(cacheKey, workflows);
+            setTimeout(() => this.workflowCache.delete(cacheKey), this.cacheTimeout);
+            return workflows;
+        }
+        catch (error) {
+            console.warn(`Failed to search by query ${query}:`, error);
+            return [];
+        }
+    }
+    /**
+     * Search workflows by requirements
+     */
+    async searchByRequirements(requirements, filters = {}) {
+        const cacheKey = `requirements_${requirements.join(",")}_${JSON.stringify(filters)}`;
+        if (this.workflowCache.has(cacheKey)) {
+            return this.workflowCache.get(cacheKey);
+        }
+        try {
+            const velocityFilter = {
+                kinds: ["10"],
+                limit: 100,
+                tags: {
+                    ai_tag: ["public", "discoverable"],
+                    ai_type: ["workflow"],
+                    workflow_requirement: requirements,
+                },
+            };
+            this.applyFiltersToVelocityQuery(velocityFilter, filters);
+            const filterString = JSON.stringify([velocityFilter]);
+            const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
+            const workflows = events
+                .map((event) => this.convertEventToWorkflow(event))
+                .filter((workflow) => this.matchesAdditionalFilters(workflow, filters));
+            this.workflowCache.set(cacheKey, workflows);
+            setTimeout(() => this.workflowCache.delete(cacheKey), this.cacheTimeout);
+            return workflows;
+        }
+        catch (error) {
+            console.warn(`Failed to search by requirements:`, error);
+            return [];
+        }
     }
     /**
      * Apply additional filters to Velocity query
@@ -337,68 +306,26 @@ export class WorkflowHubService {
             velocityFilter.tags.workflow_requirement = filters.requirements;
         }
         if (filters.tags && filters.tags.length > 0) {
-            velocityFilter.tags.ai_tag = [...velocityFilter.tags.ai_tag, ...filters.tags];
+            velocityFilter.tags.ai_tag = [
+                ...velocityFilter.tags.ai_tag,
+                ...filters.tags,
+            ];
         }
     }
     /**
-     * Check if workflow matches additional filters
+     * Calculate reputation score for a workflow
      */
-    matchesAdditionalFilters(workflow, filters) {
-        if (filters.minReputationScore && workflow.reputationScore < filters.minReputationScore) {
-            return false;
-        }
-        if (filters.minPerformanceScore && workflow.performanceMetrics.qualityScore < filters.minPerformanceScore) {
-            return false;
-        }
-        if (filters.onlyOpenSource && !workflow.tags.includes("open-source")) {
-            return false;
-        }
-        return true;
-    }
-    /**
-     * Check if workflow matches text query
-     */
-    matchesQuery(workflow, query) {
-        const searchText = [
-            workflow.name,
-            workflow.description,
-            ...workflow.capabilities,
-            ...workflow.tags,
-        ].join(" ").toLowerCase();
-        const queryTerms = query.toLowerCase().split(" ");
-        return queryTerms.every(term => searchText.includes(term));
-    }
-    /**
-     * Merge and rank results from broad and specific searches
-     */
-    mergeAndRankResults(broadResults, specificResults) {
-        // Combine results and remove duplicates
-        const allResults = [...broadResults];
-        const seenIds = new Set(broadResults.map(w => w.workflowId));
-        specificResults.forEach(workflow => {
-            if (!seenIds.has(workflow.workflowId)) {
-                allResults.push(workflow);
-                seenIds.add(workflow.workflowId);
-            }
-        });
-        return this.rankWorkflows(allResults);
-    }
-    /**
-     * Rank workflows by relevance and reputation
-     */
-    rankWorkflows(workflows) {
-        return workflows.sort((a, b) => {
-            // Primary sort by reputation score
-            const reputationDiff = b.reputationScore - a.reputationScore;
-            if (Math.abs(reputationDiff) > 0.1)
-                return reputationDiff;
-            // Secondary sort by performance
-            const performanceDiff = b.performanceMetrics.qualityScore - a.performanceMetrics.qualityScore;
-            if (Math.abs(performanceDiff) > 0.05)
-                return performanceDiff;
-            // Tertiary sort by usage count
-            return b.usageCount - a.usageCount;
-        });
+    calculateReputationScore(event, performanceMetrics) {
+        const performanceScore = performanceMetrics.qualityScore || 0.5;
+        const reliabilityScore = performanceMetrics.successRate || 0.5;
+        const usageScore = Math.min(1.0, parseInt(event.ai_access_count || "0") / 100);
+        const enhancementScore = event.workflow_enhancement ? 0.8 : 0.2;
+        const importanceScore = parseFloat(event.ai_importance || "0.5");
+        return (performanceScore * 0.3 +
+            reliabilityScore * 0.25 +
+            usageScore * 0.2 +
+            enhancementScore * 0.15 +
+            importanceScore * 0.1);
     }
     /**
      * Convert Velocity event to WorkflowResult format
@@ -406,7 +333,9 @@ export class WorkflowHubService {
     convertEventToWorkflow(event) {
         const workflowId = event.workflow_id || event.Id;
         const name = event.workflow_id || `workflow-${event.Id.substring(0, 8)}`;
-        const description = event.Content ? event.Content.substring(0, 200) : "Workflow description";
+        const description = event.Content
+            ? event.Content.substring(0, 200)
+            : "Workflow description";
         // Parse capabilities
         const capabilities = [];
         if (event.workflow_capability) {
@@ -482,18 +411,105 @@ export class WorkflowHubService {
         };
     }
     /**
-     * Calculate reputation score for a workflow
+     * Extract primary capability from query for broad search
+     * Implements Claude Desktop learning: start with general capability
      */
-    calculateReputationScore(event, performanceMetrics) {
-        const performanceScore = performanceMetrics.qualityScore || 0.5;
-        const reliabilityScore = performanceMetrics.successRate || 0.5;
-        const usageScore = Math.min(1.0, parseInt(event.ai_access_count || "0") / 100);
-        const enhancementScore = event.workflow_enhancement ? 0.8 : 0.2;
-        const importanceScore = parseFloat(event.ai_importance || "0.5");
-        return (performanceScore * 0.3 +
-            reliabilityScore * 0.25 +
-            usageScore * 0.2 +
-            enhancementScore * 0.15 +
-            importanceScore * 0.1);
+    extractPrimaryCapability(query) {
+        const queryLower = query.toLowerCase();
+        // Capability mapping: specific terms -> broad categories
+        const capabilityMap = {
+            // Analysis and reporting
+            analysis: "data-analysis",
+            analytics: "data-analysis",
+            // Integration
+            api: "integration",
+            // Automation
+            automation: "workflow-automation",
+            connector: "integration",
+            csv: "format-conversion",
+            insights: "data-analysis",
+            // Data processing
+            json: "format-conversion",
+            orchestration: "workflow-automation",
+            parsing: "data-processing",
+            pipeline: "workflow-automation",
+            reporting: "data-analysis",
+            transformation: "data-processing",
+            validation: "data-processing",
+            webhook: "integration",
+            xml: "format-conversion",
+        };
+        // Find the first matching capability
+        for (const [term, capability] of Object.entries(capabilityMap)) {
+            if (queryLower.includes(term)) {
+                return capability;
+            }
+        }
+        // Default broad capability
+        return "data-processing";
+    }
+    /**
+     * Check if workflow matches additional filters
+     */
+    matchesAdditionalFilters(workflow, filters) {
+        if (filters.minReputationScore &&
+            workflow.reputationScore < filters.minReputationScore) {
+            return false;
+        }
+        if (filters.minPerformanceScore &&
+            workflow.performanceMetrics.qualityScore < filters.minPerformanceScore) {
+            return false;
+        }
+        if (filters.onlyOpenSource && !workflow.tags.includes("open-source")) {
+            return false;
+        }
+        return true;
+    }
+    /**
+     * Check if workflow matches text query
+     */
+    matchesQuery(workflow, query) {
+        const searchText = [
+            workflow.name,
+            workflow.description,
+            ...workflow.capabilities,
+            ...workflow.tags,
+        ]
+            .join(" ")
+            .toLowerCase();
+        const queryTerms = query.toLowerCase().split(" ");
+        return queryTerms.every((term) => searchText.includes(term));
+    }
+    /**
+     * Merge and rank results from broad and specific searches
+     */
+    mergeAndRankResults(broadResults, specificResults) {
+        // Combine results and remove duplicates
+        const allResults = [...broadResults];
+        const seenIds = new Set(broadResults.map((w) => w.workflowId));
+        specificResults.forEach((workflow) => {
+            if (!seenIds.has(workflow.workflowId)) {
+                allResults.push(workflow);
+                seenIds.add(workflow.workflowId);
+            }
+        });
+        return this.rankWorkflows(allResults);
+    }
+    /**
+     * Rank workflows by relevance and reputation
+     */
+    rankWorkflows(workflows) {
+        return workflows.sort((a, b) => {
+            // Primary sort by reputation score
+            const reputationDiff = b.reputationScore - a.reputationScore;
+            if (Math.abs(reputationDiff) > 0.1)
+                return reputationDiff;
+            // Secondary sort by performance
+            const performanceDiff = b.performanceMetrics.qualityScore - a.performanceMetrics.qualityScore;
+            if (Math.abs(performanceDiff) > 0.05)
+                return performanceDiff;
+            // Tertiary sort by usage count
+            return b.usageCount - a.usageCount;
+        });
     }
 }

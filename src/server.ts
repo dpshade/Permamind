@@ -13,11 +13,14 @@ import { MemoryType } from "./models/AIMemory.js";
 import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
-import { WorkflowHubService } from "./services/WorkflowHubService.js";
 import { memoryService } from "./services/memory.js";
 import { hubRegistryService } from "./services/registry.js";
 import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
 import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.js";
+import {
+  SearchFilters,
+  WorkflowHubService,
+} from "./services/WorkflowHubService.js";
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
 
@@ -69,10 +72,10 @@ const server = new FastMCP({
 // Initialize workflow ecosystem services
 let workflowServices: {
   analyticsService: WorkflowAnalyticsService;
-  workflowHub: WorkflowHubService;
   enhancementEngine: WorkflowEnhancementEngine;
   performanceTracker: WorkflowPerformanceTracker;
   relationshipManager: WorkflowRelationshipManager;
+  workflowHub: WorkflowHubService;
 } | null = null;
 
 function initializeWorkflowServices() {
@@ -90,10 +93,10 @@ function initializeWorkflowServices() {
 
   workflowServices = {
     analyticsService,
-    workflowHub,
     enhancementEngine,
     performanceTracker,
     relationshipManager,
+    workflowHub,
   };
 
   // Start background enhancement cycles
@@ -1523,32 +1526,39 @@ server.addTool({
       const workflowHub = workflowServices.workflowHub;
 
       // Apply Claude Desktop learning: Progressive broad-to-narrow search
-      const searchFilters: any = {
+      const searchFilters: SearchFilters = {
         minPerformanceScore: 0.1,
         minReputationScore: 0.1,
       };
 
       // Parse optional filters
       if (args.capabilities) {
-        searchFilters.capabilities = args.capabilities.split(",").map(c => c.trim());
+        searchFilters.capabilities = args.capabilities
+          .split(",")
+          .map((c) => c.trim());
       }
       if (args.requirements) {
-        searchFilters.requirements = args.requirements.split(",").map(r => r.trim());
+        searchFilters.requirements = args.requirements
+          .split(",")
+          .map((r) => r.trim());
       }
 
       // Use the progressive search from WorkflowHubService
-      const workflows = await workflowHub.findWorkflows(args.userRequest, searchFilters);
+      const workflows = await workflowHub.findWorkflows(
+        args.userRequest,
+        searchFilters,
+      );
 
       // Apply additional ranking and limiting
       const rankedWorkflows = workflows
         .slice(0, args.maxResults || 10)
         .map((workflow) => ({
           ...workflow,
-          searchStrategy: "progressive_broad_narrow",
-          relevanceWeight: 1.0,
-          combinedScore: 
+          combinedScore:
             (workflow.performanceMetrics?.qualityScore || 0.5) * 0.4 +
             workflow.reputationScore * 0.6,
+          relevanceWeight: 1.0,
+          searchStrategy: "progressive_broad_narrow",
         }));
 
       // Generate recommendations based on Claude Desktop learning
@@ -1568,15 +1578,18 @@ server.addTool({
         );
 
         // Add search suggestions
-        const suggestions = workflowHub.getSearchSuggestions(args.userRequest, workflows);
+        const suggestions = workflowHub.getSearchSuggestions(
+          args.userRequest,
+          workflows,
+        );
         recommendations.push(...suggestions);
       }
 
       return JSON.stringify({
         networkFirst: true,
-        searchStrategy: "progressive_broad_narrow",
         query: args.userRequest,
         recommendations,
+        searchStrategy: "progressive_broad_narrow",
         totalFound: rankedWorkflows.length,
         workflows: rankedWorkflows,
       });

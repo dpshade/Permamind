@@ -1,4 +1,6 @@
-# Cross-Hub Discovery Using Velocity Protocol
+# Cross-Hub Discovery Using Velocity Protocol [ARCHIVED]
+
+> **📋 ARCHITECTURE CHANGE NOTE**: This document describes the original cross-hub implementation that was later replaced with a simplified WorkflowHubService architecture focusing on a single dedicated workflow hub for better performance and reliability.
 
 ## Overview
 
