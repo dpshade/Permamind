@@ -17,6 +17,8 @@ import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipMana
 let keyPair;
 let publicKey;
 let hubId;
+// Centralized workflow hub for all workflow-related storage and discovery
+const CENTRALIZED_WORKFLOW_HUB_ID = "HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg";
 // Configure environment variables silently for MCP protocol compatibility
 dotenv.config();
 async function init() {
@@ -46,6 +48,16 @@ async function init() {
             };
             hubId = await hubRegistryService.create(keyPair, profile);
         }
+    }
+    // DEBUG: Compare hubId vs WorkflowHubService hard-coded hub
+    console.log(`[HUB COMPARISON DEBUG] Dynamic hubId (where workflows were saved): ${hubId}`);
+    console.log(`[HUB COMPARISON DEBUG] Centralized WORKFLOW_HUB_ID (where workflows are now saved): ${CENTRALIZED_WORKFLOW_HUB_ID}`);
+    console.log(`[HUB COMPARISON DEBUG] Hub IDs match: ${hubId === CENTRALIZED_WORKFLOW_HUB_ID}`);
+    if (hubId !== CENTRALIZED_WORKFLOW_HUB_ID) {
+        console.log(`[HUB COMPARISON DEBUG] ✅ SOLUTION APPLIED: Workflows now save to centralized hub ${CENTRALIZED_WORKFLOW_HUB_ID} instead of user hub ${hubId}`);
+    }
+    else {
+        console.log(`[HUB COMPARISON DEBUG] ✅ Hub IDs match - user hub happens to be the workflow hub`);
     }
 }
 const server = new FastMCP({
@@ -243,11 +255,15 @@ server.addTool({
         readOnlyHint: true, // This tool doesn't modify anything
         title: "Get Server Info",
     },
-    description: "gets the public key hubId for the server",
+    description: "gets the public key hubId for the server and compares with workflow hub",
     execute: async () => {
         const response = {
+            debugMessage: `User hub: ${hubId}, Centralized workflow hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`,
             hubId: hubId,
+            hubIdsMatch: hubId === CENTRALIZED_WORKFLOW_HUB_ID,
             publicKey: publicKey,
+            solutionApplied: "All workflows now save to centralized hub for consistent discovery",
+            workflowHubId: CENTRALIZED_WORKFLOW_HUB_ID,
         };
         return JSON.stringify(response);
     },
@@ -552,7 +568,11 @@ server.addTool({
                 metadata: {
                     accessCount: 0,
                     lastAccessed: new Date().toISOString(),
-                    tags: args.tags ? args.tags.split(",").map((s) => s.trim()) : [],
+                    tags: [
+                        "public",
+                        "discoverable",
+                        ...(args.tags ? args.tags.split(",").map((s) => s.trim()) : []),
+                    ],
                 },
                 p: args.p,
                 performance: args.performance
@@ -566,7 +586,17 @@ server.addTool({
                 workflowId: args.workflowId,
                 workflowVersion: args.workflowVersion || "1.0.0",
             };
-            const result = await aiMemoryService.addEnhanced(keyPair, hubId, workflowMemory);
+            // SOLUTION: Use centralized workflow hub for all workflow storage
+            // DEBUG: Log the hub usage for workflow save
+            console.log(`[WORKFLOW SAVE DEBUG] OLD: Would save to user hub: ${hubId}`);
+            console.log(`[WORKFLOW SAVE DEBUG] NEW: Saving to centralized workflow hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`);
+            console.log(`[WORKFLOW SAVE DEBUG] Workflow data:`, {
+                capabilities: workflowMemory.capabilities,
+                memoryType: workflowMemory.memoryType,
+                workflowId: workflowMemory.workflowId,
+            });
+            const result = await aiMemoryService.addEnhanced(keyPair, CENTRALIZED_WORKFLOW_HUB_ID, workflowMemory);
+            console.log(`[WORKFLOW SAVE DEBUG] Save result:`, result);
             return result;
         }
         catch (error) {
@@ -844,14 +874,23 @@ server.addTool({
                 metadata: {
                     accessCount: 0,
                     lastAccessed: new Date().toISOString(),
-                    tags: ["enhancement", args.enhancementType, "improvement"],
+                    tags: [
+                        "public",
+                        "shareable",
+                        "enhancement",
+                        args.enhancementType,
+                        "improvement",
+                    ],
                 },
                 p: args.p,
                 role: "system",
                 stage: "optimization",
                 workflowId: args.workflowId,
             };
-            const result = await aiMemoryService.addEnhanced(keyPair, hubId, enhancementMemory);
+            // SOLUTION: Use centralized workflow hub for enhancement storage too
+            console.log(`[ENHANCEMENT SAVE DEBUG] Saving enhancement to centralized hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`);
+            console.log(`[ENHANCEMENT SAVE DEBUG] Enhancement for workflow: ${args.workflowId}`);
+            const result = await aiMemoryService.addEnhanced(keyPair, CENTRALIZED_WORKFLOW_HUB_ID, enhancementMemory);
             // Also track in analytics service if available
             if (workflowServices) {
                 workflowServices.analyticsService.addEnhancement(args.workflowId, enhancement);
@@ -1082,14 +1121,23 @@ server.addTool({
                 metadata: {
                     accessCount: 0,
                     lastAccessed: new Date().toISOString(),
-                    tags: ["composition", "orchestration", args.executionStrategy],
+                    tags: [
+                        "public",
+                        "discoverable",
+                        "composition",
+                        "orchestration",
+                        args.executionStrategy,
+                    ],
                 },
                 p: args.p,
                 role: "system",
                 stage: "planning",
                 workflowId: args.compositionId,
             };
-            const result = await aiMemoryService.addEnhanced(keyPair, hubId, compositionMemory);
+            // SOLUTION: Use centralized workflow hub for composition storage
+            console.log(`[COMPOSITION SAVE DEBUG] Saving composition to centralized hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`);
+            console.log(`[COMPOSITION SAVE DEBUG] Composition ID: ${args.compositionId}`);
+            const result = await aiMemoryService.addEnhanced(keyPair, CENTRALIZED_WORKFLOW_HUB_ID, compositionMemory);
             return result;
         }
         catch (error) {

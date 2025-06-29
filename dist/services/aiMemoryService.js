@@ -416,6 +416,13 @@ const aiService = () => {
 };
 // Helper functions
 function createAIMemoryTags(memory) {
+    // DEBUG: Log the memory being processed
+    console.log(`[TAG CREATION DEBUG] Creating tags for memory:`, {
+        content: memory.content?.substring(0, 100) + "...",
+        memoryType: memory.memoryType,
+        metadata: memory.metadata,
+        workflowId: memory.workflowId,
+    });
     const tags = [
         { name: "kind", value: MEMORY_KINDS.AI_MEMORY },
         { name: "Content", value: memory.content || "" },
@@ -490,6 +497,13 @@ function createAIMemoryTags(memory) {
             tags.push({ name: "workflow_requirement", value: req });
         });
     }
+    // DEBUG: Log all created tags
+    console.log(`[TAG CREATION DEBUG] Created ${tags.length} tags:`, tags);
+    // DEBUG: Specifically log workflow-related tags
+    const workflowTags = tags.filter((tag) => tag.name.startsWith("workflow_") ||
+        tag.name === "ai_type" ||
+        tag.name === "ai_tag");
+    console.log(`[TAG CREATION DEBUG] Workflow-related tags:`, workflowTags);
     return tags;
 }
 function eventToAIMemory(event) {
