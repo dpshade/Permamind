@@ -1384,144 +1384,7 @@ server.addTool({
 
 // Cross-Hub Discovery Tools
 
-// Tool to discover workflows across the network
-server.addTool({
-  annotations: {
-    openWorldHint: false,
-    readOnlyHint: true,
-    title: "Discover Cross-Hub Workflows",
-  },
-  description: `Discover workflows by searching the dedicated workflow hub and network by capability, requirements, or similarity. 
-    Uses the dedicated workflow hub (HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg) for fast, reliable discovery, 
-    supplemented with additional network hubs when needed. Enables finding workflows from other users that could 
-    enhance your own workflows through learning and collaboration.`,
-  execute: async (args) => {
-    try {
-      if (!workflowServices) {
-        return "Workflow services not initialized";
-      }
-
-      const discoveryService = workflowServices.crossHubDiscovery;
-      let workflows = [];
-
-      switch (args.discoveryType) {
-        case "capability":
-          if (!args.capability) {
-            return "capability parameter required for capability discovery";
-          }
-          workflows = await discoveryService.discoverByCapability(
-            args.capability,
-          );
-          break;
-
-        case "requirements": {
-          if (!args.requirements) {
-            return "requirements parameter required for requirements discovery";
-          }
-          const requirementsList = args.requirements
-            .split(",")
-            .map((r) => r.trim());
-          workflows =
-            await discoveryService.findWorkflowsForRequirements(
-              requirementsList,
-            );
-          break;
-        }
-
-        case "search": {
-          if (!args.query) {
-            return "query parameter required for search discovery";
-          }
-          const filters = {
-            capabilities: args.capabilities
-              ? args.capabilities.split(",").map((c) => c.trim())
-              : undefined,
-            minPerformanceScore: args.minPerformanceScore,
-            minReputationScore: args.minReputationScore,
-            tags: args.tags
-              ? args.tags.split(",").map((t) => t.trim())
-              : undefined,
-          };
-          workflows = await discoveryService.searchGlobalWorkflows(
-            args.query,
-            filters,
-          );
-          break;
-        }
-
-        case "similar": {
-          if (!args.localWorkflowId) {
-            return "localWorkflowId parameter required for similarity discovery";
-          }
-          workflows = await discoveryService.findSimilarWorkflows(
-            args.localWorkflowId,
-            hubId,
-          );
-          break;
-        }
-
-        default:
-          return "Invalid discoveryType. Use: capability, requirements, similar, or search";
-      }
-
-      return JSON.stringify({
-        discoveryType: args.discoveryType,
-        hasMore: workflows.length > (args.limit || 10),
-        totalFound: workflows.length,
-        workflows: workflows.slice(0, args.limit || 10), // Limit results for readability
-      });
-    } catch (error) {
-      return `Error: ${error}`;
-    }
-  },
-  name: "discoverCrossHubWorkflows",
-  parameters: z.object({
-    capabilities: z
-      .string()
-      .optional()
-      .describe("Comma-separated capabilities to filter by"),
-    capability: z
-      .string()
-      .optional()
-      .describe("Capability to search for (required for capability discovery)"),
-    discoveryType: z
-      .enum(["capability", "requirements", "similar", "search"])
-      .describe("Type of discovery to perform"),
-    limit: z
-      .number()
-      .optional()
-      .describe("Maximum number of results to return (default: 10)"),
-    localWorkflowId: z
-      .string()
-      .optional()
-      .describe(
-        "Local workflow ID to find similar workflows for (required for similar discovery)",
-      ),
-    minPerformanceScore: z
-      .number()
-      .min(0)
-      .max(1)
-      .optional()
-      .describe("Minimum performance score (0-1)"),
-    minReputationScore: z
-      .number()
-      .min(0)
-      .max(1)
-      .optional()
-      .describe("Minimum reputation score (0-1)"),
-    query: z
-      .string()
-      .optional()
-      .describe("Search query (required for search discovery)"),
-    requirements: z
-      .string()
-      .optional()
-      .describe(
-        "Comma-separated requirements to fulfill (required for requirements discovery)",
-      ),
-    tags: z.string().optional().describe("Comma-separated tags to filter by"),
-  }),
-});
+// REMOVED: discoverCrossHubWorkflows tool - redundant with findWorkflowNetworkFirst
 
 // Tool to get network statistics
 server.addTool({
@@ -1630,47 +1493,7 @@ server.addTool({
 });
 
 // Tool to discover and analyze hub ecosystem
-server.addTool({
-  annotations: {
-    openWorldHint: false,
-    readOnlyHint: true,
-    title: "Discover Hubs",
-  },
-  description: `Discover all Permamind hubs in the network and get information about their workflows, 
-    activity levels, and reputation scores. Enables understanding the broader ecosystem landscape.`,
-  execute: async (args) => {
-    try {
-      if (!workflowServices) {
-        return "Workflow services not initialized";
-      }
-
-      const discoveryService = workflowServices.crossHubDiscovery;
-      const hubs = await discoveryService.discoverHubs(
-        args.forceRefresh || false,
-      );
-
-      return JSON.stringify({
-        hubs: hubs.map((hub) => ({
-          hasPublicWorkflows: hub.hasPublicWorkflows,
-          lastActivity: hub.lastActivity,
-          processId: hub.processId,
-          reputationScore: hub.reputationScore,
-          workflowCount: hub.workflowCount,
-        })),
-        totalHubs: hubs.length,
-      });
-    } catch (error) {
-      return `Error: ${error}`;
-    }
-  },
-  name: "discoverHubs",
-  parameters: z.object({
-    forceRefresh: z
-      .boolean()
-      .optional()
-      .describe("Force refresh of hub discovery cache"),
-  }),
-});
+// REMOVED: discoverHubs tool - less useful with dedicated workflow hub approach
 
 // Network-First Workflow Discovery Tool
 server.addTool({
@@ -1768,11 +1591,7 @@ server.addTool({
       // Execute search strategies with overall timeout and early termination
       const searchPromises = strategies.map(async (strategy) => {
         try {
-          console.log(`[DEBUG] Starting ${strategy.type} search strategy...`);
           const results = await strategy.method();
-          console.log(
-            `[DEBUG] ${strategy.type} strategy found ${results.length} workflows`,
-          );
           return results.map((workflow) => ({
             ...workflow,
             relevanceWeight: strategy.weight,
@@ -1825,12 +1644,7 @@ server.addTool({
         .sort((a, b) => b.combinedScore - a.combinedScore)
         .slice(0, args.maxResults || 10);
 
-      console.log(`[DEBUG] Final results: ${rankedWorkflows.length} workflows`);
-      rankedWorkflows.forEach((w) =>
-        console.log(
-          `[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`,
-        ),
-      );
+      // Final results processed
 
       // Generate recommendations
       const recommendations = [];
