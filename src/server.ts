@@ -1768,11 +1768,7 @@ server.addTool({
       // Execute search strategies with overall timeout and early termination
       const searchPromises = strategies.map(async (strategy) => {
         try {
-          console.log(`[DEBUG] Starting ${strategy.type} search strategy...`);
           const results = await strategy.method();
-          console.log(
-            `[DEBUG] ${strategy.type} strategy found ${results.length} workflows`,
-          );
           return results.map((workflow) => ({
             ...workflow,
             relevanceWeight: strategy.weight,
@@ -1825,12 +1821,7 @@ server.addTool({
         .sort((a, b) => b.combinedScore - a.combinedScore)
         .slice(0, args.maxResults || 10);
 
-      console.log(`[DEBUG] Final results: ${rankedWorkflows.length} workflows`);
-      rankedWorkflows.forEach((w) =>
-        console.log(
-          `[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`,
-        ),
-      );
+      // Final results processed
 
       // Generate recommendations
       const recommendations = [];
