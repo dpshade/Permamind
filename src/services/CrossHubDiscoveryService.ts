@@ -71,10 +71,10 @@ export class CrossHubDiscoveryService {
   private discoveredHubs: Map<string, HubInfo> = new Map();
   private discoveryInterval: number = 300000; // 5 minutes
   private lastDiscoveryTime: number = 0;
+  private searchSuggestions: Map<string, string[]> = new Map();
   private statisticsCache: Map<string, { data: any; timestamp: number }> =
     new Map();
   private workflowCache: Map<string, CrossHubWorkflow[]> = new Map();
-  private searchSuggestions: Map<string, string[]> = new Map();
 
   /**
    * Find workflows across all hubs by capability
@@ -375,6 +375,44 @@ export class CrossHubDiscoveryService {
   }
 
   /**
+   * Get search suggestions for improving workflow discovery
+   */
+  getSearchSuggestions(
+    query: string,
+    foundWorkflows: CrossHubWorkflow[],
+  ): string[] {
+    const suggestions: string[] = [];
+
+    if (foundWorkflows.length === 0) {
+      suggestions.push(
+        `Try searching for broader terms like "data", "processing", or "automation"`,
+        `Search by capabilities like "error handling", "validation", or "transformation"`,
+        `Use specific workflow names if you know them (e.g., "data-processor-v1")`,
+      );
+    } else if (foundWorkflows.length < 3) {
+      // Get capabilities from found workflows for suggestions
+      const capabilities = new Set<string>();
+      foundWorkflows.forEach((workflow) =>
+        workflow.capabilities.forEach((cap) => capabilities.add(cap)),
+      );
+
+      if (capabilities.size > 0) {
+        suggestions.push(
+          `Try related capabilities: ${Array.from(capabilities).join(", ")}`,
+          `Search for similar workflows using broader terms`,
+        );
+      }
+    } else {
+      suggestions.push(
+        `Found ${foundWorkflows.length} workflows! Consider filtering by performance or reputation.`,
+        `Try the top-ranked workflows first for best results.`,
+      );
+    }
+
+    return suggestions;
+  }
+
+  /**
    * Request enhancement patterns from a high-performing workflow using Velocity protocol
    */
   async requestEnhancementPatterns(
@@ -521,12 +559,49 @@ export class CrossHubDiscoveryService {
     // Limit results for faster processing
     const limitedWorkflows = workflows.slice(0, 50); // Process max 50 workflows
     const rankedResults = this.rankWorkflows(limitedWorkflows, filters);
-    
+
     // Cache the results for 2 minutes for faster subsequent searches
     this.workflowCache.set(cacheKey, rankedResults);
     setTimeout(() => this.workflowCache.delete(cacheKey), 120000); // Auto-expire cache
-    
+
     return rankedResults;
+  }
+
+  /**
+   * Enhanced search with suggestions and optimization tips
+   */
+  async searchWithSuggestions(
+    query: string,
+    filters: DiscoveryFilters = {},
+  ): Promise<{
+    performance: { duration: number; hubsSearched: number };
+    searchTips: string[];
+    suggestions: string[];
+    workflows: CrossHubWorkflow[];
+  }> {
+    const startTime = Date.now();
+
+    const workflows = await this.searchGlobalWorkflows(query, filters);
+    const suggestions = this.getSearchSuggestions(query, workflows);
+
+    const searchTips = [
+      "🔍 Use specific terms for better results",
+      "⚡ Results are cached for 2 minutes for faster subsequent searches",
+      "🌐 Searching across 98 active hubs in the network",
+      "🎯 Try capability-based search for precise matching",
+    ];
+
+    const duration = Date.now() - startTime;
+
+    return {
+      performance: {
+        duration,
+        hubsSearched: Math.min(8, (await this.discoverHubs()).length),
+      },
+      searchTips,
+      suggestions,
+      workflows,
+    };
   }
 
   /**
@@ -1019,77 +1094,5 @@ export class CrossHubDiscoveryService {
       seen.add(key);
       return true;
     });
-  }
-
-  /**
-   * Get search suggestions for improving workflow discovery
-   */
-  getSearchSuggestions(query: string, foundWorkflows: CrossHubWorkflow[]): string[] {
-    const suggestions: string[] = [];
-    
-    if (foundWorkflows.length === 0) {
-      suggestions.push(
-        `Try searching for broader terms like "data", "processing", or "automation"`,
-        `Search by capabilities like "error handling", "validation", or "transformation"`,
-        `Use specific workflow names if you know them (e.g., "data-processor-v1")`
-      );
-    } else if (foundWorkflows.length < 3) {
-      // Get capabilities from found workflows for suggestions
-      const capabilities = new Set<string>();
-      foundWorkflows.forEach(workflow => 
-        workflow.capabilities.forEach(cap => capabilities.add(cap))
-      );
-      
-      if (capabilities.size > 0) {
-        suggestions.push(
-          `Try related capabilities: ${Array.from(capabilities).join(', ')}`,
-          `Search for similar workflows using broader terms`
-        );
-      }
-    } else {
-      suggestions.push(
-        `Found ${foundWorkflows.length} workflows! Consider filtering by performance or reputation.`,
-        `Try the top-ranked workflows first for best results.`
-      );
-    }
-    
-    return suggestions;
-  }
-
-  /**
-   * Enhanced search with suggestions and optimization tips
-   */
-  async searchWithSuggestions(
-    query: string, 
-    filters: DiscoveryFilters = {}
-  ): Promise<{
-    workflows: CrossHubWorkflow[];
-    suggestions: string[];
-    searchTips: string[];
-    performance: { duration: number; hubsSearched: number };
-  }> {
-    const startTime = Date.now();
-    
-    const workflows = await this.searchGlobalWorkflows(query, filters);
-    const suggestions = this.getSearchSuggestions(query, workflows);
-    
-    const searchTips = [
-      "🔍 Use specific terms for better results",
-      "⚡ Results are cached for 2 minutes for faster subsequent searches",
-      "🌐 Searching across 98 active hubs in the network",
-      "🎯 Try capability-based search for precise matching"
-    ];
-    
-    const duration = Date.now() - startTime;
-    
-    return {
-      workflows,
-      suggestions,
-      searchTips,
-      performance: {
-        duration,
-        hubsSearched: Math.min(8, (await this.discoverHubs()).length)
-      }
-    };
   }
 }

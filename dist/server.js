@@ -1554,8 +1554,8 @@ server.addTool({
             // Execute searches with Promise.allSettled to handle individual failures gracefully
             const searchResults = await Promise.allSettled(searchPromises);
             const allResults = searchResults
-                .filter(result => result.status === 'fulfilled')
-                .map(result => result.value);
+                .filter((result) => result.status === "fulfilled")
+                .map((result) => result.value);
             const flatResults = allResults.flat();
             // Early termination if we have enough high-quality results
             if (flatResults.length > 20) {
@@ -1583,7 +1583,7 @@ server.addTool({
                 .sort((a, b) => b.combinedScore - a.combinedScore)
                 .slice(0, args.maxResults || 10);
             console.log(`[DEBUG] Final results: ${rankedWorkflows.length} workflows`);
-            rankedWorkflows.forEach(w => console.log(`[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`));
+            rankedWorkflows.forEach((w) => console.log(`[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`));
             // Generate recommendations
             const recommendations = [];
             if (rankedWorkflows.length === 0) {

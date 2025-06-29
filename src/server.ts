@@ -1767,14 +1767,19 @@ server.addTool({
         try {
           console.log(`[DEBUG] Starting ${strategy.type} search strategy...`);
           const results = await strategy.method();
-          console.log(`[DEBUG] ${strategy.type} strategy found ${results.length} workflows`);
+          console.log(
+            `[DEBUG] ${strategy.type} strategy found ${results.length} workflows`,
+          );
           return results.map((workflow) => ({
             ...workflow,
             relevanceWeight: strategy.weight,
             searchStrategy: strategy.type,
           }));
         } catch (error) {
-          console.warn(`Search strategy ${strategy.type} failed:`, String(error));
+          console.warn(
+            `Search strategy ${strategy.type} failed:`,
+            String(error),
+          );
           return [];
         }
       });
@@ -1782,8 +1787,8 @@ server.addTool({
       // Execute searches with Promise.allSettled to handle individual failures gracefully
       const searchResults = await Promise.allSettled(searchPromises);
       const allResults = searchResults
-        .filter(result => result.status === 'fulfilled')
-        .map(result => result.value);
+        .filter((result) => result.status === "fulfilled")
+        .map((result) => result.value);
       const flatResults = allResults.flat();
 
       // Early termination if we have enough high-quality results
@@ -1818,8 +1823,10 @@ server.addTool({
         .slice(0, args.maxResults || 10);
 
       console.log(`[DEBUG] Final results: ${rankedWorkflows.length} workflows`);
-      rankedWorkflows.forEach(w => 
-        console.log(`[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`)
+      rankedWorkflows.forEach((w) =>
+        console.log(
+          `[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`,
+        ),
       );
 
       // Generate recommendations
