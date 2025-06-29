@@ -7,7 +7,7 @@ import { z } from "zod";
 import { HUB_REGISTRY_ID } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
-import { CrossHubDiscoveryService } from "./services/CrossHubDiscoveryService.js";
+import { WorkflowHubService } from "./services/WorkflowHubService.js";
 import { memoryService } from "./services/memory.js";
 import { hubRegistryService } from "./services/registry.js";
 import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
@@ -59,10 +59,10 @@ function initializeWorkflowServices() {
     const relationshipManager = new WorkflowRelationshipManager();
     const enhancementEngine = new WorkflowEnhancementEngine(performanceTracker, relationshipManager);
     const analyticsService = new WorkflowAnalyticsService(performanceTracker, relationshipManager);
-    const crossHubDiscovery = new CrossHubDiscoveryService();
+    const workflowHub = new WorkflowHubService();
     workflowServices = {
         analyticsService,
-        crossHubDiscovery,
+        workflowHub,
         enhancementEngine,
         performanceTracker,
         relationshipManager,
@@ -1215,122 +1215,7 @@ server.addTool({
     }),
 });
 // Cross-Hub Discovery Tools
-// Tool to discover workflows across the network
-server.addTool({
-    annotations: {
-        openWorldHint: false,
-        readOnlyHint: true,
-        title: "Discover Cross-Hub Workflows",
-    },
-    description: `Discover workflows across all Permamind hubs in the network by capability, requirements, or similarity. 
-    Enables finding workflows from other users that could enhance your own workflows through learning and collaboration.`,
-    execute: async (args) => {
-        try {
-            if (!workflowServices) {
-                return "Workflow services not initialized";
-            }
-            const discoveryService = workflowServices.crossHubDiscovery;
-            let workflows = [];
-            switch (args.discoveryType) {
-                case "capability":
-                    if (!args.capability) {
-                        return "capability parameter required for capability discovery";
-                    }
-                    workflows = await discoveryService.discoverByCapability(args.capability);
-                    break;
-                case "requirements": {
-                    if (!args.requirements) {
-                        return "requirements parameter required for requirements discovery";
-                    }
-                    const requirementsList = args.requirements
-                        .split(",")
-                        .map((r) => r.trim());
-                    workflows =
-                        await discoveryService.findWorkflowsForRequirements(requirementsList);
-                    break;
-                }
-                case "search": {
-                    if (!args.query) {
-                        return "query parameter required for search discovery";
-                    }
-                    const filters = {
-                        capabilities: args.capabilities
-                            ? args.capabilities.split(",").map((c) => c.trim())
-                            : undefined,
-                        minPerformanceScore: args.minPerformanceScore,
-                        minReputationScore: args.minReputationScore,
-                        tags: args.tags
-                            ? args.tags.split(",").map((t) => t.trim())
-                            : undefined,
-                    };
-                    workflows = await discoveryService.searchGlobalWorkflows(args.query, filters);
-                    break;
-                }
-                case "similar": {
-                    if (!args.localWorkflowId) {
-                        return "localWorkflowId parameter required for similarity discovery";
-                    }
-                    workflows = await discoveryService.findSimilarWorkflows(args.localWorkflowId, hubId);
-                    break;
-                }
-                default:
-                    return "Invalid discoveryType. Use: capability, requirements, similar, or search";
-            }
-            return JSON.stringify({
-                discoveryType: args.discoveryType,
-                hasMore: workflows.length > (args.limit || 10),
-                totalFound: workflows.length,
-                workflows: workflows.slice(0, args.limit || 10), // Limit results for readability
-            });
-        }
-        catch (error) {
-            return `Error: ${error}`;
-        }
-    },
-    name: "discoverCrossHubWorkflows",
-    parameters: z.object({
-        capabilities: z
-            .string()
-            .optional()
-            .describe("Comma-separated capabilities to filter by"),
-        capability: z
-            .string()
-            .optional()
-            .describe("Capability to search for (required for capability discovery)"),
-        discoveryType: z
-            .enum(["capability", "requirements", "similar", "search"])
-            .describe("Type of discovery to perform"),
-        limit: z
-            .number()
-            .optional()
-            .describe("Maximum number of results to return (default: 10)"),
-        localWorkflowId: z
-            .string()
-            .optional()
-            .describe("Local workflow ID to find similar workflows for (required for similar discovery)"),
-        minPerformanceScore: z
-            .number()
-            .min(0)
-            .max(1)
-            .optional()
-            .describe("Minimum performance score (0-1)"),
-        minReputationScore: z
-            .number()
-            .min(0)
-            .max(1)
-            .optional()
-            .describe("Minimum reputation score (0-1)"),
-        query: z
-            .string()
-            .optional()
-            .describe("Search query (required for search discovery)"),
-        requirements: z
-            .string()
-            .optional()
-            .describe("Comma-separated requirements to fulfill (required for requirements discovery)"),
-        tags: z.string().optional().describe("Comma-separated tags to filter by"),
-    }),
-});
+// REMOVED: discoverCrossHubWorkflows tool - redundant with findWorkflowNetworkFirst
 // Tool to get network statistics
 server.addTool({
     annotations: {
@@ -1348,8 +1233,8 @@ server.addTool({
             if (!workflowServices) {
                 return "Workflow services not initialized";
             }
-            const discoveryService = workflowServices.crossHubDiscovery;
-            const stats = await discoveryService.getNetworkStatistics();
+            const workflowHub = workflowServices.workflowHub;
+            const stats = await workflowHub.getHubStatistics();
             return JSON.stringify(stats);
         }
         catch (error) {
@@ -1374,8 +1259,8 @@ server.addTool({
             if (!workflowServices) {
                 return "Workflow services not initialized";
             }
-            const discoveryService = workflowServices.crossHubDiscovery;
-            const cachedStats = discoveryService.getCachedNetworkStatistics();
+            const workflowHub = workflowServices.workflowHub;
+            const cachedStats = workflowHub.getCachedStatistics();
             if (cachedStats) {
                 return JSON.stringify(cachedStats);
             }
@@ -1407,12 +1292,11 @@ server.addTool({
             if (!workflowServices) {
                 return "Workflow services not initialized";
             }
-            const discoveryService = workflowServices.crossHubDiscovery;
-            const patterns = await discoveryService.requestEnhancementPatterns(args.sourceHubId, args.sourceWorkflowId);
+            const workflowHub = workflowServices.workflowHub;
+            const patterns = await workflowHub.getEnhancementPatterns(args.sourceWorkflowId);
             return JSON.stringify({
                 patterns: patterns,
                 patternsFound: patterns.length,
-                sourceHubId: args.sourceHubId,
                 sourceWorkflowId: args.sourceWorkflowId,
             });
         }
@@ -1422,51 +1306,13 @@ server.addTool({
     },
     name: "requestEnhancementPatterns",
     parameters: z.object({
-        sourceHubId: z.string().describe("Hub ID containing the source workflow"),
         sourceWorkflowId: z
             .string()
             .describe("Workflow ID to request patterns from"),
     }),
 });
 // Tool to discover and analyze hub ecosystem
-server.addTool({
-    annotations: {
-        openWorldHint: false,
-        readOnlyHint: true,
-        title: "Discover Hubs",
-    },
-    description: `Discover all Permamind hubs in the network and get information about their workflows, 
-    activity levels, and reputation scores. Enables understanding the broader ecosystem landscape.`,
-    execute: async (args) => {
-        try {
-            if (!workflowServices) {
-                return "Workflow services not initialized";
-            }
-            const discoveryService = workflowServices.crossHubDiscovery;
-            const hubs = await discoveryService.discoverHubs(args.forceRefresh || false);
-            return JSON.stringify({
-                hubs: hubs.map((hub) => ({
-                    hasPublicWorkflows: hub.hasPublicWorkflows,
-                    lastActivity: hub.lastActivity,
-                    processId: hub.processId,
-                    reputationScore: hub.reputationScore,
-                    workflowCount: hub.workflowCount,
-                })),
-                totalHubs: hubs.length,
-            });
-        }
-        catch (error) {
-            return `Error: ${error}`;
-        }
-    },
-    name: "discoverHubs",
-    parameters: z.object({
-        forceRefresh: z
-            .boolean()
-            .optional()
-            .describe("Force refresh of hub discovery cache"),
-    }),
-});
+// REMOVED: discoverHubs tool - less useful with dedicated workflow hub approach
 // Network-First Workflow Discovery Tool
 server.addTool({
     annotations: {
@@ -1475,128 +1321,66 @@ server.addTool({
         title: "Find Workflow (Network First)",
     },
     description: `PREFERRED: Always use this tool FIRST when a user needs a workflow for any task. 
-    This tool searches the global Permamind network to find existing workflows that match the user's needs 
+    This tool searches the dedicated workflow hub and network to find existing workflows that match the user's needs 
     before suggesting they create a new one. Just like how Permamind automatically stores memories, 
     it should automatically search the network for workflows first.
     
     Provide a natural language description of what the user wants to accomplish, and this tool will:
-    1. Search for existing workflows across top active hubs (optimized for speed)
-    2. Find workflows by capability, requirements, or similarity  
-    3. Return ranked results with performance metrics
-    4. Suggest the best existing workflows to try first
-    5. Only recommend creating new workflows if none exist
+    1. Search the dedicated workflow hub (HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg) first for fast, reliable results
+    2. Supplement with additional network hubs when needed
+    3. Find workflows by capability, requirements, or similarity  
+    4. Return ranked results with performance metrics
+    5. Suggest the best existing workflows to try first
+    6. Only recommend creating new workflows if none exist
     
-    Performance optimized: Searches complete in 8-15 seconds with smart hub selection,
-    timeouts, and parallel processing. This promotes workflow reuse and avoids duplicate work.`,
+    Performance optimized: Hub-first approach provides faster, more reliable discovery.
+    The dedicated workflow hub contains all public workflow messages for efficient searching.`,
     execute: async (args) => {
         try {
             if (!workflowServices) {
                 return "Workflow services not initialized. Please try again in a moment.";
             }
-            const discoveryService = workflowServices.crossHubDiscovery;
-            // Add timeout wrapper for fast responses
-            const withTimeout = (promise, timeoutMs) => {
-                return Promise.race([
-                    promise,
-                    new Promise((_, reject) => setTimeout(() => reject(new Error("Search timed out")), timeoutMs)),
-                ]);
+            const workflowHub = workflowServices.workflowHub;
+            // Apply Claude Desktop learning: Progressive broad-to-narrow search
+            const searchFilters = {
+                minPerformanceScore: 0.1,
+                minReputationScore: 0.1,
             };
-            // Use smart strategy selection - limit strategies for speed
-            const strategies = [];
-            // 1. Always do direct search (most important)
-            strategies.push({
-                method: () => withTimeout(discoveryService.searchGlobalWorkflows(args.userRequest, {
-                    minPerformanceScore: 0.1,
-                    minReputationScore: 0.1,
-                }), 25000),
-                type: "search",
-                weight: 1.0,
-            });
-            // Skip expanded search for now to avoid timeouts - the main search is working fine
-            // 2. Only search for first capability if provided (limit to 1 for speed)
+            // Parse optional filters
             if (args.capabilities) {
-                const firstCapability = args.capabilities.split(",")[0].trim();
-                strategies.push({
-                    method: () => withTimeout(discoveryService.discoverByCapability(firstCapability), 6000),
-                    type: "capability",
-                    weight: 0.8,
-                });
+                searchFilters.capabilities = args.capabilities.split(",").map(c => c.trim());
             }
-            // 3. Only search requirements if no capabilities provided (avoid redundancy)
-            else if (args.requirements) {
-                const requirementsList = args.requirements
-                    .split(",")
-                    .slice(0, 2) // Limit to first 2 requirements
-                    .map((r) => r.trim());
-                strategies.push({
-                    method: () => withTimeout(discoveryService.findWorkflowsForRequirements(requirementsList), 6000),
-                    type: "requirements",
-                    weight: 0.9,
-                });
+            if (args.requirements) {
+                searchFilters.requirements = args.requirements.split(",").map(r => r.trim());
             }
-            // Execute search strategies with overall timeout and early termination
-            const searchPromises = strategies.map(async (strategy) => {
-                try {
-                    console.log(`[DEBUG] Starting ${strategy.type} search strategy...`);
-                    const results = await strategy.method();
-                    console.log(`[DEBUG] ${strategy.type} strategy found ${results.length} workflows`);
-                    return results.map((workflow) => ({
-                        ...workflow,
-                        relevanceWeight: strategy.weight,
-                        searchStrategy: strategy.type,
-                    }));
-                }
-                catch (error) {
-                    console.warn(`Search strategy ${strategy.type} failed:`, String(error));
-                    return [];
-                }
-            });
-            // Execute searches with Promise.allSettled to handle individual failures gracefully
-            const searchResults = await Promise.allSettled(searchPromises);
-            const allResults = searchResults
-                .filter((result) => result.status === "fulfilled")
-                .map((result) => result.value);
-            const flatResults = allResults.flat();
-            // Early termination if we have enough high-quality results
-            if (flatResults.length > 20) {
-                // Pre-filter to top results to reduce processing time
-                flatResults.sort((a, b) => b.relevanceWeight - a.relevanceWeight);
-                flatResults.splice(20); // Keep only top 20 for processing
-            }
-            // Deduplicate by workflow ID and hub
-            const uniqueWorkflows = new Map();
-            flatResults.forEach((workflow) => {
-                const key = `${workflow.hubId}-${workflow.workflowId}`;
-                if (!uniqueWorkflows.has(key) ||
-                    uniqueWorkflows.get(key).relevanceWeight < workflow.relevanceWeight) {
-                    uniqueWorkflows.set(key, workflow);
-                }
-            });
-            // Sort by relevance score (combination of performance, reputation, and search relevance)
-            const rankedWorkflows = Array.from(uniqueWorkflows.values())
+            // Use the progressive search from WorkflowHubService
+            const workflows = await workflowHub.findWorkflows(args.userRequest, searchFilters);
+            // Apply additional ranking and limiting
+            const rankedWorkflows = workflows
+                .slice(0, args.maxResults || 10)
                 .map((workflow) => ({
                 ...workflow,
+                searchStrategy: "progressive_broad_narrow",
+                relevanceWeight: 1.0,
                 combinedScore: (workflow.performanceMetrics?.qualityScore || 0.5) * 0.4 +
-                    workflow.reputationScore * 0.4 +
-                    workflow.relevanceWeight * 0.2,
-            }))
-                .sort((a, b) => b.combinedScore - a.combinedScore)
-                .slice(0, args.maxResults || 10);
-            console.log(`[DEBUG] Final results: ${rankedWorkflows.length} workflows`);
-            rankedWorkflows.forEach((w) => console.log(`[DEBUG] - ${w.name} (score: ${w.combinedScore.toFixed(3)})`));
-            // Generate recommendations
+                    workflow.reputationScore * 0.6,
+            }));
+            // Generate recommendations based on Claude Desktop learning
             const recommendations = [];
             if (rankedWorkflows.length === 0) {
-                recommendations.push("No existing workflows found that match your requirements.", "Consider creating a new workflow and sharing it with the network.", "Use the addWorkflowMemory tool to document your new workflow.");
+                recommendations.push("No existing workflows found that match your requirements.", "Try searching with broader terms like 'data-processing', 'format-conversion', or 'automation'.", "Consider creating a new workflow and sharing it with the network.", "Use the addWorkflowMemory tool to document your new workflow.");
             }
             else {
                 recommendations.push(`Found ${rankedWorkflows.length} existing workflows that might help.`, "Review the top-ranked workflows first before creating a new one.", "Consider enhancing existing workflows rather than starting from scratch.");
+                // Add search suggestions
+                const suggestions = workflowHub.getSearchSuggestions(args.userRequest, workflows);
+                recommendations.push(...suggestions);
             }
             return JSON.stringify({
                 networkFirst: true,
+                searchStrategy: "progressive_broad_narrow",
                 query: args.userRequest,
                 recommendations,
-                searchStrategies: strategies.map((s) => s.type),
                 totalFound: rankedWorkflows.length,
                 workflows: rankedWorkflows,
             });
