@@ -66,7 +66,6 @@ async function init() {
     }
   }
 
-
   if (hubId !== CENTRALIZED_WORKFLOW_HUB_ID) {
     // Solution applied: workflows save to centralized hub
   } else {
@@ -675,7 +674,6 @@ server.addTool({
 
       // SOLUTION: Use centralized workflow hub for all workflow storage
 
-
       const result = await aiMemoryService.addEnhanced(
         keyPair,
         CENTRALIZED_WORKFLOW_HUB_ID,
@@ -1004,7 +1002,6 @@ server.addTool({
 
       // SOLUTION: Use centralized workflow hub for enhancement storage too
 
-
       const result = await aiMemoryService.addEnhanced(
         keyPair,
         CENTRALIZED_WORKFLOW_HUB_ID,
@@ -1288,7 +1285,6 @@ server.addTool({
       };
 
       // SOLUTION: Use centralized workflow hub for composition storage
-
 
       const result = await aiMemoryService.addEnhanced(
         keyPair,

@@ -191,35 +191,63 @@ export class WorkflowEnhancementEngine {
   async learnFromPeers(workflowId: string): Promise<Enhancement[]> {
     const peerLearningEnhancements: Enhancement[] = [];
 
-    // Get related workflows
-    const relatedWorkflows = this.relationshipManager.getRelatedWorkflows(
-      workflowId,
-      "references",
-    );
-    const similarWorkflows = await this.findSimilarWorkflows(workflowId);
+    try {
+      // Get related workflows
+      const relatedWorkflows = this.relationshipManager.getRelatedWorkflows(
+        workflowId,
+        "references",
+      );
+      const similarWorkflows = await this.findSimilarWorkflows(workflowId);
 
-    const peersToLearnFrom = [...relatedWorkflows, ...similarWorkflows];
+      const peersToLearnFrom = [...relatedWorkflows, ...similarWorkflows];
 
-    for (const peerId of peersToLearnFrom) {
-      const peerEnhancements = this.appliedEnhancements.get(peerId) || [];
+      for (const peerId of peersToLearnFrom) {
+        const peerEnhancements = this.appliedEnhancements.get(peerId) || [];
 
-      for (const peerEnhancement of peerEnhancements) {
-        // Check if enhancement is applicable
-        if (await this.isEnhancementApplicable(workflowId, peerEnhancement)) {
-          const adaptedEnhancement = await this.adaptEnhancementForWorkflow(
-            workflowId,
-            peerEnhancement,
-            peerId,
-          );
+        for (const peerEnhancement of peerEnhancements) {
+          // Check if enhancement is applicable
+          if (await this.isEnhancementApplicable(workflowId, peerEnhancement)) {
+            const adaptedEnhancement = await this.adaptEnhancementForWorkflow(
+              workflowId,
+              peerEnhancement,
+              peerId,
+            );
 
-          if (adaptedEnhancement) {
-            peerLearningEnhancements.push(adaptedEnhancement);
+            if (adaptedEnhancement) {
+              peerLearningEnhancements.push(adaptedEnhancement);
+            }
           }
         }
       }
+    } catch (error) {
+      // Handle relationship manager errors gracefully
+      console.warn(`Failed to learn from peers for ${workflowId}:`, error);
+      return [];
     }
 
     return peerLearningEnhancements;
+  }
+
+  /**
+   * Learn from errors and create targeted enhancements
+   */
+  async learnFromErrors(
+    workflowId: string,
+    error: Error | null,
+    context: Record<string, any> = {},
+  ): Promise<Enhancement[]> {
+    if (!error) {
+      return [];
+    }
+
+    return [this.createEnhancementFromError(workflowId, error, context)];
+  }
+
+  /**
+   * Learn from emergent patterns and collaborations
+   */
+  async learnFromEmergent(workflowId: string): Promise<Enhancement[]> {
+    return await this.discoverEmergentEnhancements(workflowId);
   }
 
   /**
@@ -592,7 +620,7 @@ export class WorkflowEnhancementEngine {
   ): Enhancement {
     const enhancementTypes: Record<string, EnhancementType> = {
       performance: "optimization",
-      reliability: "bug_fix",
+      reliability: "error_handling",
       usability: "user_experience",
     };
 

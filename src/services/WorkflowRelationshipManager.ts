@@ -209,6 +209,13 @@ export class WorkflowRelationshipManager {
   }
 
   /**
+   * Get network statistics (alias for getEcosystemOverview)
+   */
+  getNetworkStatistics() {
+    return this.getEcosystemOverview();
+  }
+
+  /**
    * Get workflow ecosystem overview
    */
   getEcosystemOverview(): {

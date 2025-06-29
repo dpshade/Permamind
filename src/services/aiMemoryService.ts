@@ -629,7 +629,6 @@ const aiService = (): AIMemoryService => {
 
 // Helper functions
 function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
-
   const tags: Tag[] = [
     { name: "kind", value: MEMORY_KINDS.AI_MEMORY },
     { name: "Content", value: memory.content || "" },
@@ -718,8 +717,6 @@ function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
       tags.push({ name: "workflow_requirement", value: req });
     });
   }
-
-
 
   return tags;
 }

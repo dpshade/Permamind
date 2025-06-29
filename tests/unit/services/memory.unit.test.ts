@@ -23,18 +23,22 @@ describe("MemoryService", () => {
     it("should retrieve all memories from hub", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
       const { memoryFactory } = await import("../../../src/messageFactory.js");
-      
+
       vi.mocked(fetchEvents).mockResolvedValue([
         { Id: "1", Content: "Test memory 1" },
         { Id: "2", Content: "Test memory 2" },
       ]);
-      
+
       vi.mocked(memoryFactory).mockImplementation((event) => ({
         id: event.Id,
         content: event.Content,
         p: "test-user",
         role: "user",
-        metadata: { accessCount: 0, lastAccessed: new Date().toISOString(), tags: [] },
+        metadata: {
+          accessCount: 0,
+          lastAccessed: new Date().toISOString(),
+          tags: [],
+        },
         importance: 0.5,
       }));
 
@@ -48,7 +52,7 @@ describe("MemoryService", () => {
 
     it("should handle empty hub gracefully", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      
+
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
       const memories = await mockMemoryService.getAll(mockHubId);
@@ -59,7 +63,7 @@ describe("MemoryService", () => {
 
     it("should handle fetch errors gracefully", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      
+
       vi.mocked(fetchEvents).mockRejectedValue(new Error("Network error"));
 
       const memories = await mockMemoryService.getAll(mockHubId);
@@ -72,19 +76,23 @@ describe("MemoryService", () => {
     it("should retrieve memories for specific user", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
       const { memoryFactory } = await import("../../../src/messageFactory.js");
-      
+
       const testUser = "test-user-123";
-      
+
       vi.mocked(fetchEvents).mockResolvedValue([
         { Id: "1", Content: "User memory 1", p: testUser },
       ]);
-      
+
       vi.mocked(memoryFactory).mockImplementation((event) => ({
         id: event.Id,
         content: event.Content,
         p: event.p,
         role: "user",
-        metadata: { accessCount: 0, lastAccessed: new Date().toISOString(), tags: [] },
+        metadata: {
+          accessCount: 0,
+          lastAccessed: new Date().toISOString(),
+          tags: [],
+        },
         importance: 0.5,
       }));
 
@@ -92,15 +100,21 @@ describe("MemoryService", () => {
 
       expect(memories).toHaveLength(1);
       expect(memories[0].p).toBe(testUser);
-      expect(fetchEvents).toHaveBeenCalledWith(mockHubId, expect.stringContaining(testUser));
+      expect(fetchEvents).toHaveBeenCalledWith(
+        mockHubId,
+        expect.stringContaining(testUser),
+      );
     });
 
     it("should return empty array for unknown user", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      
+
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
-      const memories = await mockMemoryService.getByUser(mockHubId, "unknown-user");
+      const memories = await mockMemoryService.getByUser(
+        mockHubId,
+        "unknown-user",
+      );
 
       expect(memories).toHaveLength(0);
     });
@@ -110,19 +124,23 @@ describe("MemoryService", () => {
     it("should search memories by content", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
       const { memoryFactory } = await import("../../../src/messageFactory.js");
-      
+
       const searchTerm = "workflow";
-      
+
       vi.mocked(fetchEvents).mockResolvedValue([
         { Id: "1", Content: "This is about workflow automation" },
       ]);
-      
+
       vi.mocked(memoryFactory).mockImplementation((event) => ({
         id: event.Id,
         content: event.Content,
         p: "test-user",
         role: "user",
-        metadata: { accessCount: 0, lastAccessed: new Date().toISOString(), tags: [] },
+        metadata: {
+          accessCount: 0,
+          lastAccessed: new Date().toISOString(),
+          tags: [],
+        },
         importance: 0.5,
       }));
 
@@ -132,13 +150,13 @@ describe("MemoryService", () => {
       expect(memories[0].content).toContain("workflow");
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        expect.stringContaining(searchTerm)
+        expect.stringContaining(searchTerm),
       );
     });
 
     it("should handle search with no results", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      
+
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
       const memories = await mockMemoryService.search(mockHubId, "nonexistent");
@@ -148,7 +166,7 @@ describe("MemoryService", () => {
 
     it("should handle search errors gracefully", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      
+
       vi.mocked(fetchEvents).mockRejectedValue(new Error("Search failed"));
 
       const memories = await mockMemoryService.search(mockHubId, "test");

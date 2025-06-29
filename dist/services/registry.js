@@ -7,7 +7,6 @@ const service = () => {
         create: async (signer, profileData) => {
             const processId = await createProcess(signer);
             await evaluateHub(signer, processId);
-            //// console.log removed
             const hubSpec = {
                 description: "Social message hub",
                 kinds: ["0", "1", "7", "6", "3", "2"],
@@ -18,8 +17,6 @@ const service = () => {
             };
             await hubRegistryService.register(signer, HUB_REGISTRY_ID(), hubSpec);
             await createProfile(signer, processId, profileData);
-            //// console.log removed
-            //// console.log removed
             return processId;
         },
         getZoneById: async (processId, owner) => {

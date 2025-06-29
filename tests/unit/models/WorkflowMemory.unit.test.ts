@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import type { 
-  WorkflowMemory, 
-  Enhancement, 
-  EnhancementType, 
+import type {
+  WorkflowMemory,
+  Enhancement,
+  EnhancementType,
   LearningSource,
   RelationshipType,
   WorkflowPerformance,
-  MemoryType
+  MemoryType,
 } from "../../../src/models/WorkflowMemory.js";
 
 describe("WorkflowMemory Model", () => {
@@ -30,7 +30,11 @@ describe("WorkflowMemory Model", () => {
         workflowId: "data-processor-v2",
         workflowVersion: "2.1.0",
         stage: "production",
-        capabilities: ["data-validation", "format-conversion", "error-handling"],
+        capabilities: [
+          "data-validation",
+          "format-conversion",
+          "error-handling",
+        ],
         requirements: ["input-schema", "output-format"],
         dependencies: ["schema-validator", "format-library"],
         performance: {
@@ -67,7 +71,9 @@ describe("WorkflowMemory Model", () => {
 
       // Validate base Memory properties
       expect(completeWorkflow.id).toBe("workflow-memory-123");
-      expect(completeWorkflow.content).toBe("Advanced workflow for data processing");
+      expect(completeWorkflow.content).toBe(
+        "Advanced workflow for data processing",
+      );
       expect(completeWorkflow.p).toBe("workflow-creator-key");
       expect(completeWorkflow.role).toBe("system");
       expect(completeWorkflow.importance).toBe(0.9);
@@ -123,14 +129,14 @@ describe("WorkflowMemory Model", () => {
     it("should validate all memory types", () => {
       const memoryTypes: MemoryType[] = [
         "conversation",
-        "knowledge", 
+        "knowledge",
         "procedure",
         "workflow",
         "enhancement",
         "performance",
       ];
 
-      memoryTypes.forEach(type => {
+      memoryTypes.forEach((type) => {
         const workflow: WorkflowMemory = {
           id: `workflow-${type}`,
           content: `Workflow with ${type} memory type`,
@@ -158,7 +164,7 @@ describe("WorkflowMemory Model", () => {
       const enhancementTypes: EnhancementType[] = [
         "optimization",
         "bug_fix",
-        "feature_add", 
+        "feature_add",
         "refactor",
         "parameter_tune",
         "logic_improve",
@@ -166,7 +172,7 @@ describe("WorkflowMemory Model", () => {
         "user_experience",
       ];
 
-      enhancementTypes.forEach(type => {
+      enhancementTypes.forEach((type) => {
         const enhancement: Enhancement = {
           id: `enhancement-${type}`,
           type: type,
@@ -194,10 +200,10 @@ describe("WorkflowMemory Model", () => {
         impact: 0.8,
         actualImpact: 0.75,
         code: "function optimizedVersion() { return faster(); }",
-        parameters: { 
-          threshold: 0.5, 
+        parameters: {
+          threshold: 0.5,
           iterations: 100,
-          enabled: true 
+          enabled: true,
         },
         validation: {
           isValid: true,
@@ -220,7 +226,7 @@ describe("WorkflowMemory Model", () => {
     it("should validate risk assessment levels", () => {
       const riskLevels = ["low", "medium", "high", "critical"] as const;
 
-      riskLevels.forEach(risk => {
+      riskLevels.forEach((risk) => {
         const enhancement: Enhancement = {
           id: `enhancement-${risk}`,
           type: "bug_fix",
@@ -304,7 +310,7 @@ describe("WorkflowMemory Model", () => {
       expect(resourceUsage.toolCalls).toBe(10);
 
       // All values should be non-negative numbers
-      Object.values(resourceUsage).forEach(value => {
+      Object.values(resourceUsage).forEach((value) => {
         expect(typeof value).toBe("number");
         expect(value).toBeGreaterThanOrEqual(0);
       });
@@ -316,7 +322,7 @@ describe("WorkflowMemory Model", () => {
       const relationshipTypes: RelationshipType[] = [
         "inherits",
         "composes",
-        "enhances", 
+        "enhances",
         "triggers",
         "depends_on",
         "replaces",
@@ -327,7 +333,7 @@ describe("WorkflowMemory Model", () => {
         "references",
       ];
 
-      relationshipTypes.forEach(type => {
+      relationshipTypes.forEach((type) => {
         expect(typeof type).toBe("string");
         expect(type.length).toBeGreaterThan(0);
       });
@@ -344,13 +350,13 @@ describe("WorkflowMemory Model", () => {
       const learningSources: LearningSource[] = [
         "self",
         "peer",
-        "user", 
+        "user",
         "analytics",
         "error",
         "emergent",
       ];
 
-      learningSources.forEach(source => {
+      learningSources.forEach((source) => {
         expect(typeof source).toBe("string");
         expect(source.length).toBeGreaterThan(0);
       });
@@ -367,7 +373,7 @@ describe("WorkflowMemory Model", () => {
     it("should handle various workflow stages", () => {
       const stages = [
         "development",
-        "testing", 
+        "testing",
         "staging",
         "production",
         "deprecated",
@@ -375,7 +381,7 @@ describe("WorkflowMemory Model", () => {
         "maintenance",
       ];
 
-      stages.forEach(stage => {
+      stages.forEach((stage) => {
         const workflow: WorkflowMemory = {
           id: `workflow-${stage}`,
           content: `Workflow in ${stage} stage`,
@@ -403,7 +409,7 @@ describe("WorkflowMemory Model", () => {
       const capabilities = [
         "data-processing",
         "file-conversion",
-        "api-integration", 
+        "api-integration",
         "error-handling",
         "validation",
         "transformation",
@@ -431,7 +437,7 @@ describe("WorkflowMemory Model", () => {
       };
 
       expect(workflow.capabilities).toHaveLength(capabilities.length);
-      capabilities.forEach(cap => {
+      capabilities.forEach((cap) => {
         expect(workflow.capabilities).toContain(cap);
       });
     });
@@ -473,12 +479,12 @@ describe("WorkflowMemory Model", () => {
 
       expect(workflow.requirements).toHaveLength(requirements.length);
       expect(workflow.dependencies).toHaveLength(dependencies.length);
-      
-      requirements.forEach(req => {
+
+      requirements.forEach((req) => {
         expect(workflow.requirements).toContain(req);
       });
-      
-      dependencies.forEach(dep => {
+
+      dependencies.forEach((dep) => {
         expect(workflow.dependencies).toContain(dep);
       });
     });
@@ -490,14 +496,14 @@ describe("WorkflowMemory Model", () => {
         "1.0.0",
         "2.1.3",
         "0.1.0-alpha",
-        "1.0.0-beta.1", 
+        "1.0.0-beta.1",
         "3.2.1-rc.2",
         "10.15.7",
       ];
 
-      versions.forEach(version => {
+      versions.forEach((version) => {
         const workflow: WorkflowMemory = {
-          id: `workflow-${version.replace(/\./g, '-')}`,
+          id: `workflow-${version.replace(/\./g, "-")}`,
           content: `Workflow version ${version}`,
           p: "test-key",
           role: "system",

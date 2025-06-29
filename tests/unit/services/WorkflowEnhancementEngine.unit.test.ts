@@ -1,20 +1,40 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { WorkflowEnhancementEngine } from "../../../src/services/WorkflowEnhancementEngine.js";
-import type { Enhancement, EnhancementType, LearningSource } from "../../../src/models/WorkflowMemory.js";
+import type {
+  Enhancement,
+  EnhancementType,
+  LearningSource,
+} from "../../../src/models/WorkflowMemory.js";
 
 // Mock dependencies
 const mockPerformanceTracker = {
   recordPerformance: vi.fn(),
   getPerformanceStats: vi.fn(),
-  generateOptimizationRecommendations: vi.fn(),
-  validateEnhancement: vi.fn(),
+  generateOptimizationRecommendations: vi.fn().mockReturnValue({
+    recommendations: [],
+    priority: "low",
+    estimatedImpact: 0.1,
+  }),
+  validateEnhancement: vi.fn().mockReturnValue({
+    isValid: true,
+    confidence: 0.8,
+    riskAssessment: "low",
+    testResults: [],
+    validatedAt: new Date().toISOString(),
+  }),
+  identifyEnhancements: vi.fn().mockReturnValue([]),
 };
 
 const mockRelationshipManager = {
-  getRelatedWorkflows: vi.fn(),
-  findCollaborationOpportunities: vi.fn(),
+  getRelatedWorkflows: vi.fn().mockReturnValue([]),
+  findCollaborationOpportunities: vi.fn().mockReturnValue({
+    potentialPartners: [],
+    compositionOpportunities: [],
+    sharedCapabilities: [],
+    complementarySkills: [],
+  }),
   createRelationship: vi.fn(),
-  getRelationships: vi.fn(),
+  getRelationships: vi.fn().mockReturnValue([]),
 };
 
 describe("WorkflowEnhancementEngine", () => {
@@ -25,7 +45,7 @@ describe("WorkflowEnhancementEngine", () => {
     vi.clearAllMocks();
     engine = new WorkflowEnhancementEngine(
       mockPerformanceTracker as any,
-      mockRelationshipManager as any
+      mockRelationshipManager as any,
     );
   });
 
@@ -48,10 +68,17 @@ describe("WorkflowEnhancementEngine", () => {
 
   describe("runEnhancementCycle", () => {
     it("should complete enhancement cycle successfully", async () => {
-      mockPerformanceTracker.generateOptimizationRecommendations.mockReturnValue({
-        recommendations: ["Optimize execution time"],
-        priority: "medium",
-      });
+      // Initialize enhancement loop first
+      engine.initializeEnhancementLoop(testWorkflowId, [
+        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+      ]);
+
+      mockPerformanceTracker.generateOptimizationRecommendations.mockReturnValue(
+        {
+          recommendations: ["Optimize execution time"],
+          priority: "medium",
+        },
+      );
 
       const result = await engine.runEnhancementCycle(testWorkflowId);
 
@@ -66,10 +93,17 @@ describe("WorkflowEnhancementEngine", () => {
     });
 
     it("should handle enhancement cycle with no improvements", async () => {
-      mockPerformanceTracker.generateOptimizationRecommendations.mockReturnValue({
-        recommendations: [],
-        priority: "low",
-      });
+      // Initialize enhancement loop first
+      engine.initializeEnhancementLoop(testWorkflowId, [
+        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+      ]);
+
+      mockPerformanceTracker.generateOptimizationRecommendations.mockReturnValue(
+        {
+          recommendations: [],
+          priority: "low",
+        },
+      );
 
       const result = await engine.runEnhancementCycle(testWorkflowId);
 
@@ -79,9 +113,16 @@ describe("WorkflowEnhancementEngine", () => {
     });
 
     it("should handle errors gracefully", async () => {
-      mockPerformanceTracker.generateOptimizationRecommendations.mockImplementation(() => {
-        throw new Error("Performance tracker failed");
-      });
+      // Initialize enhancement loop first
+      engine.initializeEnhancementLoop(testWorkflowId, [
+        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+      ]);
+
+      mockPerformanceTracker.generateOptimizationRecommendations.mockImplementation(
+        () => {
+          throw new Error("Performance tracker failed");
+        },
+      );
 
       const result = await engine.runEnhancementCycle(testWorkflowId);
 
@@ -95,7 +136,11 @@ describe("WorkflowEnhancementEngine", () => {
       const testError = new Error("TypeError: Cannot read property");
       const context = { operation: "data processing", input: "malformed data" };
 
-      const enhancements = await engine.learnFromErrors(testWorkflowId, testError, context);
+      const enhancements = await engine.learnFromErrors(
+        testWorkflowId,
+        testError,
+        context,
+      );
 
       expect(Array.isArray(enhancements)).toBe(true);
       expect(enhancements.length).toBeGreaterThan(0);
@@ -114,27 +159,38 @@ describe("WorkflowEnhancementEngine", () => {
       ];
 
       for (const error of errors) {
-        const enhancements = await engine.learnFromErrors(testWorkflowId, error, {});
+        const enhancements = await engine.learnFromErrors(
+          testWorkflowId,
+          error,
+          {},
+        );
         expect(Array.isArray(enhancements)).toBe(true);
       }
     });
 
     it("should handle null/undefined errors gracefully", async () => {
-      const enhancements = await engine.learnFromErrors(testWorkflowId, null as any, {});
+      const enhancements = await engine.learnFromErrors(
+        testWorkflowId,
+        null as any,
+        {},
+      );
       expect(Array.isArray(enhancements)).toBe(true);
     });
   });
 
   describe("learnFromPeers", () => {
     it("should learn from related workflows", async () => {
-      mockRelationshipManager.getRelatedWorkflows.mockReturnValue(["peer-workflow-1", "peer-workflow-2"]);
+      mockRelationshipManager.getRelatedWorkflows.mockReturnValue([
+        "peer-workflow-1",
+        "peer-workflow-2",
+      ]);
 
       const enhancements = await engine.learnFromPeers(testWorkflowId);
 
       expect(Array.isArray(enhancements)).toBe(true);
       expect(mockRelationshipManager.getRelatedWorkflows).toHaveBeenCalledWith(
         testWorkflowId,
-        "references"
+        "references",
       );
     });
 
@@ -164,7 +220,11 @@ describe("WorkflowEnhancementEngine", () => {
       const feedback = "The workflow works well but could be faster";
       const rating = 4;
 
-      const enhancements = engine.processUserFeedback(testWorkflowId, feedback, rating);
+      const enhancements = engine.processUserFeedback(
+        testWorkflowId,
+        feedback,
+        rating,
+      );
 
       expect(Array.isArray(enhancements)).toBe(true);
       if (enhancements.length > 0) {
@@ -178,7 +238,11 @@ describe("WorkflowEnhancementEngine", () => {
       const feedback = "The workflow failed with unclear error messages";
       const rating = 2;
 
-      const enhancements = engine.processUserFeedback(testWorkflowId, feedback, rating);
+      const enhancements = engine.processUserFeedback(
+        testWorkflowId,
+        feedback,
+        rating,
+      );
 
       expect(Array.isArray(enhancements)).toBe(true);
       if (enhancements.length > 0) {
@@ -191,7 +255,11 @@ describe("WorkflowEnhancementEngine", () => {
       const feedback = "The workflow is okay";
       const rating = 3;
 
-      const enhancements = engine.processUserFeedback(testWorkflowId, feedback, rating);
+      const enhancements = engine.processUserFeedback(
+        testWorkflowId,
+        feedback,
+        rating,
+      );
 
       expect(Array.isArray(enhancements)).toBe(true);
       // Neutral feedback might not generate enhancements
@@ -201,7 +269,11 @@ describe("WorkflowEnhancementEngine", () => {
       const feedback = "";
       const rating = 3;
 
-      const enhancements = engine.processUserFeedback(testWorkflowId, feedback, rating);
+      const enhancements = engine.processUserFeedback(
+        testWorkflowId,
+        feedback,
+        rating,
+      );
 
       expect(Array.isArray(enhancements)).toBe(true);
     });
@@ -217,7 +289,9 @@ describe("WorkflowEnhancementEngine", () => {
       const enhancements = await engine.learnFromEmergent(testWorkflowId);
 
       expect(Array.isArray(enhancements)).toBe(true);
-      expect(mockRelationshipManager.findCollaborationOpportunities).toHaveBeenCalledWith(testWorkflowId);
+      expect(
+        mockRelationshipManager.findCollaborationOpportunities,
+      ).toHaveBeenCalledWith(testWorkflowId);
     });
 
     it("should handle workflows with no collaboration opportunities", async () => {
@@ -237,7 +311,7 @@ describe("WorkflowEnhancementEngine", () => {
     it("should handle all enhancement types", () => {
       const enhancementTypes: EnhancementType[] = [
         "optimization",
-        "bug_fix", 
+        "bug_fix",
         "feature_add",
         "refactor",
         "parameter_tune",
@@ -246,7 +320,7 @@ describe("WorkflowEnhancementEngine", () => {
         "user_experience",
       ];
 
-      enhancementTypes.forEach(type => {
+      enhancementTypes.forEach((type) => {
         const enhancement: Enhancement = {
           id: `test-${type}`,
           type,
@@ -269,14 +343,14 @@ describe("WorkflowEnhancementEngine", () => {
     it("should handle learning sources", () => {
       const learningSources: LearningSource[] = [
         "self",
-        "peer", 
+        "peer",
         "user",
         "analytics",
         "error",
         "emergent",
       ];
 
-      learningSources.forEach(source => {
+      learningSources.forEach((source) => {
         // Test that the engine can handle different learning sources
         expect(typeof source).toBe("string");
       });
@@ -300,6 +374,11 @@ describe("WorkflowEnhancementEngine", () => {
     });
 
     it("should handle concurrent enhancement cycles", async () => {
+      // Initialize enhancement loop first
+      engine.initializeEnhancementLoop(testWorkflowId, [
+        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+      ]);
+
       const promises = [
         engine.runEnhancementCycle(testWorkflowId),
         engine.runEnhancementCycle(testWorkflowId),
@@ -307,8 +386,8 @@ describe("WorkflowEnhancementEngine", () => {
       ];
 
       const results = await Promise.all(promises);
-      
-      results.forEach(result => {
+
+      results.forEach((result) => {
         expect(result).toHaveProperty("enhancements");
         expect(result).toHaveProperty("applied");
         expect(result).toHaveProperty("rejected");

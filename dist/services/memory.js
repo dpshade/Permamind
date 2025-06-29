@@ -19,7 +19,6 @@ const service = () => {
                 const _filters = JSON.stringify([filter]);
                 const events = await fetchEvents(hubId, _filters);
                 for (let i = 0; i < events.length; i++) {
-                    //// console.log removed
                     if (events[i] &&
                         typeof events[i] === "object" &&
                         events[i].Content) {
@@ -45,7 +44,6 @@ const service = () => {
                 const _filters = JSON.stringify([filter, filter2]);
                 const events = await fetchEvents(hubId, _filters);
                 for (let i = 0; i < events.length; i++) {
-                    //// console.log removed
                     if (events[i] &&
                         typeof events[i] === "object" &&
                         events[i].Content) {
@@ -81,7 +79,6 @@ const service = () => {
                 const _filters = JSON.stringify([filter]);
                 const events = await fetchEvents(hubId, _filters);
                 for (let i = 0; i < events.length; i++) {
-                    //// console.log removed
                     if (events[i] &&
                         typeof events[i] === "object" &&
                         events[i].Content) {
