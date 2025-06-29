@@ -332,25 +332,7 @@ export class WorkflowHubService {
       this.applyFiltersToVelocityQuery(velocityFilter, filters);
 
       const filterString = JSON.stringify([velocityFilter]);
-
-        `[WORKFLOW SEARCH DEBUG] Searching in hard-coded hub: ${WORKFLOW_HUB_ID}`,
-      );
-
       const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-
-
-      events.forEach((event: any, index) => {
-          ai_tag: event.ai_tag,
-          ai_type: event.ai_type,
-          allTags: Object.keys(event).filter(
-            (key) => key.startsWith("ai_") || key.startsWith("workflow_"),
-          ),
-          id: event.Id || event.id,
-          memoryType: event.memoryType,
-          workflow_capability: event.workflow_capability,
-          workflow_id: event.workflow_id,
-        });
-      });
 
       const workflows = events
         .map((event) => this.convertEventToWorkflow(event))
@@ -395,27 +377,7 @@ export class WorkflowHubService {
       this.applyFiltersToVelocityQuery(velocityFilter, filters);
 
       const filterString = JSON.stringify([velocityFilter]);
-
-        `[WORKFLOW QUERY DEBUG] Searching in hard-coded hub: ${WORKFLOW_HUB_ID}`,
-      );
-
       const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-
-        `[WORKFLOW QUERY DEBUG] Found ${events.length} events before query filtering`,
-      );
-
-      events.slice(0, 3).forEach((event: any, index) => {
-          ai_tag: event.ai_tag,
-          ai_type: event.ai_type,
-          allTags: Object.keys(event).filter(
-            (key) => key.startsWith("ai_") || key.startsWith("workflow_"),
-          ),
-          content: event.Content?.substring(0, 100) + "...",
-          id: event.Id || event.id,
-          workflow_capability: event.workflow_capability,
-          workflow_id: event.workflow_id,
-        });
-      });
 
       const workflows = events
         .map((event) => this.convertEventToWorkflow(event))
