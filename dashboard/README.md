@@ -4,10 +4,10 @@ A comprehensive dashboard for monitoring and managing Permamind hubs, workflows,
 
 ## Features
 
-- **Hub Discovery**: Discover and connect to Permamind hubs across the network
+- **Hub Management**: Connect to and manage the dedicated Permamind workflow hub
 - **Workflow Management**: Monitor workflow performance, stages, and enhancements
-- **Cross-Hub Discovery**: Find and learn from workflows in other hubs
-- **Analytics**: Performance insights and ecosystem health metrics
+- **Workflow Discovery**: Find and learn from workflows in the hub
+- **Analytics**: Performance insights and hub health metrics
 - **Documentation**: Integrated documentation for Permamind features and APIs
 - **Real-time Monitoring**: Live status updates and performance tracking
 
@@ -47,17 +47,17 @@ A comprehensive dashboard for monitoring and managing Permamind hubs, workflows,
 
 ### Dashboard Home
 
-- Network overview statistics
-- Connected hubs status
+- Hub overview statistics
+- Hub connection status
 - Workflow performance summary
 - Quick action buttons
 
-### Hubs
+### Hub
 
-- Discover all available hubs
-- View hub details and reputation
-- Connect to new hubs
-- Monitor hub activity
+- View the dedicated workflow hub details and status
+- Monitor hub activity and performance
+- Track hub statistics and metrics
+- Manage hub connections
 
 ### Workflows
 
@@ -68,7 +68,7 @@ A comprehensive dashboard for monitoring and managing Permamind hubs, workflows,
 
 ### Discovery
 
-- Search workflows across the network
+- Search workflows in the hub
 - Find workflows by capability or requirements
 - View popular capabilities and trends
 - Request enhancement patterns
@@ -78,23 +78,23 @@ A comprehensive dashboard for monitoring and managing Permamind hubs, workflows,
 - Performance trend analysis
 - Workflow comparison metrics
 - Enhancement effectiveness tracking
-- Ecosystem health scoring
+- Hub health scoring
 
 ### Documentation
 
 - Complete API reference
 - Getting started guides
 - Memory types and workflow system
-- Cross-hub discovery documentation
+- Workflow discovery documentation
 
 ## Integration with Permamind
 
 This dashboard is designed to work with the Permamind MCP server and can:
 
-- Connect to local and remote Permamind hubs
+- Connect to the dedicated Permamind workflow hub
 - Display real-time data from the Arweave-based memory system
-- Facilitate cross-hub workflow discovery and collaboration
-- Provide insights into the decentralized AI memory ecosystem
+- Facilitate workflow discovery and collaboration
+- Provide insights into the AI memory ecosystem
 
 ## Development
 

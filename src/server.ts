@@ -13,11 +13,14 @@ import { MemoryType } from "./models/AIMemory.js";
 import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
-import { CrossHubDiscoveryService } from "./services/CrossHubDiscoveryService.js";
 import { memoryService } from "./services/memory.js";
 import { hubRegistryService } from "./services/registry.js";
 import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
 import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.js";
+import {
+  SearchFilters,
+  WorkflowHubService,
+} from "./services/WorkflowHubService.js";
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
 
@@ -69,10 +72,10 @@ const server = new FastMCP({
 // Initialize workflow ecosystem services
 let workflowServices: {
   analyticsService: WorkflowAnalyticsService;
-  crossHubDiscovery: CrossHubDiscoveryService;
   enhancementEngine: WorkflowEnhancementEngine;
   performanceTracker: WorkflowPerformanceTracker;
   relationshipManager: WorkflowRelationshipManager;
+  workflowHub: WorkflowHubService;
 } | null = null;
 
 function initializeWorkflowServices() {
@@ -86,14 +89,14 @@ function initializeWorkflowServices() {
     performanceTracker,
     relationshipManager,
   );
-  const crossHubDiscovery = new CrossHubDiscoveryService();
+  const workflowHub = new WorkflowHubService();
 
   workflowServices = {
     analyticsService,
-    crossHubDiscovery,
     enhancementEngine,
     performanceTracker,
     relationshipManager,
+    workflowHub,
   };
 
   // Start background enhancement cycles
@@ -1404,8 +1407,8 @@ server.addTool({
         return "Workflow services not initialized";
       }
 
-      const discoveryService = workflowServices.crossHubDiscovery;
-      const stats = await discoveryService.getNetworkStatistics();
+      const workflowHub = workflowServices.workflowHub;
+      const stats = await workflowHub.getHubStatistics();
 
       return JSON.stringify(stats);
     } catch (error) {
@@ -1432,8 +1435,8 @@ server.addTool({
         return "Workflow services not initialized";
       }
 
-      const discoveryService = workflowServices.crossHubDiscovery;
-      const cachedStats = discoveryService.getCachedNetworkStatistics();
+      const workflowHub = workflowServices.workflowHub;
+      const cachedStats = workflowHub.getCachedStatistics();
 
       if (cachedStats) {
         return JSON.stringify(cachedStats);
@@ -1467,16 +1470,14 @@ server.addTool({
         return "Workflow services not initialized";
       }
 
-      const discoveryService = workflowServices.crossHubDiscovery;
-      const patterns = await discoveryService.requestEnhancementPatterns(
-        args.sourceHubId,
+      const workflowHub = workflowServices.workflowHub;
+      const patterns = await workflowHub.getEnhancementPatterns(
         args.sourceWorkflowId,
       );
 
       return JSON.stringify({
         patterns: patterns,
         patternsFound: patterns.length,
-        sourceHubId: args.sourceHubId,
         sourceWorkflowId: args.sourceWorkflowId,
       });
     } catch (error) {
@@ -1485,7 +1486,6 @@ server.addTool({
   },
   name: "requestEnhancementPatterns",
   parameters: z.object({
-    sourceHubId: z.string().describe("Hub ID containing the source workflow"),
     sourceWorkflowId: z
       .string()
       .describe("Workflow ID to request patterns from"),
@@ -1523,134 +1523,50 @@ server.addTool({
         return "Workflow services not initialized. Please try again in a moment.";
       }
 
-      const discoveryService = workflowServices.crossHubDiscovery;
+      const workflowHub = workflowServices.workflowHub;
 
-      // Add timeout wrapper for fast responses
-      const withTimeout = <T>(
-        promise: Promise<T>,
-        timeoutMs: number,
-      ): Promise<T> => {
-        return Promise.race([
-          promise,
-          new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error("Search timed out")), timeoutMs),
-          ),
-        ]);
+      // Apply Claude Desktop learning: Progressive broad-to-narrow search
+      const searchFilters: SearchFilters = {
+        minPerformanceScore: 0.1,
+        minReputationScore: 0.1,
       };
 
-      // Use smart strategy selection - limit strategies for speed
-      const strategies = [];
-
-      // 1. Always do direct search (most important)
-      strategies.push({
-        method: () =>
-          withTimeout(
-            discoveryService.searchGlobalWorkflows(args.userRequest, {
-              minPerformanceScore: 0.1,
-              minReputationScore: 0.1,
-            }),
-            25000, // 25s timeout - increased for reliability
-          ),
-        type: "search",
-        weight: 1.0,
-      });
-
-      // Skip expanded search for now to avoid timeouts - the main search is working fine
-
-      // 2. Only search for first capability if provided (limit to 1 for speed)
+      // Parse optional filters
       if (args.capabilities) {
-        const firstCapability = args.capabilities.split(",")[0].trim();
-        strategies.push({
-          method: () =>
-            withTimeout(
-              discoveryService.discoverByCapability(firstCapability),
-              6000, // 6s timeout
-            ),
-          type: "capability",
-          weight: 0.8,
-        });
-      }
-
-      // 3. Only search requirements if no capabilities provided (avoid redundancy)
-      else if (args.requirements) {
-        const requirementsList = args.requirements
+        searchFilters.capabilities = args.capabilities
           .split(",")
-          .slice(0, 2) // Limit to first 2 requirements
+          .map((c) => c.trim());
+      }
+      if (args.requirements) {
+        searchFilters.requirements = args.requirements
+          .split(",")
           .map((r) => r.trim());
-        strategies.push({
-          method: () =>
-            withTimeout(
-              discoveryService.findWorkflowsForRequirements(requirementsList),
-              6000, // 6s timeout
-            ),
-          type: "requirements",
-          weight: 0.9,
-        });
       }
 
-      // Execute search strategies with overall timeout and early termination
-      const searchPromises = strategies.map(async (strategy) => {
-        try {
-          const results = await strategy.method();
-          return results.map((workflow) => ({
-            ...workflow,
-            relevanceWeight: strategy.weight,
-            searchStrategy: strategy.type,
-          }));
-        } catch (error) {
-          console.warn(
-            `Search strategy ${strategy.type} failed:`,
-            String(error),
-          );
-          return [];
-        }
-      });
+      // Use the progressive search from WorkflowHubService
+      const workflows = await workflowHub.findWorkflows(
+        args.userRequest,
+        searchFilters,
+      );
 
-      // Execute searches with Promise.allSettled to handle individual failures gracefully
-      const searchResults = await Promise.allSettled(searchPromises);
-      const allResults = searchResults
-        .filter((result) => result.status === "fulfilled")
-        .map((result) => result.value);
-      const flatResults = allResults.flat();
-
-      // Early termination if we have enough high-quality results
-      if (flatResults.length > 20) {
-        // Pre-filter to top results to reduce processing time
-        flatResults.sort((a, b) => b.relevanceWeight - a.relevanceWeight);
-        flatResults.splice(20); // Keep only top 20 for processing
-      }
-
-      // Deduplicate by workflow ID and hub
-      const uniqueWorkflows = new Map();
-      flatResults.forEach((workflow) => {
-        const key = `${workflow.hubId}-${workflow.workflowId}`;
-        if (
-          !uniqueWorkflows.has(key) ||
-          uniqueWorkflows.get(key).relevanceWeight < workflow.relevanceWeight
-        ) {
-          uniqueWorkflows.set(key, workflow);
-        }
-      });
-
-      // Sort by relevance score (combination of performance, reputation, and search relevance)
-      const rankedWorkflows = Array.from(uniqueWorkflows.values())
+      // Apply additional ranking and limiting
+      const rankedWorkflows = workflows
+        .slice(0, args.maxResults || 10)
         .map((workflow) => ({
           ...workflow,
           combinedScore:
             (workflow.performanceMetrics?.qualityScore || 0.5) * 0.4 +
-            workflow.reputationScore * 0.4 +
-            workflow.relevanceWeight * 0.2,
-        }))
-        .sort((a, b) => b.combinedScore - a.combinedScore)
-        .slice(0, args.maxResults || 10);
+            workflow.reputationScore * 0.6,
+          relevanceWeight: 1.0,
+          searchStrategy: "progressive_broad_narrow",
+        }));
 
-      // Final results processed
-
-      // Generate recommendations
+      // Generate recommendations based on Claude Desktop learning
       const recommendations = [];
       if (rankedWorkflows.length === 0) {
         recommendations.push(
           "No existing workflows found that match your requirements.",
+          "Try searching with broader terms like 'data-processing', 'format-conversion', or 'automation'.",
           "Consider creating a new workflow and sharing it with the network.",
           "Use the addWorkflowMemory tool to document your new workflow.",
         );
@@ -1660,13 +1576,20 @@ server.addTool({
           "Review the top-ranked workflows first before creating a new one.",
           "Consider enhancing existing workflows rather than starting from scratch.",
         );
+
+        // Add search suggestions
+        const suggestions = workflowHub.getSearchSuggestions(
+          args.userRequest,
+          workflows,
+        );
+        recommendations.push(...suggestions);
       }
 
       return JSON.stringify({
         networkFirst: true,
         query: args.userRequest,
         recommendations,
-        searchStrategies: strategies.map((s) => s.type),
+        searchStrategy: "progressive_broad_narrow",
         totalFound: rankedWorkflows.length,
         workflows: rankedWorkflows,
       });
