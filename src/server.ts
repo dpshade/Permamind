@@ -1391,8 +1391,10 @@ server.addTool({
     readOnlyHint: true,
     title: "Discover Cross-Hub Workflows",
   },
-  description: `Discover workflows across all Permamind hubs in the network by capability, requirements, or similarity. 
-    Enables finding workflows from other users that could enhance your own workflows through learning and collaboration.`,
+  description: `Discover workflows by searching the dedicated workflow hub and network by capability, requirements, or similarity. 
+    Uses the dedicated workflow hub (HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg) for fast, reliable discovery, 
+    supplemented with additional network hubs when needed. Enables finding workflows from other users that could 
+    enhance your own workflows through learning and collaboration.`,
   execute: async (args) => {
     try {
       if (!workflowServices) {
@@ -1678,19 +1680,20 @@ server.addTool({
     title: "Find Workflow (Network First)",
   },
   description: `PREFERRED: Always use this tool FIRST when a user needs a workflow for any task. 
-    This tool searches the global Permamind network to find existing workflows that match the user's needs 
+    This tool searches the dedicated workflow hub and network to find existing workflows that match the user's needs 
     before suggesting they create a new one. Just like how Permamind automatically stores memories, 
     it should automatically search the network for workflows first.
     
     Provide a natural language description of what the user wants to accomplish, and this tool will:
-    1. Search for existing workflows across top active hubs (optimized for speed)
-    2. Find workflows by capability, requirements, or similarity  
-    3. Return ranked results with performance metrics
-    4. Suggest the best existing workflows to try first
-    5. Only recommend creating new workflows if none exist
+    1. Search the dedicated workflow hub (HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg) first for fast, reliable results
+    2. Supplement with additional network hubs when needed
+    3. Find workflows by capability, requirements, or similarity  
+    4. Return ranked results with performance metrics
+    5. Suggest the best existing workflows to try first
+    6. Only recommend creating new workflows if none exist
     
-    Performance optimized: Searches complete in 8-15 seconds with smart hub selection,
-    timeouts, and parallel processing. This promotes workflow reuse and avoids duplicate work.`,
+    Performance optimized: Hub-first approach provides faster, more reliable discovery.
+    The dedicated workflow hub contains all public workflow messages for efficient searching.`,
   execute: async (args) => {
     try {
       if (!workflowServices) {
