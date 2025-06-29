@@ -85,8 +85,9 @@ function startBackgroundEnhancementCycles() {
             // Extract unique workflow IDs
             const workflowIds = new Set();
             allMemories.forEach((memory) => {
-                if (memory.workflowId) {
-                    workflowIds.add(memory.workflowId);
+                const workflowMemory = memory;
+                if (workflowMemory.workflowId) {
+                    workflowIds.add(workflowMemory.workflowId);
                 }
             });
             // Start enhancement cycles for new workflows
@@ -96,7 +97,7 @@ function startBackgroundEnhancementCycles() {
                 }
             }
         }
-        catch (error) {
+        catch {
             // Silent error handling for background processes
         }
     }, 60000); // Check every minute
@@ -128,7 +129,7 @@ function startEnhancementCycleForWorkflow(workflowId) {
             const timeout = setTimeout(runEnhancementCycle, nextInterval);
             enhancementIntervals.set(workflowId, timeout);
         }
-        catch (error) {
+        catch {
             // Silent error handling, retry in 1 hour
             const timeout = setTimeout(runEnhancementCycle, 3600000);
             enhancementIntervals.set(workflowId, timeout);
@@ -1057,31 +1058,15 @@ server.addTool({
     Enables building complex workflows from simpler components and workflow reuse.`,
     execute: async (args) => {
         try {
-            const composition = {
-                description: args.description,
-                errorHandling: {
-                    maxRetries: args.maxRetries || 3,
-                    onFailure: args.onFailure || "abort",
-                    retryDelay: args.retryDelay || 1000,
-                },
-                executionStrategy: args.executionStrategy,
-                id: args.compositionId,
-                name: args.name,
-                resourceAllocation: {
-                    maxConcurrentWorkflows: args.maxConcurrent || 1,
-                    memoryLimit: args.memoryLimit || 1024,
-                    priority: args.priority || "medium",
-                    timeLimit: args.timeLimit || 300000,
-                },
-                workflows: JSON.parse(args.workflowSteps),
-            };
+            // Parse workflow steps for composition
+            const workflowSteps = JSON.parse(args.workflowSteps);
             const compositionMemory = {
                 content: `Workflow composition: ${args.name}`,
                 context: {
                     domain: "workflow_composition",
                     topic: "workflow_orchestration",
                 },
-                dependencies: JSON.parse(args.workflowSteps).map((step) => step.workflowId),
+                dependencies: workflowSteps.map((step) => step.workflowId),
                 importance: 0.8,
                 memoryType: "procedure",
                 metadata: {
@@ -1160,7 +1145,7 @@ server.addTool({
                 return "Workflow services not initialized";
             }
             switch (args.action) {
-                case "force_cycle":
+                case "force_cycle": {
                     if (!args.workflowId) {
                         return "workflowId required for force_cycle action";
                     }
@@ -1169,6 +1154,7 @@ server.addTool({
                         message: `Enhancement cycle completed for ${args.workflowId}`,
                         result,
                     });
+                }
                 case "start":
                     if (args.workflowId) {
                         startEnhancementCycleForWorkflow(args.workflowId);
@@ -1184,13 +1170,13 @@ server.addTool({
                         return `Stopped enhancement cycle for workflow ${args.workflowId}`;
                     }
                     else {
-                        enhancementIntervals.forEach((interval, workflowId) => {
+                        enhancementIntervals.forEach((interval) => {
                             clearTimeout(interval);
                         });
                         enhancementIntervals.clear();
                         return "Stopped all enhancement cycles";
                     }
-                case "status":
+                case "status": {
                     const activeWorkflows = Array.from(enhancementIntervals.keys());
                     const status = {
                         activeEnhancementCycles: activeWorkflows.length,
@@ -1198,6 +1184,7 @@ server.addTool({
                         workflowIds: activeWorkflows,
                     };
                     return JSON.stringify(status);
+                }
                 default:
                     return "Invalid action. Use: start, stop, status, or force_cycle";
             }
@@ -1241,7 +1228,7 @@ server.addTool({
                     }
                     workflows = await discoveryService.discoverByCapability(args.capability);
                     break;
-                case "requirements":
+                case "requirements": {
                     if (!args.requirements) {
                         return "requirements parameter required for requirements discovery";
                     }
@@ -1251,7 +1238,8 @@ server.addTool({
                     workflows =
                         await discoveryService.findWorkflowsForRequirements(requirementsList);
                     break;
-                case "search":
+                }
+                case "search": {
                     if (!args.query) {
                         return "query parameter required for search discovery";
                     }
@@ -1267,12 +1255,14 @@ server.addTool({
                     };
                     workflows = await discoveryService.searchGlobalWorkflows(args.query, filters);
                     break;
-                case "similar":
+                }
+                case "similar": {
                     if (!args.localWorkflowId) {
                         return "localWorkflowId parameter required for similarity discovery";
                     }
                     workflows = await discoveryService.findSimilarWorkflows(args.localWorkflowId, hubId);
                     break;
+                }
                 default:
                     return "Invalid discoveryType. Use: capability, requirements, similar, or search";
             }
@@ -1340,7 +1330,7 @@ server.addTool({
     },
     description: `Get statistics about the workflow ecosystem network including total hubs, workflows, 
     top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.`,
-    execute: async (args) => {
+    execute: async () => {
         try {
             if (!workflowServices) {
                 return "Workflow services not initialized";
@@ -1460,30 +1450,34 @@ server.addTool({
             const strategies = [];
             // 1. Direct search for the user's description
             strategies.push({
-                type: "search",
                 method: () => discoveryService.searchGlobalWorkflows(args.userRequest, {
-                    minReputationScore: 0.3,
                     minPerformanceScore: 0.3,
+                    minReputationScore: 0.3,
                 }),
+                type: "search",
                 weight: 1.0,
             });
             // 2. Extract and search for capabilities if provided
             if (args.capabilities) {
-                const capabilityList = args.capabilities.split(",").map(c => c.trim());
+                const capabilityList = args.capabilities
+                    .split(",")
+                    .map((c) => c.trim());
                 for (const capability of capabilityList) {
                     strategies.push({
-                        type: "capability",
                         method: () => discoveryService.discoverByCapability(capability),
+                        type: "capability",
                         weight: 0.8,
                     });
                 }
             }
             // 3. Search for requirements if provided
             if (args.requirements) {
-                const requirementsList = args.requirements.split(",").map(r => r.trim());
+                const requirementsList = args.requirements
+                    .split(",")
+                    .map((r) => r.trim());
                 strategies.push({
-                    type: "requirements",
                     method: () => discoveryService.findWorkflowsForRequirements(requirementsList),
+                    type: "requirements",
                     weight: 0.9,
                 });
             }
@@ -1491,10 +1485,10 @@ server.addTool({
             const searchPromises = strategies.map(async (strategy) => {
                 try {
                     const results = await strategy.method();
-                    return results.map(workflow => ({
+                    return results.map((workflow) => ({
                         ...workflow,
-                        searchStrategy: strategy.type,
                         relevanceWeight: strategy.weight,
+                        searchStrategy: strategy.type,
                     }));
                 }
                 catch (error) {
@@ -1506,7 +1500,7 @@ server.addTool({
             const flatResults = allResults.flat();
             // Deduplicate by workflow ID and hub
             const uniqueWorkflows = new Map();
-            flatResults.forEach(workflow => {
+            flatResults.forEach((workflow) => {
                 const key = `${workflow.hubId}-${workflow.workflowId}`;
                 if (!uniqueWorkflows.has(key) ||
                     uniqueWorkflows.get(key).relevanceWeight < workflow.relevanceWeight) {
@@ -1515,11 +1509,11 @@ server.addTool({
             });
             // Sort by relevance score (combination of performance, reputation, and search relevance)
             const rankedWorkflows = Array.from(uniqueWorkflows.values())
-                .map(workflow => ({
+                .map((workflow) => ({
                 ...workflow,
-                combinedScore: (workflow.performanceScore * 0.4 +
+                combinedScore: workflow.performanceScore * 0.4 +
                     workflow.reputationScore * 0.4 +
-                    workflow.relevanceWeight * 0.2),
+                    workflow.relevanceWeight * 0.2,
             }))
                 .sort((a, b) => b.combinedScore - a.combinedScore)
                 .slice(0, args.maxResults || 10);
@@ -1532,12 +1526,12 @@ server.addTool({
                 recommendations.push(`Found ${rankedWorkflows.length} existing workflows that might help.`, "Review the top-ranked workflows first before creating a new one.", "Consider enhancing existing workflows rather than starting from scratch.");
             }
             return JSON.stringify({
+                networkFirst: true,
                 query: args.userRequest,
+                recommendations,
+                searchStrategies: strategies.map((s) => s.type),
                 totalFound: rankedWorkflows.length,
                 workflows: rankedWorkflows,
-                recommendations,
-                searchStrategies: strategies.map(s => s.type),
-                networkFirst: true,
             });
         }
         catch (error) {
@@ -1546,10 +1540,21 @@ server.addTool({
     },
     name: "findWorkflowNetworkFirst",
     parameters: z.object({
-        userRequest: z.string().describe("Natural language description of what the user wants to accomplish"),
-        capabilities: z.string().optional().describe("Comma-separated list of required capabilities"),
-        requirements: z.string().optional().describe("Comma-separated list of specific requirements"),
-        maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
+        capabilities: z
+            .string()
+            .optional()
+            .describe("Comma-separated list of required capabilities"),
+        maxResults: z
+            .number()
+            .optional()
+            .describe("Maximum number of results to return (default: 10)"),
+        requirements: z
+            .string()
+            .optional()
+            .describe("Comma-separated list of specific requirements"),
+        userRequest: z
+            .string()
+            .describe("Natural language description of what the user wants to accomplish"),
     }),
 });
 /*server.addResource({

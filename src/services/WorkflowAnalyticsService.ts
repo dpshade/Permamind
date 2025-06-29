@@ -523,7 +523,10 @@ export class WorkflowAnalyticsService {
     for (const workflowList of this.workflowMemories.values()) {
       for (const workflow of workflowList) {
         const category = this.categorizeWorkflow(workflow);
-        if (category && distribution.hasOwnProperty(category)) {
+        if (
+          category &&
+          Object.prototype.hasOwnProperty.call(distribution, category)
+        ) {
           distribution[category]++;
         }
       }
@@ -534,7 +537,7 @@ export class WorkflowAnalyticsService {
 
   private categorizeWorkflow(
     workflow: WorkflowMemory,
-  ): WorkflowCategory | null {
+  ): null | WorkflowCategory {
     const content = workflow.content.toLowerCase();
     const capabilities = (workflow as any).capabilities || [];
     const requirements = (workflow as any).requirements || [];

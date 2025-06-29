@@ -221,12 +221,15 @@ export class CrossHubDiscoveryService {
     totalPublicWorkflows: number;
   }> {
     // Add timeout wrapper
-    const withTimeout = <T>(promise: Promise<T>, timeoutMs: number): Promise<T> => {
+    const withTimeout = <T>(
+      promise: Promise<T>,
+      timeoutMs: number,
+    ): Promise<T> => {
       return Promise.race([
         promise,
-        new Promise<T>((_, reject) => 
-          setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
-        )
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error("Operation timed out")), timeoutMs),
+        ),
       ]);
     };
 
@@ -236,10 +239,13 @@ export class CrossHubDiscoveryService {
     // Process hubs in parallel with concurrency limit
     const concurrencyLimit = 5;
     const workflowPromises = hubs
-      .filter(hub => hub.hasPublicWorkflows)
+      .filter((hub) => hub.hasPublicWorkflows)
       .map(async (hub) => {
         try {
-          return await withTimeout(this.queryHubWorkflows(hub.processId), 15000); // 15s per hub
+          return await withTimeout(
+            this.queryHubWorkflows(hub.processId),
+            15000,
+          ); // 15s per hub
         } catch (error) {
           console.warn(`Failed to query hub ${hub.processId}:`, error);
           return [];
@@ -250,7 +256,7 @@ export class CrossHubDiscoveryService {
     for (let i = 0; i < workflowPromises.length; i += concurrencyLimit) {
       const batch = workflowPromises.slice(i, i + concurrencyLimit);
       const batchResults = await Promise.all(batch);
-      batchResults.forEach(workflows => allWorkflows.push(...workflows));
+      batchResults.forEach((workflows) => allWorkflows.push(...workflows));
     }
 
     const totalHubs = hubs.length;
