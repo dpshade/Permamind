@@ -6,6 +6,7 @@ export class CrossHubDiscoveryService {
     discoveryInterval = 300000; // 5 minutes
     lastDiscoveryTime = 0;
     workflowCache = new Map();
+    statisticsCache = new Map();
     /**
      * Find workflows across all hubs by capability
      */
@@ -119,61 +120,99 @@ export class CrossHubDiscoveryService {
      * Get network statistics
      */
     async getNetworkStatistics() {
-        // Add timeout wrapper
+        // Check cache first - cache for 5 minutes
+        const cacheKey = "network_statistics";
+        const cachedStats = this.statisticsCache.get(cacheKey);
+        if (cachedStats && Date.now() - cachedStats.timestamp < 300000) {
+            return cachedStats.data;
+        }
+        // Add timeout wrapper with shorter timeouts
         const withTimeout = (promise, timeoutMs) => {
             return Promise.race([
                 promise,
                 new Promise((_, reject) => setTimeout(() => reject(new Error("Operation timed out")), timeoutMs)),
             ]);
         };
-        const hubs = await withTimeout(this.discoverHubs(), 30000); // 30s timeout
-        const allWorkflows = [];
-        // Process hubs in parallel with concurrency limit
-        const concurrencyLimit = 5;
-        const workflowPromises = hubs
-            .filter((hub) => hub.hasPublicWorkflows)
-            .map(async (hub) => {
-            try {
-                return await withTimeout(this.queryHubWorkflows(hub.processId), 15000); // 15s per hub
-            }
-            catch (error) {
-                console.warn(`Failed to query hub ${hub.processId}:`, error);
-                return [];
-            }
-        });
-        // Process in batches to avoid overwhelming the network
-        for (let i = 0; i < workflowPromises.length; i += concurrencyLimit) {
-            const batch = workflowPromises.slice(i, i + concurrencyLimit);
-            const batchResults = await Promise.all(batch);
-            batchResults.forEach((workflows) => allWorkflows.push(...workflows));
-        }
-        const totalHubs = hubs.length;
-        const totalPublicWorkflows = allWorkflows.length;
-        const averageReputationScore = allWorkflows.length > 0
-            ? allWorkflows.reduce((sum, w) => sum + w.reputationScore, 0) /
-                allWorkflows.length
-            : 0;
-        // Count capability frequency
-        const capabilityCount = new Map();
-        allWorkflows.forEach((w) => {
-            w.capabilities.forEach((cap) => {
-                capabilityCount.set(cap, (capabilityCount.get(cap) || 0) + 1);
+        try {
+            // Get hubs with much shorter timeout
+            const hubs = await withTimeout(this.discoverHubs(), 10000); // 10s timeout
+            // For speed, limit to first 10 most active hubs and use sampling
+            const activeHubs = hubs
+                .filter((hub) => hub.hasPublicWorkflows)
+                .sort((a, b) => b.workflowCount - a.workflowCount)
+                .slice(0, 10); // Only check top 10 hubs
+            const allWorkflows = [];
+            // Process all hubs in parallel with much shorter timeout per hub
+            const concurrencyLimit = 10; // Increase concurrency
+            const workflowPromises = activeHubs.map(async (hub) => {
+                try {
+                    return await withTimeout(this.queryHubWorkflows(hub.processId), 5000);
+                }
+                catch (error) {
+                    console.warn(`Failed to query hub ${hub.processId}:`, error);
+                    return [];
+                }
             });
-        });
-        const topCapabilities = Array.from(capabilityCount.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(([cap]) => cap);
-        const networkHealthScore = Math.min(1.0, totalHubs * 0.1 +
-            totalPublicWorkflows * 0.05 +
-            averageReputationScore * 0.5);
-        return {
-            averageReputationScore,
-            networkHealthScore,
-            topCapabilities,
-            totalHubs,
-            totalPublicWorkflows,
-        };
+            // Process all in one batch since we limited to 10 hubs
+            const allResults = await Promise.all(workflowPromises);
+            allResults.forEach((workflows) => allWorkflows.push(...workflows));
+            const totalHubs = hubs.length;
+            const totalPublicWorkflows = allWorkflows.length;
+            const averageReputationScore = allWorkflows.length > 0
+                ? allWorkflows.reduce((sum, w) => sum + w.reputationScore, 0) /
+                    allWorkflows.length
+                : 0;
+            // Count capability frequency
+            const capabilityCount = new Map();
+            allWorkflows.forEach((w) => {
+                w.capabilities.forEach((cap) => {
+                    capabilityCount.set(cap, (capabilityCount.get(cap) || 0) + 1);
+                });
+            });
+            const topCapabilities = Array.from(capabilityCount.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([cap]) => cap);
+            const networkHealthScore = Math.min(1.0, totalHubs * 0.1 +
+                totalPublicWorkflows * 0.05 +
+                averageReputationScore * 0.5);
+            const result = {
+                averageReputationScore,
+                networkHealthScore,
+                topCapabilities,
+                totalHubs,
+                totalPublicWorkflows,
+            };
+            // Cache the result for 5 minutes
+            this.statisticsCache.set(cacheKey, {
+                data: result,
+                timestamp: Date.now(),
+            });
+            return result;
+        }
+        catch (error) {
+            console.warn("Failed to get network statistics:", error);
+            // Return cached data if available, even if stale
+            if (cachedStats) {
+                return cachedStats.data;
+            }
+            // Return minimal fallback statistics
+            return {
+                averageReputationScore: 0,
+                networkHealthScore: 0,
+                topCapabilities: [],
+                totalHubs: 0,
+                totalPublicWorkflows: 0,
+            };
+        }
+    }
+    /**
+     * Get cached network statistics instantly (no network calls)
+     */
+    getCachedNetworkStatistics() {
+        const cacheKey = "network_statistics";
+        const cachedStats = this.statisticsCache.get(cacheKey);
+        return cachedStats ? cachedStats.data : null;
     }
     /**
      * Request enhancement patterns from a high-performing workflow using Velocity protocol

@@ -113,8 +113,18 @@ function startEnhancementCycleForWorkflow(workflowId) {
             targetValue: 0.8,
             weight: 0.3,
         },
-        { achieved: false, metric: "success_rate", targetValue: 0.95, weight: 0.4 },
-        { achieved: false, metric: "quality_score", targetValue: 0.9, weight: 0.3 },
+        {
+            achieved: false,
+            metric: "success_rate",
+            targetValue: 0.95,
+            weight: 0.4,
+        },
+        {
+            achieved: false,
+            metric: "quality_score",
+            targetValue: 0.9,
+            weight: 0.3,
+        },
     ];
     workflowServices.enhancementEngine.initializeEnhancementLoop(workflowId, optimizationTargets);
     // Run enhancement cycles periodically
@@ -1329,7 +1339,10 @@ server.addTool({
         title: "Get Network Statistics",
     },
     description: `Get statistics about the workflow ecosystem network including total hubs, workflows, 
-    top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.`,
+    top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.
+    
+    Note: This performs network calls and may take 10-15 seconds. For faster responses, use getCachedNetworkStatistics 
+    which returns instantly but may have stale data. Results are cached for 5 minutes.`,
     execute: async () => {
         try {
             if (!workflowServices) {
@@ -1344,6 +1357,40 @@ server.addTool({
         }
     },
     name: "getNetworkStatistics",
+    parameters: z.object({}),
+});
+// Tool to get cached network statistics instantly
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Get Cached Network Statistics",
+    },
+    description: `Get instantly available cached network statistics without any network calls. 
+    Returns cached data if available, otherwise null. Use this for fast UI updates when you need 
+    immediate response times and can handle potentially stale data.`,
+    execute: async () => {
+        try {
+            if (!workflowServices) {
+                return "Workflow services not initialized";
+            }
+            const discoveryService = workflowServices.crossHubDiscovery;
+            const cachedStats = discoveryService.getCachedNetworkStatistics();
+            if (cachedStats) {
+                return JSON.stringify(cachedStats);
+            }
+            else {
+                return JSON.stringify({
+                    message: "No cached statistics available. Use getNetworkStatistics to fetch fresh data.",
+                    cached: false,
+                });
+            }
+        }
+        catch (error) {
+            return `Error: ${error}`;
+        }
+    },
+    name: "getCachedNetworkStatistics",
     parameters: z.object({}),
 });
 // Tool to request enhancement patterns from other workflows
