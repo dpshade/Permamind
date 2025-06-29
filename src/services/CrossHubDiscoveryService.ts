@@ -1,4 +1,7 @@
 import { HUB_REGISTRY_ID } from "../constants.js";
+
+// Dedicated workflow hub for faster, more reliable discovery
+const WORKFLOW_HUB_ID = "HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg";
 import {
   WorkflowMemory,
   WorkflowPerformance,
@@ -77,18 +80,27 @@ export class CrossHubDiscoveryService {
   private workflowCache: Map<string, CrossHubWorkflow[]> = new Map();
 
   /**
-   * Find workflows across all hubs by capability
+   * Find workflows by capability - prioritizes dedicated workflow hub
    */
   async discoverByCapability(capability: string): Promise<CrossHubWorkflow[]> {
+    // First check the dedicated workflow hub
+    const workflowHubResults = await this.queryWorkflowHub({ capabilities: [capability] });
+    
+    // If we have good results from the workflow hub, return them quickly
+    if (workflowHubResults.length >= 5) {
+      return this.rankWorkflows(workflowHubResults);
+    }
+
+    // Otherwise supplement with other hubs
     const hubs = await this.discoverHubs();
 
-    // Optimize: limit to top 6 most active hubs for capability search
+    // Optimize: limit to top 3 additional hubs since we already checked the main hub
     const activeHubs = hubs
-      .filter((hub) => hub.hasPublicWorkflows)
+      .filter((hub) => hub.hasPublicWorkflows && hub.processId !== WORKFLOW_HUB_ID)
       .sort((a, b) => b.workflowCount - a.workflowCount)
-      .slice(0, 6); // Limit to top 6 hubs for speed
+      .slice(0, 3); // Reduced from 6 to 3 since we have the main hub
 
-    const workflows: CrossHubWorkflow[] = [];
+    const workflows: CrossHubWorkflow[] = [...workflowHubResults];
 
     // Add timeout wrapper
     const withTimeout = <T>(
@@ -128,7 +140,7 @@ export class CrossHubDiscoveryService {
   }
 
   /**
-   * Discover all Permamind hubs in the network
+   * Get workflow hub info - now uses dedicated workflow hub for faster discovery
    */
   async discoverHubs(forceRefresh: boolean = false): Promise<HubInfo[]> {
     const now = Date.now();
@@ -141,27 +153,49 @@ export class CrossHubDiscoveryService {
     }
 
     try {
-      // Get all registered zones from the hub registry
-      const zones = await getZones(HUB_REGISTRY_ID(), "{}", 0, 100);
-
+      // Use dedicated workflow hub instead of registry discovery
+      const workflowHubInfo = await this.queryHubInfo(WORKFLOW_HUB_ID);
+      
       const hubs: HubInfo[] = [];
+      if (workflowHubInfo) {
+        hubs.push(workflowHubInfo);
+        this.discoveredHubs.set(WORKFLOW_HUB_ID, workflowHubInfo);
+      }
 
-      for (const zone of zones) {
-        try {
-          // Check if this hub has public workflows
-          const processId = (zone as any).spec?.processId;
-          if (processId) {
-            const hubInfo = await this.queryHubInfo(processId);
-            if (hubInfo) {
-              hubs.push(hubInfo);
-              this.discoveredHubs.set(processId, hubInfo);
+      // Optionally, still check registry for additional hubs but with shorter timeout
+      try {
+        const zones = await Promise.race([
+          getZones(HUB_REGISTRY_ID(), "{}", 0, 20), // Limit to 20 zones for speed
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Registry timeout')), 3000)
+          )
+        ]);
+
+        const registryHubPromises = (zones as any[]).slice(0, 10).map(async (zone) => {
+          try {
+            const processId = zone.spec?.processId;
+            if (processId && processId !== WORKFLOW_HUB_ID) {
+              return await Promise.race([
+                this.queryHubInfo(processId),
+                new Promise((_, reject) => 
+                  setTimeout(() => reject(new Error('Hub query timeout')), 2000)
+                )
+              ]);
             }
+          } catch (error) {
+            return null;
           }
-        } catch (error) {
-          // Skip unreachable or non-responsive hubs
-          const processId = (zone as any).spec?.processId || "unknown";
-          console.warn(`Failed to query hub ${processId}:`, error);
-        }
+        });
+
+        const registryHubs = await Promise.allSettled(registryHubPromises);
+        registryHubs.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value) {
+            hubs.push(result.value as HubInfo);
+            this.discoveredHubs.set((result.value as HubInfo).processId, result.value as HubInfo);
+          }
+        });
+      } catch (registryError) {
+        console.warn('Registry discovery failed, using workflow hub only:', registryError);
       }
 
       this.lastDiscoveryTime = now;
@@ -211,17 +245,30 @@ export class CrossHubDiscoveryService {
   }
 
   /**
-   * Find workflows that can fulfill specific requirements
+   * Find workflows that can fulfill specific requirements - prioritizes dedicated workflow hub
    */
   async findWorkflowsForRequirements(
     requirements: string[],
   ): Promise<CrossHubWorkflow[]> {
+    // First check the dedicated workflow hub
+    const workflowHubResults = await this.queryWorkflowHub({ requirements });
+    
+    // If we have good results from the workflow hub, return them quickly
+    if (workflowHubResults.length >= 5) {
+      return this.rankWorkflows(workflowHubResults);
+    }
+
+    // Otherwise supplement with other hubs
     const hubs = await this.discoverHubs();
-    const workflows: CrossHubWorkflow[] = [];
+    const workflows: CrossHubWorkflow[] = [...workflowHubResults];
 
-    for (const hub of hubs) {
-      if (!hub.hasPublicWorkflows) continue;
+    // Only check top 3 additional hubs for efficiency
+    const additionalHubs = hubs
+      .filter((hub) => hub.hasPublicWorkflows && hub.processId !== WORKFLOW_HUB_ID)
+      .sort((a, b) => b.workflowCount - a.workflowCount)
+      .slice(0, 3);
 
+    for (const hub of additionalHubs) {
       try {
         const hubWorkflows = await this.queryHubWorkflows(hub.processId, {
           requirements,
@@ -254,7 +301,7 @@ export class CrossHubDiscoveryService {
   }
 
   /**
-   * Get network statistics
+   * Get network statistics - prioritizes dedicated workflow hub
    */
   async getNetworkStatistics(): Promise<{
     averageReputationScore: number;
@@ -284,35 +331,45 @@ export class CrossHubDiscoveryService {
     };
 
     try {
-      // Get hubs with much shorter timeout
-      const hubs = await withTimeout(this.discoverHubs(), 10000); // 10s timeout
+      // First get stats from the dedicated workflow hub quickly
+      const workflowHubResults = await withTimeout(
+        this.queryWorkflowHub(),
+        8000 // 8s timeout for main hub
+      );
 
-      // For speed, limit to first 10 most active hubs and use sampling
-      const activeHubs = hubs
-        .filter((hub) => hub.hasPublicWorkflows)
-        .sort((a, b) => b.workflowCount - a.workflowCount)
-        .slice(0, 10); // Only check top 10 hubs
+      let allWorkflows: CrossHubWorkflow[] = [...workflowHubResults];
+      let totalHubs = 1; // Start with the workflow hub
 
-      const allWorkflows: CrossHubWorkflow[] = [];
+      // Optionally supplement with other hubs but with very short timeout
+      try {
+        const hubs = await withTimeout(this.discoverHubs(), 5000); // 5s timeout
+        totalHubs = hubs.length;
 
-      // Process all hubs in parallel with much shorter timeout per hub
-      const workflowPromises = activeHubs.map(async (hub) => {
-        try {
-          return await withTimeout(
-            this.queryHubWorkflows(hub.processId),
-            5000, // Only 5s per hub
-          );
-        } catch (error) {
-          console.warn(`Failed to query hub ${hub.processId}:`, error);
-          return [];
-        }
-      });
+        // For speed, limit to first 5 additional hubs and use sampling
+        const additionalHubs = hubs
+          .filter((hub) => hub.hasPublicWorkflows && hub.processId !== WORKFLOW_HUB_ID)
+          .sort((a, b) => b.workflowCount - a.workflowCount)
+          .slice(0, 5); // Only check top 5 additional hubs
 
-      // Process all in one batch since we limited to 10 hubs
-      const allResults = await Promise.all(workflowPromises);
-      allResults.forEach((workflows) => allWorkflows.push(...workflows));
+        // Process additional hubs in parallel with very short timeout per hub
+        const workflowPromises = additionalHubs.map(async (hub) => {
+          try {
+            return await withTimeout(
+              this.queryHubWorkflows(hub.processId),
+              3000, // Only 3s per additional hub
+            );
+          } catch (error) {
+            console.warn(`Failed to query hub ${hub.processId}:`, error);
+            return [];
+          }
+        });
 
-      const totalHubs = hubs.length;
+        const allResults = await Promise.all(workflowPromises);
+        allResults.forEach((workflows) => allWorkflows.push(...workflows));
+      } catch (error) {
+        console.warn('Additional hub statistics collection failed, using workflow hub only:', error);
+      }
+
       const totalPublicWorkflows = allWorkflows.length;
       const averageReputationScore =
         allWorkflows.length > 0
@@ -494,7 +551,7 @@ export class CrossHubDiscoveryService {
   }
 
   /**
-   * Search workflows globally by query and filters
+   * Search workflows globally by query and filters - prioritizes dedicated workflow hub
    */
   async searchGlobalWorkflows(
     query: string,
@@ -507,20 +564,33 @@ export class CrossHubDiscoveryService {
       return cachedResults;
     }
 
+    // First search the dedicated workflow hub
+    const workflowHubResults = await this.queryWorkflowHub(filters);
+    const matchingWorkflows = workflowHubResults.filter((w) => this.matchesQuery(w, query));
+    
+    // If we have good results from the workflow hub, return them quickly
+    if (matchingWorkflows.length >= 10) {
+      const rankedResults = this.rankWorkflows(matchingWorkflows, filters);
+      this.workflowCache.set(cacheKey, rankedResults);
+      setTimeout(() => this.workflowCache.delete(cacheKey), 120000);
+      return rankedResults;
+    }
+
+    // Otherwise supplement with other hubs
     const hubs = await this.discoverHubs();
 
-    // Optimize: limit to top 8 most active hubs for faster search
+    // Optimize: limit to top 5 additional hubs since we already checked the main hub
     const activeHubs = hubs
-      .filter((hub) => hub.hasPublicWorkflows)
+      .filter((hub) => hub.hasPublicWorkflows && hub.processId !== WORKFLOW_HUB_ID)
       .filter(
         (hub) =>
           !filters.minReputationScore ||
           hub.reputationScore >= filters.minReputationScore,
       )
       .sort((a, b) => b.workflowCount - a.workflowCount)
-      .slice(0, 8); // Limit to top 8 hubs
+      .slice(0, 5); // Reduced from 8 to 5
 
-    const workflows: CrossHubWorkflow[] = [];
+    const workflows: CrossHubWorkflow[] = [...matchingWorkflows];
 
     // Add timeout wrapper
     const withTimeout = <T>(
@@ -568,7 +638,7 @@ export class CrossHubDiscoveryService {
   }
 
   /**
-   * Enhanced search with suggestions and optimization tips
+   * Enhanced search with suggestions and optimization tips - optimized for workflow hub
    */
   async searchWithSuggestions(
     query: string,
@@ -587,16 +657,18 @@ export class CrossHubDiscoveryService {
     const searchTips = [
       "🔍 Use specific terms for better results",
       "⚡ Results are cached for 2 minutes for faster subsequent searches",
-      "🌐 Searching across 98 active hubs in the network",
-      "🎯 Try capability-based search for precise matching",
+      "🎯 Dedicated workflow hub provides faster, more reliable discovery",
+      "🌐 Supplemented with additional network hubs when needed",
+      "💡 Try capability-based search for precise matching",
     ];
 
     const duration = Date.now() - startTime;
+    const hubs = await this.discoverHubs();
 
     return {
       performance: {
         duration,
-        hubsSearched: Math.min(8, (await this.discoverHubs()).length),
+        hubsSearched: Math.min(6, hubs.length), // Reduced search scope
       },
       searchTips,
       suggestions,
@@ -642,28 +714,6 @@ export class CrossHubDiscoveryService {
     return intersection.size / Math.max(set1.size, set2.size);
   }
 
-  /**
-   * Calculate reputation score for a workflow (legacy method)
-   */
-  private calculateReputationScore(
-    workflow: WorkflowMemory,
-    performance: WorkflowPerformance,
-  ): number {
-    const performanceScore = performance.qualityScore || 0.5;
-    const reliabilityScore = performance.success ? 1.0 : 0.0;
-    const usageScore = Math.min(
-      1.0,
-      (workflow.metadata?.accessCount || 0) / 100,
-    );
-    const enhancementScore = (workflow as any).enhancement ? 0.8 : 0.2;
-
-    return (
-      performanceScore * 0.4 +
-      reliabilityScore * 0.3 +
-      usageScore * 0.2 +
-      enhancementScore * 0.1
-    );
-  }
 
   /**
    * Convert Velocity event to CrossHubWorkflow format
@@ -761,41 +811,6 @@ export class CrossHubDiscoveryService {
     };
   }
 
-  /**
-   * Convert WorkflowMemory to CrossHubWorkflow format (legacy method)
-   */
-  private convertToCrossHubWorkflow(
-    workflow: WorkflowMemory,
-    hubId: string,
-  ): CrossHubWorkflow {
-    const performance = workflow.performance || ({} as WorkflowPerformance);
-
-    return {
-      capabilities: (workflow as any).capabilities || [],
-      createdAt: workflow.metadata?.lastAccessed || new Date().toISOString(),
-      description: workflow.content.substring(0, 200),
-      hubId,
-      isPublic: this.isWorkflowPublic(workflow),
-      lastEnhancementDate:
-        (workflow as any).enhancement?.validation?.validatedAt ||
-        workflow.metadata?.lastAccessed ||
-        "",
-      name: (workflow as any).workflowId!,
-      ownerAddress: workflow.p,
-      performanceMetrics: {
-        averageExecutionTime: performance.executionTime || 0,
-        enhancementCount: (workflow as any).enhancement ? 1 : 0,
-        qualityScore: performance.qualityScore || 0.5,
-        successRate: performance.success ? 1.0 : 0.0,
-        userSatisfactionRating: performance.userSatisfaction || 0.5,
-      },
-      reputationScore: this.calculateReputationScore(workflow, performance),
-      requirements: (workflow as any).requirements || [],
-      tags: workflow.metadata?.tags || [],
-      usageCount: workflow.metadata?.accessCount || 0,
-      workflowId: (workflow as any).workflowId!,
-    };
-  }
 
   /**
    * Filter workflows by similarity to a local workflow
@@ -822,14 +837,6 @@ export class CrossHubDiscoveryService {
     });
   }
 
-  /**
-   * Check if a workflow is publicly discoverable
-   */
-  private isWorkflowPublic(workflow: WorkflowMemory): boolean {
-    // Check metadata tags for public visibility
-    const tags = workflow.metadata?.tags || [];
-    return tags.includes("public") || tags.includes("discoverable");
-  }
 
   /**
    * Apply additional filters that couldn't be applied at the Velocity level
@@ -862,44 +869,6 @@ export class CrossHubDiscoveryService {
     return true;
   }
 
-  /**
-   * Check if workflow matches discovery filters
-   */
-  private matchesFilters(
-    workflow: WorkflowMemory,
-    filters: DiscoveryFilters,
-  ): boolean {
-    if (filters.capabilities) {
-      const hasCapability = filters.capabilities.some((cap) =>
-        workflow.capabilities?.includes(cap),
-      );
-      if (!hasCapability) return false;
-    }
-
-    if (filters.requirements) {
-      const meetsRequirement = filters.requirements.every((req) =>
-        workflow.requirements?.includes(req),
-      );
-      if (!meetsRequirement) return false;
-    }
-
-    if (filters.tags) {
-      const hasTags = filters.tags.some((tag) =>
-        workflow.metadata?.tags?.includes(tag),
-      );
-      if (!hasTags) return false;
-    }
-
-    if (filters.minPerformanceScore && workflow.performance) {
-      if (
-        (workflow.performance.qualityScore || 0) < filters.minPerformanceScore
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 
   /**
    * Check if a workflow matches a search query
@@ -916,6 +885,69 @@ export class CrossHubDiscoveryService {
 
     const queryTerms = query.toLowerCase().split(" ");
     return queryTerms.every((term) => searchText.includes(term));
+  }
+
+  /**
+   * Query the dedicated workflow hub for workflows
+   */
+  private async queryWorkflowHub(
+    filters: DiscoveryFilters = {},
+  ): Promise<CrossHubWorkflow[]> {
+    try {
+      // Use specialized filter for the dedicated workflow hub
+      const velocityFilter: any = {
+        kinds: ["10"], // AI_MEMORY events
+        limit: 200, // Higher limit since this is the main hub
+        tags: {
+          ai_tag: ["public", "discoverable"], // Only public workflows
+          ai_type: ["workflow"],
+        },
+      };
+
+      // Add capability filters
+      if (filters.capabilities && filters.capabilities.length > 0) {
+        velocityFilter.tags.workflow_capability = filters.capabilities;
+      }
+
+      // Add requirement filters
+      if (filters.requirements && filters.requirements.length > 0) {
+        velocityFilter.tags.workflow_requirement = filters.requirements;
+      }
+
+      // Add tag filters
+      if (filters.tags && filters.tags.length > 0) {
+        velocityFilter.tags.ai_tag = [
+          ...velocityFilter.tags.ai_tag,
+          ...filters.tags,
+        ];
+      }
+
+      const filterString = JSON.stringify([velocityFilter]);
+      const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
+
+      const workflows: CrossHubWorkflow[] = [];
+
+      for (const event of events) {
+        try {
+          const crossHubWorkflow = this.convertEventToCrossHubWorkflow(
+            event,
+            WORKFLOW_HUB_ID,
+          );
+
+          if (this.matchesAdditionalFilters(crossHubWorkflow, filters)) {
+            workflows.push(crossHubWorkflow);
+          }
+        } catch (error) {
+          console.warn(`Failed to convert workflow hub event:`, error);
+          continue;
+        }
+      }
+
+      return workflows;
+    } catch (error) {
+      console.warn(`Failed to query workflow hub ${WORKFLOW_HUB_ID}:`, error);
+      return [];
+    }
   }
 
   /**
@@ -991,6 +1023,7 @@ export class CrossHubDiscoveryService {
     filters: DiscoveryFilters = {},
   ): Promise<CrossHubWorkflow[]> {
     try {
+      // Check cache first
       // Check cache first
       const cacheKey = `${hubId}_${JSON.stringify(filters)}`;
       if (this.workflowCache.has(cacheKey)) {
