@@ -131,6 +131,12 @@ export class WorkflowRelationshipManager {
         return dependents;
     }
     /**
+     * Get network statistics (alias for getEcosystemOverview)
+     */
+    getNetworkStatistics() {
+        return this.getEcosystemOverview();
+    }
+    /**
      * Get workflow ecosystem overview
      */
     getEcosystemOverview() {
@@ -251,7 +257,6 @@ export class WorkflowRelationshipManager {
     applyInheritedEnhancement(workflowId, enhancement, sourceId) {
         // This would integrate with the workflow execution system
         // For now, we'll just track the inheritance
-        console.log(`Applying inherited enhancement from ${sourceId} to ${workflowId}:`, enhancement.description);
     }
     calculateCollaborationPotential(workflowId) {
         const opportunities = this.findCollaborationOpportunities(workflowId);

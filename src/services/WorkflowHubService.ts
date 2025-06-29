@@ -332,32 +332,7 @@ export class WorkflowHubService {
       this.applyFiltersToVelocityQuery(velocityFilter, filters);
 
       const filterString = JSON.stringify([velocityFilter]);
-
-      // DEBUG: Log the search parameters
-      console.log(
-        `[WORKFLOW SEARCH DEBUG] Searching in hard-coded hub: ${WORKFLOW_HUB_ID}`,
-      );
-      console.log(`[WORKFLOW SEARCH DEBUG] Search capability: ${capability}`);
-      console.log(`[WORKFLOW SEARCH DEBUG] Filter:`, velocityFilter);
-
       const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-
-      console.log(`[WORKFLOW SEARCH DEBUG] Found ${events.length} events`);
-
-      // DEBUG: Log detailed information about each event
-      events.forEach((event: any, index) => {
-        console.log(`[WORKFLOW SEARCH DEBUG] Event ${index + 1}:`, {
-          ai_tag: event.ai_tag,
-          ai_type: event.ai_type,
-          allTags: Object.keys(event).filter(
-            (key) => key.startsWith("ai_") || key.startsWith("workflow_"),
-          ),
-          id: event.Id || event.id,
-          memoryType: event.memoryType,
-          workflow_capability: event.workflow_capability,
-          workflow_id: event.workflow_id,
-        });
-      });
 
       const workflows = events
         .map((event) => this.convertEventToWorkflow(event))
@@ -402,34 +377,7 @@ export class WorkflowHubService {
       this.applyFiltersToVelocityQuery(velocityFilter, filters);
 
       const filterString = JSON.stringify([velocityFilter]);
-
-      // DEBUG: Log the search parameters for query search
-      console.log(
-        `[WORKFLOW QUERY DEBUG] Searching in hard-coded hub: ${WORKFLOW_HUB_ID}`,
-      );
-      console.log(`[WORKFLOW QUERY DEBUG] Search query: "${query}"`);
-      console.log(`[WORKFLOW QUERY DEBUG] Filter:`, velocityFilter);
-
       const events = await fetchEvents(WORKFLOW_HUB_ID, filterString);
-
-      console.log(
-        `[WORKFLOW QUERY DEBUG] Found ${events.length} events before query filtering`,
-      );
-
-      // DEBUG: Log detailed information about each event
-      events.slice(0, 3).forEach((event: any, index) => {
-        console.log(`[WORKFLOW QUERY DEBUG] Event ${index + 1}:`, {
-          ai_tag: event.ai_tag,
-          ai_type: event.ai_type,
-          allTags: Object.keys(event).filter(
-            (key) => key.startsWith("ai_") || key.startsWith("workflow_"),
-          ),
-          content: event.Content?.substring(0, 100) + "...",
-          id: event.Id || event.id,
-          workflow_capability: event.workflow_capability,
-          workflow_id: event.workflow_id,
-        });
-      });
 
       const workflows = events
         .map((event) => this.convertEventToWorkflow(event))

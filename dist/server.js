@@ -1,5 +1,4 @@
 // SSE transport allows normal logging without protocol interference
-//console.log('🧠 Permamind MCP Server starting with SSE transport...');
 import Arweave from "arweave";
 import dotenv from "dotenv";
 import { FastMCP } from "fastmcp";
@@ -49,15 +48,11 @@ async function init() {
             hubId = await hubRegistryService.create(keyPair, profile);
         }
     }
-    // DEBUG: Compare hubId vs WorkflowHubService hard-coded hub
-    console.log(`[HUB COMPARISON DEBUG] Dynamic hubId (where workflows were saved): ${hubId}`);
-    console.log(`[HUB COMPARISON DEBUG] Centralized WORKFLOW_HUB_ID (where workflows are now saved): ${CENTRALIZED_WORKFLOW_HUB_ID}`);
-    console.log(`[HUB COMPARISON DEBUG] Hub IDs match: ${hubId === CENTRALIZED_WORKFLOW_HUB_ID}`);
     if (hubId !== CENTRALIZED_WORKFLOW_HUB_ID) {
-        console.log(`[HUB COMPARISON DEBUG] ✅ SOLUTION APPLIED: Workflows now save to centralized hub ${CENTRALIZED_WORKFLOW_HUB_ID} instead of user hub ${hubId}`);
+        // Solution applied: workflows save to centralized hub
     }
     else {
-        console.log(`[HUB COMPARISON DEBUG] ✅ Hub IDs match - user hub happens to be the workflow hub`);
+        // Hub IDs match - user hub happens to be the workflow hub
     }
 }
 const server = new FastMCP({
@@ -587,16 +582,7 @@ server.addTool({
                 workflowVersion: args.workflowVersion || "1.0.0",
             };
             // SOLUTION: Use centralized workflow hub for all workflow storage
-            // DEBUG: Log the hub usage for workflow save
-            console.log(`[WORKFLOW SAVE DEBUG] OLD: Would save to user hub: ${hubId}`);
-            console.log(`[WORKFLOW SAVE DEBUG] NEW: Saving to centralized workflow hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`);
-            console.log(`[WORKFLOW SAVE DEBUG] Workflow data:`, {
-                capabilities: workflowMemory.capabilities,
-                memoryType: workflowMemory.memoryType,
-                workflowId: workflowMemory.workflowId,
-            });
             const result = await aiMemoryService.addEnhanced(keyPair, CENTRALIZED_WORKFLOW_HUB_ID, workflowMemory);
-            console.log(`[WORKFLOW SAVE DEBUG] Save result:`, result);
             return result;
         }
         catch (error) {
@@ -888,8 +874,6 @@ server.addTool({
                 workflowId: args.workflowId,
             };
             // SOLUTION: Use centralized workflow hub for enhancement storage too
-            console.log(`[ENHANCEMENT SAVE DEBUG] Saving enhancement to centralized hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`);
-            console.log(`[ENHANCEMENT SAVE DEBUG] Enhancement for workflow: ${args.workflowId}`);
             const result = await aiMemoryService.addEnhanced(keyPair, CENTRALIZED_WORKFLOW_HUB_ID, enhancementMemory);
             // Also track in analytics service if available
             if (workflowServices) {
@@ -1135,8 +1119,6 @@ server.addTool({
                 workflowId: args.compositionId,
             };
             // SOLUTION: Use centralized workflow hub for composition storage
-            console.log(`[COMPOSITION SAVE DEBUG] Saving composition to centralized hub: ${CENTRALIZED_WORKFLOW_HUB_ID}`);
-            console.log(`[COMPOSITION SAVE DEBUG] Composition ID: ${args.compositionId}`);
             const result = await aiMemoryService.addEnhanced(keyPair, CENTRALIZED_WORKFLOW_HUB_ID, compositionMemory);
             return result;
         }
@@ -1482,7 +1464,9 @@ server.addPrompt({
   ],
   description: "Generate a Git commit message",
   load: async (args) => {
-    return `Generate a concise but descriptive commit message for these changes:\n\n${args.changes}`;
+    return `Generate a concise but descriptive commit message for these changes:
+
+${args.changes}`;
   },
   name: "git-commit",
 });*/
