@@ -71,6 +71,8 @@ export class CrossHubDiscoveryService {
   private discoveredHubs: Map<string, HubInfo> = new Map();
   private discoveryInterval: number = 300000; // 5 minutes
   private lastDiscoveryTime: number = 0;
+  private statisticsCache: Map<string, { data: any; timestamp: number }> =
+    new Map();
   private workflowCache: Map<string, CrossHubWorkflow[]> = new Map();
 
   /**
@@ -78,25 +80,50 @@ export class CrossHubDiscoveryService {
    */
   async discoverByCapability(capability: string): Promise<CrossHubWorkflow[]> {
     const hubs = await this.discoverHubs();
+
+    // Optimize: limit to top 6 most active hubs for capability search
+    const activeHubs = hubs
+      .filter((hub) => hub.hasPublicWorkflows)
+      .sort((a, b) => b.workflowCount - a.workflowCount)
+      .slice(0, 6); // Limit to top 6 hubs for speed
+
     const workflows: CrossHubWorkflow[] = [];
 
-    for (const hub of hubs) {
-      if (!hub.hasPublicWorkflows) continue;
+    // Add timeout wrapper
+    const withTimeout = <T>(
+      promise: Promise<T>,
+      timeoutMs: number,
+    ): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs),
+        ),
+      ]);
+    };
 
+    // Process hubs in parallel for speed
+    const hubPromises = activeHubs.map(async (hub) => {
       try {
-        const hubWorkflows = await this.queryHubWorkflows(hub.processId, {
-          capabilities: [capability],
-        });
-        workflows.push(...hubWorkflows);
+        return await withTimeout(
+          this.queryHubWorkflows(hub.processId, { capabilities: [capability] }),
+          3000, // 3s timeout per hub
+        );
       } catch (error) {
         console.warn(
           `Failed to query workflows from hub ${hub.processId}:`,
           error,
         );
+        return [];
       }
-    }
+    });
 
-    return this.rankWorkflows(workflows);
+    const allHubResults = await Promise.all(hubPromises);
+    allHubResults.forEach((hubWorkflows) => workflows.push(...hubWorkflows));
+
+    // Limit results for faster processing
+    const limitedWorkflows = workflows.slice(0, 30); // Process max 30 workflows
+    return this.rankWorkflows(limitedWorkflows);
   }
 
   /**
@@ -211,6 +238,21 @@ export class CrossHubDiscoveryService {
   }
 
   /**
+   * Get cached network statistics instantly (no network calls)
+   */
+  getCachedNetworkStatistics(): {
+    averageReputationScore: number;
+    networkHealthScore: number;
+    topCapabilities: string[];
+    totalHubs: number;
+    totalPublicWorkflows: number;
+  } | null {
+    const cacheKey = "network_statistics";
+    const cachedStats = this.statisticsCache.get(cacheKey);
+    return cachedStats ? cachedStats.data : null;
+  }
+
+  /**
    * Get network statistics
    */
   async getNetworkStatistics(): Promise<{
@@ -220,7 +262,14 @@ export class CrossHubDiscoveryService {
     totalHubs: number;
     totalPublicWorkflows: number;
   }> {
-    // Add timeout wrapper
+    // Check cache first - cache for 5 minutes
+    const cacheKey = "network_statistics";
+    const cachedStats = this.statisticsCache.get(cacheKey);
+    if (cachedStats && Date.now() - cachedStats.timestamp < 300000) {
+      return cachedStats.data;
+    }
+
+    // Add timeout wrapper with shorter timeouts
     const withTimeout = <T>(
       promise: Promise<T>,
       timeoutMs: number,
@@ -233,67 +282,95 @@ export class CrossHubDiscoveryService {
       ]);
     };
 
-    const hubs = await withTimeout(this.discoverHubs(), 30000); // 30s timeout
-    const allWorkflows: CrossHubWorkflow[] = [];
+    try {
+      // Get hubs with much shorter timeout
+      const hubs = await withTimeout(this.discoverHubs(), 10000); // 10s timeout
 
-    // Process hubs in parallel with concurrency limit
-    const concurrencyLimit = 5;
-    const workflowPromises = hubs
-      .filter((hub) => hub.hasPublicWorkflows)
-      .map(async (hub) => {
+      // For speed, limit to first 10 most active hubs and use sampling
+      const activeHubs = hubs
+        .filter((hub) => hub.hasPublicWorkflows)
+        .sort((a, b) => b.workflowCount - a.workflowCount)
+        .slice(0, 10); // Only check top 10 hubs
+
+      const allWorkflows: CrossHubWorkflow[] = [];
+
+      // Process all hubs in parallel with much shorter timeout per hub
+      const workflowPromises = activeHubs.map(async (hub) => {
         try {
           return await withTimeout(
             this.queryHubWorkflows(hub.processId),
-            15000,
-          ); // 15s per hub
+            5000, // Only 5s per hub
+          );
         } catch (error) {
           console.warn(`Failed to query hub ${hub.processId}:`, error);
           return [];
         }
       });
 
-    // Process in batches to avoid overwhelming the network
-    for (let i = 0; i < workflowPromises.length; i += concurrencyLimit) {
-      const batch = workflowPromises.slice(i, i + concurrencyLimit);
-      const batchResults = await Promise.all(batch);
-      batchResults.forEach((workflows) => allWorkflows.push(...workflows));
-    }
+      // Process all in one batch since we limited to 10 hubs
+      const allResults = await Promise.all(workflowPromises);
+      allResults.forEach((workflows) => allWorkflows.push(...workflows));
 
-    const totalHubs = hubs.length;
-    const totalPublicWorkflows = allWorkflows.length;
-    const averageReputationScore =
-      allWorkflows.length > 0
-        ? allWorkflows.reduce((sum, w) => sum + w.reputationScore, 0) /
-          allWorkflows.length
-        : 0;
+      const totalHubs = hubs.length;
+      const totalPublicWorkflows = allWorkflows.length;
+      const averageReputationScore =
+        allWorkflows.length > 0
+          ? allWorkflows.reduce((sum, w) => sum + w.reputationScore, 0) /
+            allWorkflows.length
+          : 0;
 
-    // Count capability frequency
-    const capabilityCount = new Map<string, number>();
-    allWorkflows.forEach((w) => {
-      w.capabilities.forEach((cap) => {
-        capabilityCount.set(cap, (capabilityCount.get(cap) || 0) + 1);
+      // Count capability frequency
+      const capabilityCount = new Map<string, number>();
+      allWorkflows.forEach((w) => {
+        w.capabilities.forEach((cap) => {
+          capabilityCount.set(cap, (capabilityCount.get(cap) || 0) + 1);
+        });
       });
-    });
 
-    const topCapabilities = Array.from(capabilityCount.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([cap]) => cap);
+      const topCapabilities = Array.from(capabilityCount.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([cap]) => cap);
 
-    const networkHealthScore = Math.min(
-      1.0,
-      totalHubs * 0.1 +
-        totalPublicWorkflows * 0.05 +
-        averageReputationScore * 0.5,
-    );
+      const networkHealthScore = Math.min(
+        1.0,
+        totalHubs * 0.1 +
+          totalPublicWorkflows * 0.05 +
+          averageReputationScore * 0.5,
+      );
 
-    return {
-      averageReputationScore,
-      networkHealthScore,
-      topCapabilities,
-      totalHubs,
-      totalPublicWorkflows,
-    };
+      const result = {
+        averageReputationScore,
+        networkHealthScore,
+        topCapabilities,
+        totalHubs,
+        totalPublicWorkflows,
+      };
+
+      // Cache the result for 5 minutes
+      this.statisticsCache.set(cacheKey, {
+        data: result,
+        timestamp: Date.now(),
+      });
+
+      return result;
+    } catch (error) {
+      console.warn("Failed to get network statistics:", error);
+
+      // Return cached data if available, even if stale
+      if (cachedStats) {
+        return cachedStats.data;
+      }
+
+      // Return minimal fallback statistics
+      return {
+        averageReputationScore: 0,
+        networkHealthScore: 0,
+        topCapabilities: [],
+        totalHubs: 0,
+        totalPublicWorkflows: 0,
+      };
+    }
   }
 
   /**
@@ -385,37 +462,57 @@ export class CrossHubDiscoveryService {
     filters: DiscoveryFilters = {},
   ): Promise<CrossHubWorkflow[]> {
     const hubs = await this.discoverHubs();
+
+    // Optimize: limit to top 8 most active hubs for faster search
+    const activeHubs = hubs
+      .filter((hub) => hub.hasPublicWorkflows)
+      .filter(
+        (hub) =>
+          !filters.minReputationScore ||
+          hub.reputationScore >= filters.minReputationScore,
+      )
+      .sort((a, b) => b.workflowCount - a.workflowCount)
+      .slice(0, 8); // Limit to top 8 hubs
+
     const workflows: CrossHubWorkflow[] = [];
 
-    for (const hub of hubs) {
-      if (!hub.hasPublicWorkflows) continue;
+    // Add timeout wrapper
+    const withTimeout = <T>(
+      promise: Promise<T>,
+      timeoutMs: number,
+    ): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+          setTimeout(() => reject(new Error("Hub query timed out")), timeoutMs),
+        ),
+      ]);
+    };
 
-      // Skip hubs that don't meet reputation threshold
-      if (
-        filters.minReputationScore &&
-        hub.reputationScore < filters.minReputationScore
-      ) {
-        continue;
-      }
-
+    // Process hubs in parallel for speed
+    const hubPromises = activeHubs.map(async (hub) => {
       try {
-        const hubWorkflows = await this.queryHubWorkflows(
-          hub.processId,
-          filters,
+        const hubWorkflows = await withTimeout(
+          this.queryHubWorkflows(hub.processId, filters),
+          4000, // 4s timeout per hub
         );
-        const filteredWorkflows = hubWorkflows.filter((w) =>
-          this.matchesQuery(w, query),
-        );
-        workflows.push(...filteredWorkflows);
+        return hubWorkflows.filter((w) => this.matchesQuery(w, query));
       } catch (error) {
         console.warn(
           `Failed to search workflows in hub ${hub.processId}:`,
           error,
         );
+        return [];
       }
-    }
+    });
 
-    return this.rankWorkflows(workflows, filters);
+    // Wait for all hub searches with overall timeout
+    const allHubResults = await Promise.all(hubPromises);
+    allHubResults.forEach((hubWorkflows) => workflows.push(...hubWorkflows));
+
+    // Limit results for faster processing
+    const limitedWorkflows = workflows.slice(0, 50); // Process max 50 workflows
+    return this.rankWorkflows(limitedWorkflows, filters);
   }
 
   /**

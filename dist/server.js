@@ -113,8 +113,18 @@ function startEnhancementCycleForWorkflow(workflowId) {
             targetValue: 0.8,
             weight: 0.3,
         },
-        { achieved: false, metric: "success_rate", targetValue: 0.95, weight: 0.4 },
-        { achieved: false, metric: "quality_score", targetValue: 0.9, weight: 0.3 },
+        {
+            achieved: false,
+            metric: "success_rate",
+            targetValue: 0.95,
+            weight: 0.4,
+        },
+        {
+            achieved: false,
+            metric: "quality_score",
+            targetValue: 0.9,
+            weight: 0.3,
+        },
     ];
     workflowServices.enhancementEngine.initializeEnhancementLoop(workflowId, optimizationTargets);
     // Run enhancement cycles periodically
@@ -1329,7 +1339,10 @@ server.addTool({
         title: "Get Network Statistics",
     },
     description: `Get statistics about the workflow ecosystem network including total hubs, workflows, 
-    top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.`,
+    top capabilities, and network health score. Provides insights into the ecosystem's growth and activity.
+    
+    Note: This performs network calls and may take 10-15 seconds. For faster responses, use getCachedNetworkStatistics 
+    which returns instantly but may have stale data. Results are cached for 5 minutes.`,
     execute: async () => {
         try {
             if (!workflowServices) {
@@ -1344,6 +1357,40 @@ server.addTool({
         }
     },
     name: "getNetworkStatistics",
+    parameters: z.object({}),
+});
+// Tool to get cached network statistics instantly
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Get Cached Network Statistics",
+    },
+    description: `Get instantly available cached network statistics without any network calls. 
+    Returns cached data if available, otherwise null. Use this for fast UI updates when you need 
+    immediate response times and can handle potentially stale data.`,
+    execute: async () => {
+        try {
+            if (!workflowServices) {
+                return "Workflow services not initialized";
+            }
+            const discoveryService = workflowServices.crossHubDiscovery;
+            const cachedStats = discoveryService.getCachedNetworkStatistics();
+            if (cachedStats) {
+                return JSON.stringify(cachedStats);
+            }
+            else {
+                return JSON.stringify({
+                    cached: false,
+                    message: "No cached statistics available. Use getNetworkStatistics to fetch fresh data.",
+                });
+            }
+        }
+        catch (error) {
+            return `Error: ${error}`;
+        }
+    },
+    name: "getCachedNetworkStatistics",
     parameters: z.object({}),
 });
 // Tool to request enhancement patterns from other workflows
@@ -1433,55 +1480,60 @@ server.addTool({
     it should automatically search the network for workflows first.
     
     Provide a natural language description of what the user wants to accomplish, and this tool will:
-    1. Search for existing workflows across all hubs
-    2. Find workflows by capability, requirements, or similarity
+    1. Search for existing workflows across top active hubs (optimized for speed)
+    2. Find workflows by capability, requirements, or similarity  
     3. Return ranked results with performance metrics
     4. Suggest the best existing workflows to try first
     5. Only recommend creating new workflows if none exist
     
-    This promotes workflow reuse, learning from the community, and avoids duplicate work.`,
+    Performance optimized: Searches complete in 8-15 seconds with smart hub selection,
+    timeouts, and parallel processing. This promotes workflow reuse and avoids duplicate work.`,
     execute: async (args) => {
         try {
             if (!workflowServices) {
                 return "Workflow services not initialized. Please try again in a moment.";
             }
             const discoveryService = workflowServices.crossHubDiscovery;
-            // Multi-strategy search approach
+            // Add timeout wrapper for fast responses
+            const withTimeout = (promise, timeoutMs) => {
+                return Promise.race([
+                    promise,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error("Search timed out")), timeoutMs)),
+                ]);
+            };
+            // Use smart strategy selection - limit strategies for speed
             const strategies = [];
-            // 1. Direct search for the user's description
+            // 1. Always do direct search (most important)
             strategies.push({
-                method: () => discoveryService.searchGlobalWorkflows(args.userRequest, {
+                method: () => withTimeout(discoveryService.searchGlobalWorkflows(args.userRequest, {
                     minPerformanceScore: 0.3,
                     minReputationScore: 0.3,
-                }),
+                }), 8000),
                 type: "search",
                 weight: 1.0,
             });
-            // 2. Extract and search for capabilities if provided
+            // 2. Only search for first capability if provided (limit to 1 for speed)
             if (args.capabilities) {
-                const capabilityList = args.capabilities
-                    .split(",")
-                    .map((c) => c.trim());
-                for (const capability of capabilityList) {
-                    strategies.push({
-                        method: () => discoveryService.discoverByCapability(capability),
-                        type: "capability",
-                        weight: 0.8,
-                    });
-                }
+                const firstCapability = args.capabilities.split(",")[0].trim();
+                strategies.push({
+                    method: () => withTimeout(discoveryService.discoverByCapability(firstCapability), 6000),
+                    type: "capability",
+                    weight: 0.8,
+                });
             }
-            // 3. Search for requirements if provided
-            if (args.requirements) {
+            // 3. Only search requirements if no capabilities provided (avoid redundancy)
+            else if (args.requirements) {
                 const requirementsList = args.requirements
                     .split(",")
+                    .slice(0, 2) // Limit to first 2 requirements
                     .map((r) => r.trim());
                 strategies.push({
-                    method: () => discoveryService.findWorkflowsForRequirements(requirementsList),
+                    method: () => withTimeout(discoveryService.findWorkflowsForRequirements(requirementsList), 6000),
                     type: "requirements",
                     weight: 0.9,
                 });
             }
-            // Execute all search strategies in parallel
+            // Execute search strategies with overall timeout and early termination
             const searchPromises = strategies.map(async (strategy) => {
                 try {
                     const results = await strategy.method();
@@ -1496,8 +1548,16 @@ server.addTool({
                     return [];
                 }
             });
-            const allResults = await Promise.all(searchPromises);
+            // Add overall timeout for all searches combined
+            const searchWithTimeout = withTimeout(Promise.all(searchPromises), 15000);
+            const allResults = await searchWithTimeout;
             const flatResults = allResults.flat();
+            // Early termination if we have enough high-quality results
+            if (flatResults.length > 20) {
+                // Pre-filter to top results to reduce processing time
+                flatResults.sort((a, b) => b.relevanceWeight - a.relevanceWeight);
+                flatResults.splice(20); // Keep only top 20 for processing
+            }
             // Deduplicate by workflow ID and hub
             const uniqueWorkflows = new Map();
             flatResults.forEach((workflow) => {
