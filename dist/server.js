@@ -515,6 +515,8 @@ server.addTool({
         title: "Add Workflow Memory",
     },
     description: `Store workflow execution memories with performance metrics, enhancement tracking, and stage information. 
+    IMPORTANT: Before creating a new workflow, ALWAYS use the findWorkflowNetworkFirst tool to search for existing workflows 
+    that might accomplish the same task. Only use this tool to document NEW workflows after confirming none exist on the network.
     Use this for documenting workflow executions, tracking improvements, and building workflow intelligence.`,
     execute: async (args) => {
         try {
@@ -1050,6 +1052,8 @@ server.addTool({
         title: "Create Workflow Composition",
     },
     description: `Create a composition of multiple workflows that can be executed together. 
+    IMPORTANT: Before creating a new composition, use findWorkflowNetworkFirst to search for existing workflow compositions 
+    that might already solve your orchestration needs. This promotes reuse and learning from the community.
     Enables building complex workflows from simpler components and workflow reuse.`,
     execute: async (args) => {
         try {
@@ -1424,6 +1428,128 @@ server.addTool({
             .boolean()
             .optional()
             .describe("Force refresh of hub discovery cache"),
+    }),
+});
+// Network-First Workflow Discovery Tool
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Find Workflow (Network First)",
+    },
+    description: `PREFERRED: Always use this tool FIRST when a user needs a workflow for any task. 
+    This tool searches the global Permamind network to find existing workflows that match the user's needs 
+    before suggesting they create a new one. Just like how Permamind automatically stores memories, 
+    it should automatically search the network for workflows first.
+    
+    Provide a natural language description of what the user wants to accomplish, and this tool will:
+    1. Search for existing workflows across all hubs
+    2. Find workflows by capability, requirements, or similarity
+    3. Return ranked results with performance metrics
+    4. Suggest the best existing workflows to try first
+    5. Only recommend creating new workflows if none exist
+    
+    This promotes workflow reuse, learning from the community, and avoids duplicate work.`,
+    execute: async (args) => {
+        try {
+            if (!workflowServices) {
+                return "Workflow services not initialized. Please try again in a moment.";
+            }
+            const discoveryService = workflowServices.crossHubDiscovery;
+            // Multi-strategy search approach
+            const strategies = [];
+            // 1. Direct search for the user's description
+            strategies.push({
+                type: "search",
+                method: () => discoveryService.searchGlobalWorkflows(args.userRequest, {
+                    minReputationScore: 0.3,
+                    minPerformanceScore: 0.3,
+                }),
+                weight: 1.0,
+            });
+            // 2. Extract and search for capabilities if provided
+            if (args.capabilities) {
+                const capabilityList = args.capabilities.split(",").map(c => c.trim());
+                for (const capability of capabilityList) {
+                    strategies.push({
+                        type: "capability",
+                        method: () => discoveryService.discoverByCapability(capability),
+                        weight: 0.8,
+                    });
+                }
+            }
+            // 3. Search for requirements if provided
+            if (args.requirements) {
+                const requirementsList = args.requirements.split(",").map(r => r.trim());
+                strategies.push({
+                    type: "requirements",
+                    method: () => discoveryService.findWorkflowsForRequirements(requirementsList),
+                    weight: 0.9,
+                });
+            }
+            // Execute all search strategies in parallel
+            const searchPromises = strategies.map(async (strategy) => {
+                try {
+                    const results = await strategy.method();
+                    return results.map(workflow => ({
+                        ...workflow,
+                        searchStrategy: strategy.type,
+                        relevanceWeight: strategy.weight,
+                    }));
+                }
+                catch (error) {
+                    console.warn(`Search strategy ${strategy.type} failed:`, error);
+                    return [];
+                }
+            });
+            const allResults = await Promise.all(searchPromises);
+            const flatResults = allResults.flat();
+            // Deduplicate by workflow ID and hub
+            const uniqueWorkflows = new Map();
+            flatResults.forEach(workflow => {
+                const key = `${workflow.hubId}-${workflow.workflowId}`;
+                if (!uniqueWorkflows.has(key) ||
+                    uniqueWorkflows.get(key).relevanceWeight < workflow.relevanceWeight) {
+                    uniqueWorkflows.set(key, workflow);
+                }
+            });
+            // Sort by relevance score (combination of performance, reputation, and search relevance)
+            const rankedWorkflows = Array.from(uniqueWorkflows.values())
+                .map(workflow => ({
+                ...workflow,
+                combinedScore: (workflow.performanceScore * 0.4 +
+                    workflow.reputationScore * 0.4 +
+                    workflow.relevanceWeight * 0.2),
+            }))
+                .sort((a, b) => b.combinedScore - a.combinedScore)
+                .slice(0, args.maxResults || 10);
+            // Generate recommendations
+            const recommendations = [];
+            if (rankedWorkflows.length === 0) {
+                recommendations.push("No existing workflows found that match your requirements.", "Consider creating a new workflow and sharing it with the network.", "Use the addWorkflowMemory tool to document your new workflow.");
+            }
+            else {
+                recommendations.push(`Found ${rankedWorkflows.length} existing workflows that might help.`, "Review the top-ranked workflows first before creating a new one.", "Consider enhancing existing workflows rather than starting from scratch.");
+            }
+            return JSON.stringify({
+                query: args.userRequest,
+                totalFound: rankedWorkflows.length,
+                workflows: rankedWorkflows,
+                recommendations,
+                searchStrategies: strategies.map(s => s.type),
+                networkFirst: true,
+            });
+        }
+        catch (error) {
+            return `Error: ${error}`;
+        }
+    },
+    name: "findWorkflowNetworkFirst",
+    parameters: z.object({
+        userRequest: z.string().describe("Natural language description of what the user wants to accomplish"),
+        capabilities: z.string().optional().describe("Comma-separated list of required capabilities"),
+        requirements: z.string().optional().describe("Comma-separated list of specific requirements"),
+        maxResults: z.number().optional().describe("Maximum number of results to return (default: 10)"),
     }),
 });
 /*server.addResource({
