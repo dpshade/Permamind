@@ -15,10 +15,10 @@ vi.mock("../../../src/services/hub_lua.js", () => ({
 }));
 
 vi.mock("../../../src/relay.js", () => ({
-  getZone: vi.fn(),
-  register: vi.fn(),
   evalProcess: vi.fn(),
   event: vi.fn(),
+  getZone: vi.fn(),
+  register: vi.fn(),
 }));
 
 describe("HubRegistryService", () => {
@@ -39,9 +39,7 @@ describe("HubRegistryService", () => {
 
   describe("create", () => {
     it("should create new hub with profile", async () => {
-      const { createProcess } = await import(
-        "../../../src/process.js"
-      );
+      const { createProcess } = await import("../../../src/process.js");
       const { evalProcess, event } = await import("../../../src/relay.js");
 
       const mockProcessId = "test-process-123";
@@ -131,7 +129,6 @@ describe("HubRegistryService", () => {
       };
 
       // Mock the internal relay call
-      const originalRegister = service.register;
       vi.spyOn(service, "register").mockImplementation(async () => {
         // Simulate successful registration
         return undefined;
@@ -166,9 +163,7 @@ describe("HubRegistryService", () => {
 
   describe("profile data validation", () => {
     it("should handle minimal profile data", async () => {
-      const { createProcess } = await import(
-        "../../../src/process.js"
-      );
+      const { createProcess } = await import("../../../src/process.js");
       const { evalProcess, event } = await import("../../../src/relay.js");
 
       const minimalProfile = {
@@ -193,9 +188,7 @@ describe("HubRegistryService", () => {
     });
 
     it("should handle complete profile data", async () => {
-      const { createProcess } = await import(
-        "../../../src/process.js"
-      );
+      const { createProcess } = await import("../../../src/process.js");
       const { evalProcess, event } = await import("../../../src/relay.js");
 
       const completeProfile = {

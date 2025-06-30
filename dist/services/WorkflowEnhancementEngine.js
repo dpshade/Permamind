@@ -191,12 +191,14 @@ export class WorkflowEnhancementEngine {
      */
     async runEnhancementCycle(workflowId) {
         // Handle invalid or empty workflow IDs
-        if (!workflowId || typeof workflowId !== 'string' || workflowId.trim() === '') {
+        if (!workflowId ||
+            typeof workflowId !== "string" ||
+            workflowId.trim() === "") {
             return {
                 applied: [],
                 enhancements: [],
                 nextCycleIn: 86400000, // 24 hours
-                rejected: []
+                rejected: [],
             };
         }
         const loop = this.enhancementLoops.get(workflowId);
@@ -206,7 +208,7 @@ export class WorkflowEnhancementEngine {
                 applied: [],
                 enhancements: [],
                 nextCycleIn: 86400000, // 24 hours
-                rejected: []
+                rejected: [],
             };
         }
         // Phase 1: Identify potential enhancements

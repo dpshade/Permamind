@@ -300,12 +300,16 @@ export class WorkflowEnhancementEngine {
     rejected: Enhancement[];
   }> {
     // Handle invalid or empty workflow IDs
-    if (!workflowId || typeof workflowId !== 'string' || workflowId.trim() === '') {
+    if (
+      !workflowId ||
+      typeof workflowId !== "string" ||
+      workflowId.trim() === ""
+    ) {
       return {
         applied: [],
         enhancements: [],
         nextCycleIn: 86400000, // 24 hours
-        rejected: []
+        rejected: [],
       };
     }
 
@@ -316,7 +320,7 @@ export class WorkflowEnhancementEngine {
         applied: [],
         enhancements: [],
         nextCycleIn: 86400000, // 24 hours
-        rejected: []
+        rejected: [],
       };
     }
 
@@ -567,7 +571,10 @@ export class WorkflowEnhancementEngine {
       }
     } catch (error) {
       // Handle performance tracker failures gracefully
-      console.warn(`Failed to create analytics enhancements for ${workflowId}:`, error);
+      console.warn(
+        `Failed to create analytics enhancements for ${workflowId}:`,
+        error,
+      );
       return [];
     }
 
