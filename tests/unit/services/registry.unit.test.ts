@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { hubRegistryService } from "../../../src/services/registry.js";
 import { mockKeyPair } from "../../mocks/aoConnect.js";
 
@@ -19,13 +20,13 @@ vi.mock("../../../src/relay.js", () => ({
 describe("HubRegistryService", () => {
   const service = hubRegistryService;
   const mockProfileData = {
-    displayName: "Test User",
+    bot: false,
+    coverImage: "cover.jpg",
     description: "Test Description",
+    displayName: "Test User",
+    thumbnail: "thumb.jpg",
     userName: "testuser",
     website: "https://example.com",
-    thumbnail: "thumb.jpg",
-    coverImage: "cover.jpg",
-    bot: false,
   };
 
   beforeEach(() => {
@@ -94,8 +95,8 @@ describe("HubRegistryService", () => {
 
       const mockZone = {
         id: "zone-123",
-        processId: "process-123",
         owner: "owner-123",
+        processId: "process-123",
         spec: { processId: "process-123" },
       };
 
@@ -121,12 +122,12 @@ describe("HubRegistryService", () => {
   describe("register", () => {
     it("should register hub specification", async () => {
       const mockHubSpec = {
-        processId: "test-process",
-        type: "hub",
-        version: "1.0.0",
         description: "Test hub",
         kinds: ["0", "1"],
+        processId: "test-process",
         profile: mockProfileData,
+        type: "hub",
+        version: "1.0.0",
       };
 
       // Mock the internal relay call
@@ -149,12 +150,12 @@ describe("HubRegistryService", () => {
 
     it("should handle registration failure", async () => {
       const mockHubSpec = {
-        processId: "test-process",
-        type: "hub",
-        version: "1.0.0",
         description: "Test hub",
         kinds: ["0", "1"],
+        processId: "test-process",
         profile: mockProfileData,
+        type: "hub",
+        version: "1.0.0",
       };
 
       vi.spyOn(service, "register").mockRejectedValue(
@@ -175,13 +176,13 @@ describe("HubRegistryService", () => {
       const { evaluateHub } = await import("../../../src/services/hub_lua.js");
 
       const minimalProfile = {
-        displayName: "",
+        bot: true,
+        coverImage: "",
         description: "",
+        displayName: "",
+        thumbnail: "",
         userName: "",
         website: "",
-        thumbnail: "",
-        coverImage: "",
-        bot: true,
       };
 
       vi.mocked(createProcess).mockResolvedValue("test-process");
@@ -206,13 +207,13 @@ describe("HubRegistryService", () => {
       const { evaluateHub } = await import("../../../src/services/hub_lua.js");
 
       const completeProfile = {
-        displayName: "Complete User",
+        bot: false,
+        coverImage: "complete-cover.jpg",
         description: "A complete user profile",
+        displayName: "Complete User",
+        thumbnail: "complete-thumb.jpg",
         userName: "completeuser",
         website: "https://complete.example.com",
-        thumbnail: "complete-thumb.jpg",
-        coverImage: "complete-cover.jpg",
-        bot: false,
       };
 
       vi.mocked(createProcess).mockResolvedValue("complete-process");

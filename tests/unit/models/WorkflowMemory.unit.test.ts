@@ -1,72 +1,73 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import type {
-  WorkflowMemory,
   Enhancement,
   EnhancementType,
   LearningSource,
-  RelationshipType,
-  WorkflowPerformance,
   MemoryType,
+  RelationshipType,
+  WorkflowMemory,
+  WorkflowPerformance,
 } from "../../../src/models/WorkflowMemory.js";
 
 describe("WorkflowMemory Model", () => {
   describe("WorkflowMemory interface validation", () => {
     it("should validate complete WorkflowMemory object", () => {
       const completeWorkflow: WorkflowMemory = {
-        // Base Memory properties
-        id: "workflow-memory-123",
-        content: "Advanced workflow for data processing",
-        p: "workflow-creator-key",
-        role: "system",
-        metadata: {
-          accessCount: 15,
-          lastAccessed: "2024-01-15T10:30:00Z",
-          tags: ["workflow", "data-processing", "public"],
-        },
-        importance: 0.9,
-        memoryType: "workflow",
-
-        // Workflow-specific properties
-        workflowId: "data-processor-v2",
-        workflowVersion: "2.1.0",
-        stage: "production",
         capabilities: [
           "data-validation",
           "format-conversion",
           "error-handling",
         ],
-        requirements: ["input-schema", "output-format"],
+        content: "Advanced workflow for data processing",
         dependencies: ["schema-validator", "format-library"],
-        performance: {
-          executionTime: 1500,
-          success: true,
-          errorRate: 0.02,
-          resourceUsage: {
-            memoryUsage: 128,
-            cpuTime: 800,
-            networkRequests: 3,
-            storageOperations: 5,
-            toolCalls: 2,
-          },
-          qualityScore: 0.95,
-          userSatisfaction: 0.88,
-          completionRate: 0.98,
-          retryCount: 1,
-          lastExecuted: "2024-01-15T09:45:00Z",
-        },
         enhancement: {
-          id: "enhancement-abc123",
-          type: "optimization",
           description: "Improved execution speed by 25%",
+          id: "enhancement-abc123",
           impact: 0.7,
+          type: "optimization",
           validation: {
-            isValid: true,
             confidence: 0.9,
+            isValid: true,
             riskAssessment: "low",
             testResults: [],
             validatedAt: "2024-01-15T08:30:00Z",
           },
         },
+        // Base Memory properties
+        id: "workflow-memory-123",
+        importance: 0.9,
+        memoryType: "workflow",
+
+        metadata: {
+          accessCount: 15,
+          lastAccessed: "2024-01-15T10:30:00Z",
+          tags: ["workflow", "data-processing", "public"],
+        },
+        p: "workflow-creator-key",
+        performance: {
+          completionRate: 0.98,
+          errorRate: 0.02,
+          executionTime: 1500,
+          lastExecuted: "2024-01-15T09:45:00Z",
+          qualityScore: 0.95,
+          resourceUsage: {
+            cpuTime: 800,
+            memoryUsage: 128,
+            networkRequests: 3,
+            storageOperations: 5,
+            toolCalls: 2,
+          },
+          retryCount: 1,
+          success: true,
+          userSatisfaction: 0.88,
+        },
+        requirements: ["input-schema", "output-format"],
+        role: "system",
+        stage: "production",
+        // Workflow-specific properties
+        workflowId: "data-processor-v2",
+        workflowVersion: "2.1.0",
       };
 
       // Validate base Memory properties
@@ -99,20 +100,20 @@ describe("WorkflowMemory Model", () => {
 
     it("should validate minimal WorkflowMemory object", () => {
       const minimalWorkflow: WorkflowMemory = {
-        id: "minimal-workflow",
+        capabilities: [],
         content: "Basic workflow",
-        p: "creator-key",
-        role: "user",
+        id: "minimal-workflow",
+        importance: 0.5,
+        memoryType: "workflow",
         metadata: {
           accessCount: 0,
           lastAccessed: "2024-01-15T10:30:00Z",
           tags: [],
         },
-        importance: 0.5,
-        memoryType: "workflow",
-        workflowId: "basic-workflow",
+        p: "creator-key",
+        role: "user",
         stage: "development",
-        capabilities: [],
+        workflowId: "basic-workflow",
       };
 
       expect(minimalWorkflow.workflowId).toBe("basic-workflow");
@@ -138,20 +139,20 @@ describe("WorkflowMemory Model", () => {
 
       memoryTypes.forEach((type) => {
         const workflow: WorkflowMemory = {
-          id: `workflow-${type}`,
+          capabilities: [],
           content: `Workflow with ${type} memory type`,
-          p: "test-key",
-          role: "system",
+          id: `workflow-${type}`,
+          importance: 0.5,
+          memoryType: type,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [type],
           },
-          importance: 0.5,
-          memoryType: type,
-          workflowId: `test-workflow-${type}`,
+          p: "test-key",
+          role: "system",
           stage: "testing",
-          capabilities: [],
+          workflowId: `test-workflow-${type}`,
         };
 
         expect(workflow.memoryType).toBe(type);
@@ -174,13 +175,13 @@ describe("WorkflowMemory Model", () => {
 
       enhancementTypes.forEach((type) => {
         const enhancement: Enhancement = {
-          id: `enhancement-${type}`,
-          type: type,
           description: `${type} enhancement`,
+          id: `enhancement-${type}`,
           impact: 0.6,
+          type: type,
           validation: {
-            isValid: true,
             confidence: 0.8,
+            isValid: true,
             riskAssessment: "low",
             testResults: [],
             validatedAt: new Date().toISOString(),
@@ -194,20 +195,20 @@ describe("WorkflowMemory Model", () => {
 
     it("should validate enhancement with optional properties", () => {
       const enhancement: Enhancement = {
-        id: "full-enhancement",
-        type: "optimization",
-        description: "Complete enhancement with all properties",
-        impact: 0.8,
         actualImpact: 0.75,
         code: "function optimizedVersion() { return faster(); }",
+        description: "Complete enhancement with all properties",
+        id: "full-enhancement",
+        impact: 0.8,
         parameters: {
-          threshold: 0.5,
-          iterations: 100,
           enabled: true,
+          iterations: 100,
+          threshold: 0.5,
         },
+        type: "optimization",
         validation: {
-          isValid: true,
           confidence: 0.95,
+          isValid: true,
           riskAssessment: "medium",
           testResults: [
             { name: "performance_test", passed: true, score: 0.9 },
@@ -228,13 +229,13 @@ describe("WorkflowMemory Model", () => {
 
       riskLevels.forEach((risk) => {
         const enhancement: Enhancement = {
-          id: `enhancement-${risk}`,
-          type: "bug_fix",
           description: `Enhancement with ${risk} risk`,
+          id: `enhancement-${risk}`,
           impact: 0.5,
+          type: "bug_fix",
           validation: {
-            isValid: risk !== "critical", // Critical risks might not be valid
             confidence: risk === "low" ? 0.9 : 0.6,
+            isValid: risk !== "critical", // Critical risks might not be valid
             riskAssessment: risk,
             testResults: [],
             validatedAt: new Date().toISOString(),
@@ -249,21 +250,21 @@ describe("WorkflowMemory Model", () => {
   describe("WorkflowPerformance interface validation", () => {
     it("should validate complete performance metrics", () => {
       const performance: WorkflowPerformance = {
-        executionTime: 2500,
-        success: false,
+        completionRate: 0.85,
         errorRate: 0.15,
+        executionTime: 2500,
+        lastExecuted: "2024-01-15T14:20:00Z",
+        qualityScore: 0.75,
         resourceUsage: {
-          memoryUsage: 256,
           cpuTime: 1200,
+          memoryUsage: 256,
           networkRequests: 8,
           storageOperations: 12,
           toolCalls: 6,
         },
-        qualityScore: 0.75,
-        userSatisfaction: 0.65,
-        completionRate: 0.85,
         retryCount: 3,
-        lastExecuted: "2024-01-15T14:20:00Z",
+        success: false,
+        userSatisfaction: 0.65,
       };
 
       expect(performance.executionTime).toBe(2500);
@@ -277,13 +278,13 @@ describe("WorkflowMemory Model", () => {
 
     it("should validate minimal performance metrics", () => {
       const performance: WorkflowPerformance = {
-        executionTime: 500,
-        success: true,
-        errorRate: 0,
-        qualityScore: 1.0,
         completionRate: 1.0,
-        retryCount: 0,
+        errorRate: 0,
+        executionTime: 500,
         lastExecuted: "2024-01-15T10:30:00Z",
+        qualityScore: 1.0,
+        retryCount: 0,
+        success: true,
       };
 
       expect(performance.success).toBe(true);
@@ -296,8 +297,8 @@ describe("WorkflowMemory Model", () => {
 
     it("should validate resource usage metrics", () => {
       const resourceUsage = {
-        memoryUsage: 512,
         cpuTime: 2000,
+        memoryUsage: 512,
         networkRequests: 15,
         storageOperations: 20,
         toolCalls: 10,
@@ -383,20 +384,20 @@ describe("WorkflowMemory Model", () => {
 
       stages.forEach((stage) => {
         const workflow: WorkflowMemory = {
-          id: `workflow-${stage}`,
+          capabilities: [],
           content: `Workflow in ${stage} stage`,
-          p: "test-key",
-          role: "system",
+          id: `workflow-${stage}`,
+          importance: 0.5,
+          memoryType: "workflow",
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [stage],
           },
-          importance: 0.5,
-          memoryType: "workflow",
-          workflowId: `test-${stage}`,
+          p: "test-key",
+          role: "system",
           stage: stage,
-          capabilities: [],
+          workflowId: `test-${stage}`,
         };
 
         expect(workflow.stage).toBe(stage);
@@ -420,20 +421,20 @@ describe("WorkflowMemory Model", () => {
       ];
 
       const workflow: WorkflowMemory = {
-        id: "multi-capability-workflow",
+        capabilities: capabilities,
         content: "Workflow with multiple capabilities",
-        p: "test-key",
-        role: "system",
+        id: "multi-capability-workflow",
+        importance: 0.8,
+        memoryType: "workflow",
         metadata: {
           accessCount: 1,
           lastAccessed: new Date().toISOString(),
           tags: ["multi-capability"],
         },
-        importance: 0.8,
-        memoryType: "workflow",
-        workflowId: "multi-cap-workflow",
+        p: "test-key",
+        role: "system",
         stage: "production",
-        capabilities: capabilities,
+        workflowId: "multi-cap-workflow",
       };
 
       expect(workflow.capabilities).toHaveLength(capabilities.length);
@@ -459,22 +460,22 @@ describe("WorkflowMemory Model", () => {
       ];
 
       const workflow: WorkflowMemory = {
-        id: "dependent-workflow",
+        capabilities: ["data-processing"],
         content: "Workflow with dependencies and requirements",
-        p: "test-key",
-        role: "system",
+        dependencies: dependencies,
+        id: "dependent-workflow",
+        importance: 0.7,
+        memoryType: "workflow",
         metadata: {
           accessCount: 1,
           lastAccessed: new Date().toISOString(),
           tags: ["dependent"],
         },
-        importance: 0.7,
-        memoryType: "workflow",
-        workflowId: "dependent-workflow",
-        stage: "production",
-        capabilities: ["data-processing"],
+        p: "test-key",
         requirements: requirements,
-        dependencies: dependencies,
+        role: "system",
+        stage: "production",
+        workflowId: "dependent-workflow",
       };
 
       expect(workflow.requirements).toHaveLength(requirements.length);
@@ -503,21 +504,21 @@ describe("WorkflowMemory Model", () => {
 
       versions.forEach((version) => {
         const workflow: WorkflowMemory = {
-          id: `workflow-${version.replace(/\./g, "-")}`,
+          capabilities: [],
           content: `Workflow version ${version}`,
-          p: "test-key",
-          role: "system",
+          id: `workflow-${version.replace(/\./g, "-")}`,
+          importance: 0.5,
+          memoryType: "workflow",
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [],
           },
-          importance: 0.5,
-          memoryType: "workflow",
+          p: "test-key",
+          role: "system",
+          stage: "production",
           workflowId: "versioned-workflow",
           workflowVersion: version,
-          stage: "production",
-          capabilities: [],
         };
 
         expect(workflow.workflowVersion).toBe(version);
@@ -526,20 +527,20 @@ describe("WorkflowMemory Model", () => {
 
     it("should handle missing version (default behavior)", () => {
       const workflow: WorkflowMemory = {
-        id: "unversioned-workflow",
+        capabilities: [],
         content: "Workflow without explicit version",
-        p: "test-key",
-        role: "system",
+        id: "unversioned-workflow",
+        importance: 0.5,
+        memoryType: "workflow",
         metadata: {
           accessCount: 1,
           lastAccessed: new Date().toISOString(),
           tags: [],
         },
-        importance: 0.5,
-        memoryType: "workflow",
-        workflowId: "unversioned",
+        p: "test-key",
+        role: "system",
         stage: "development",
-        capabilities: [],
+        workflowId: "unversioned",
       };
 
       expect(workflow.workflowVersion).toBeUndefined();

@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { memoryService } from "../../../src/services/memory.js";
 import { mockHubId } from "../../mocks/aoConnect.js";
 
@@ -25,21 +26,21 @@ describe("MemoryService", () => {
       const { memoryFactory } = await import("../../../src/messageFactory.js");
 
       vi.mocked(fetchEvents).mockResolvedValue([
-        { Id: "1", Content: "Test memory 1" },
-        { Id: "2", Content: "Test memory 2" },
+        { Content: "Test memory 1", Id: "1" },
+        { Content: "Test memory 2", Id: "2" },
       ]);
 
       vi.mocked(memoryFactory).mockImplementation((event) => ({
-        id: event.Id,
         content: event.Content,
-        p: "test-user",
-        role: "user",
+        id: event.Id,
+        importance: 0.5,
         metadata: {
           accessCount: 0,
           lastAccessed: new Date().toISOString(),
           tags: [],
         },
-        importance: 0.5,
+        p: "test-user",
+        role: "user",
       }));
 
       const memories = await mockMemoryService.fetch(mockHubId);
@@ -80,20 +81,20 @@ describe("MemoryService", () => {
       const testUser = "test-user-123";
 
       vi.mocked(fetchEvents).mockResolvedValue([
-        { Id: "1", Content: "User memory 1", p: testUser },
+        { Content: "User memory 1", Id: "1", p: testUser },
       ]);
 
       vi.mocked(memoryFactory).mockImplementation((event) => ({
-        id: event.Id,
         content: event.Content,
-        p: event.p,
-        role: "user",
+        id: event.Id,
+        importance: 0.5,
         metadata: {
           accessCount: 0,
           lastAccessed: new Date().toISOString(),
           tags: [],
         },
-        importance: 0.5,
+        p: event.p,
+        role: "user",
       }));
 
       const memories = await mockMemoryService.fetchByUser(mockHubId, testUser);
@@ -128,20 +129,20 @@ describe("MemoryService", () => {
       const searchTerm = "workflow";
 
       vi.mocked(fetchEvents).mockResolvedValue([
-        { Id: "1", Content: "This is about workflow automation" },
+        { Content: "This is about workflow automation", Id: "1" },
       ]);
 
       vi.mocked(memoryFactory).mockImplementation((event) => ({
-        id: event.Id,
         content: event.Content,
-        p: "test-user",
-        role: "user",
+        id: event.Id,
+        importance: 0.5,
         metadata: {
           accessCount: 0,
           lastAccessed: new Date().toISOString(),
           tags: [],
         },
-        importance: 0.5,
+        p: "test-user",
+        role: "user",
       }));
 
       const memories = await mockMemoryService.search(mockHubId, searchTerm);

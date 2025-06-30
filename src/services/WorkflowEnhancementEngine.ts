@@ -186,6 +186,28 @@ export class WorkflowEnhancementEngine {
   }
 
   /**
+   * Learn from emergent patterns and collaborations
+   */
+  async learnFromEmergent(workflowId: string): Promise<Enhancement[]> {
+    return await this.discoverEmergentEnhancements(workflowId);
+  }
+
+  /**
+   * Learn from errors and create targeted enhancements
+   */
+  async learnFromErrors(
+    workflowId: string,
+    error: Error | null,
+    context: Record<string, any> = {},
+  ): Promise<Enhancement[]> {
+    if (!error) {
+      return [];
+    }
+
+    return [this.createEnhancementFromError(workflowId, error, context)];
+  }
+
+  /**
    * Learn from peer workflows
    */
   async learnFromPeers(workflowId: string): Promise<Enhancement[]> {
@@ -226,28 +248,6 @@ export class WorkflowEnhancementEngine {
     }
 
     return peerLearningEnhancements;
-  }
-
-  /**
-   * Learn from errors and create targeted enhancements
-   */
-  async learnFromErrors(
-    workflowId: string,
-    error: Error | null,
-    context: Record<string, any> = {},
-  ): Promise<Enhancement[]> {
-    if (!error) {
-      return [];
-    }
-
-    return [this.createEnhancementFromError(workflowId, error, context)];
-  }
-
-  /**
-   * Learn from emergent patterns and collaborations
-   */
-  async learnFromEmergent(workflowId: string): Promise<Enhancement[]> {
-    return await this.discoverEmergentEnhancements(workflowId);
   }
 
   /**

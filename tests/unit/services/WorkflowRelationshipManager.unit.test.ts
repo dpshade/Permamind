@@ -1,9 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { WorkflowRelationshipManager } from "../../../src/services/WorkflowRelationshipManager.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import type {
-  RelationshipType,
   Enhancement,
+  RelationshipType,
 } from "../../../src/models/WorkflowMemory.js";
+
+import { WorkflowRelationshipManager } from "../../../src/services/WorkflowRelationshipManager.js";
 
 describe("WorkflowRelationshipManager", () => {
   let manager: WorkflowRelationshipManager;
@@ -330,13 +332,13 @@ describe("WorkflowRelationshipManager", () => {
       ); // workflow2 inherits from workflow1
 
       const testEnhancement: Enhancement = {
-        id: "test-enhancement-1",
-        type: "optimization",
         description: "Performance optimization",
+        id: "test-enhancement-1",
         impact: 0.7,
+        type: "optimization",
         validation: {
-          isValid: true,
           confidence: 0.9,
+          isValid: true,
           riskAssessment: "low",
           testResults: [],
           validatedAt: new Date().toISOString(),
@@ -355,13 +357,13 @@ describe("WorkflowRelationshipManager", () => {
 
     it("should handle enhancement propagation with no inheritors", () => {
       const testEnhancement: Enhancement = {
-        id: "test-enhancement-2",
-        type: "bug_fix",
         description: "Fix error handling",
+        id: "test-enhancement-2",
         impact: 0.5,
+        type: "bug_fix",
         validation: {
-          isValid: true,
           confidence: 0.8,
+          isValid: true,
           riskAssessment: "medium",
           testResults: [],
           validatedAt: new Date().toISOString(),
@@ -386,13 +388,13 @@ describe("WorkflowRelationshipManager", () => {
       );
 
       const testEnhancement: Enhancement = {
-        id: "test-enhancement-3",
-        type: "feature_add",
         description: "Add new capability",
+        id: "test-enhancement-3",
         impact: 0.6,
+        type: "feature_add",
         validation: {
-          isValid: true,
           confidence: 0.7,
+          isValid: true,
           riskAssessment: "low",
           testResults: [],
           validatedAt: new Date().toISOString(),
