@@ -23,12 +23,14 @@ import {
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
 import { AOMessageService } from "./services/AOMessageService.js";
+import { MarkdownWorkflowService } from "./services/MarkdownWorkflowService.js";
 import { WorkflowDefinition } from "./types/WorkflowDefinition.js";
 
 let keyPair: JWKInterface;
 let publicKey: string;
 let hubId: string;
 let aoMessageService: AOMessageService;
+let markdownWorkflowService: MarkdownWorkflowService;
 
 // Centralized workflow hub for all workflow-related storage and discovery
 const CENTRALIZED_WORKFLOW_HUB_ID =
@@ -46,6 +48,7 @@ async function init() {
   }
   publicKey = await arweave.wallets.jwkToAddress(keyPair);
   aoMessageService = new AOMessageService(keyPair);
+  markdownWorkflowService = new MarkdownWorkflowService(keyPair);
   try {
     const zone = await hubRegistryService.getZoneById(
       HUB_REGISTRY_ID(),
@@ -1797,6 +1800,91 @@ Response: ${JSON.stringify(response.data)}`;
       .describe(
         "Whether to store this interaction as a memory (default: true)",
       ),
+  }),
+});
+
+// Enhanced AO Message Tool - Markdown Workflow Support
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "AO Message (Natural Language)",
+  },
+  description: `PREFERRED: Enhanced universal tool for natural language interaction with ANY AO process using markdown workflows.
+    
+    This tool enables completely natural requests like:
+    - "transfer 100 tokens to alice"
+    - "check bob's balance" 
+    - "mint 1000 tokens"
+    - "approve carol to spend 500 tokens"
+    
+    Simply provide a markdown workflow that documents the process (human-readable documentation)
+    and make your request in natural language. The AI will:
+    1. Parse the workflow documentation to understand available actions
+    2. Interpret your natural language request 
+    3. Extract all necessary parameters (addresses, amounts, etc.)
+    4. Construct the proper AO message format
+    5. Handle the response appropriately
+    
+    This approach makes AO interaction as natural as talking to a human assistant.`,
+  execute: async (args) => {
+    try {
+      // Execute the workflow request using the markdown service
+      const response = await markdownWorkflowService.executeWorkflowRequest(
+        args.markdownWorkflow,
+        args.request,
+        args.processId
+      );
+      
+      // Store the interaction as a memory if successful
+      if (response.success && args.storeAsMemory !== false) {
+        try {
+          const memoryContent = `AO Process Interaction (Natural Language)
+Request: ${args.request}
+Process: ${args.processId || 'from workflow'}
+Success: ${response.success}
+Response: ${JSON.stringify(response.data)}
+Reasoning: ${response.reasoningChain?.join(' → ') || 'Not available'}`;
+
+          await aiMemoryService.addEnhanced(keyPair, hubId, {
+            content: memoryContent,
+            memoryType: "procedure",
+            importance: 0.8,
+            context: {
+              domain: "ao_interaction_nl",
+              topic: "natural_language_workflow",
+            },
+            metadata: {
+              tags: ["ao_process", "natural_language", "workflow", args.request.split(' ')[0]],
+              lastAccessed: new Date().toISOString(),
+              accessCount: 0,
+            },
+            p: publicKey,
+            role: "system",
+          });
+        } catch (memoryError) {
+          // Don't fail the main operation if memory storage fails
+        }
+      }
+      
+      return JSON.stringify(response, null, 2);
+    } catch (error) {
+      return JSON.stringify({
+        success: false,
+        error: {
+          code: "TOOL_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
+          details: error,
+        },
+      }, null, 2);
+    }
+  },
+  name: "aoMessageNL",
+  parameters: z.object({
+    markdownWorkflow: z.string().describe("Markdown documentation describing the AO process, its actions, and parameter mapping. Should be human-readable workflow documentation."),
+    request: z.string().describe("Natural language request describing what you want to do (e.g., 'transfer 100 tokens to alice', 'check my balance', 'mint 500 tokens')"),
+    processId: z.string().optional().describe("Override process ID (uses workflow default if not provided)"),
+    storeAsMemory: z.boolean().optional().describe("Whether to store this interaction as a memory (default: true)"),
   }),
 });
 

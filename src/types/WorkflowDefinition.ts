@@ -175,3 +175,54 @@ export interface WorkflowValidationResult {
   warnings: string[];
   suggestions: string[];
 }
+
+// Enhanced interfaces for markdown workflows
+export interface MarkdownWorkflowRequest {
+  markdownWorkflow: string;
+  request: string;
+  processId?: string;
+  storeAsMemory?: boolean;
+}
+
+export interface MarkdownWorkflowResponse {
+  success: boolean;
+  data?: any;
+  rawResponse?: any;
+  executionTime?: number;
+  reasoningChain?: string[];
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+export interface WorkflowActionMapping {
+  action: string;
+  keywords: string[];
+  parameterMappings: ParameterMapping[];
+}
+
+export interface ParameterMapping {
+  parameter: string;
+  patterns: string[];
+  type: 'address' | 'amount' | 'string' | 'boolean';
+  conversion?: 'decimal' | 'none';
+  examples: string[];
+}
+
+export interface WorkflowMetadata {
+  processId?: string;
+  name?: string;
+  category?: string;
+  decimals?: number;
+  version?: string;
+  description?: string;
+}
+
+export interface NaturalLanguageExample {
+  phrase: string;
+  expectedAction: string;
+  expectedParameters: Record<string, string>;
+  description: string;
+}
