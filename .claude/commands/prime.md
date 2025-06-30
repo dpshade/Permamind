@@ -19,13 +19,6 @@ Load the following documentation into context for development:
 3. **Velocity Protocol** - https://github.com/SpaceTurtle-Dao/velocity-protocol
    - Load complete README and protocol overview
    - Load all VIPs (Velocity Improvement Proposals):
-     - VIP-01: Basic protocol flow, message validation, hub communication
-     - VIP-02: Follow lists and social graph management
-     - VIP-03: Text messages, replies, and threading
-     - VIP-04: Reactions and social interactions
-     - VIP-05: Media attachments and content handling
-     - VIP-06: Process requirements and implementation
-     - VIP-07: Security guidelines and best practices
    - Include hub implementation patterns and ANS-104 message signing
    - Load Zones Registry integration documentation
 
