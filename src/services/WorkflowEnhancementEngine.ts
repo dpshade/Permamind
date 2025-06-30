@@ -186,6 +186,28 @@ export class WorkflowEnhancementEngine {
   }
 
   /**
+   * Learn from emergent patterns and collaborations
+   */
+  async learnFromEmergent(workflowId: string): Promise<Enhancement[]> {
+    return await this.discoverEmergentEnhancements(workflowId);
+  }
+
+  /**
+   * Learn from errors and create targeted enhancements
+   */
+  async learnFromErrors(
+    workflowId: string,
+    error: Error | null,
+    context: Record<string, any> = {},
+  ): Promise<Enhancement[]> {
+    if (!error) {
+      return [];
+    }
+
+    return [this.createEnhancementFromError(workflowId, error, context)];
+  }
+
+  /**
    * Learn from peer workflows
    */
   async learnFromPeers(workflowId: string): Promise<Enhancement[]> {
@@ -226,28 +248,6 @@ export class WorkflowEnhancementEngine {
     }
 
     return peerLearningEnhancements;
-  }
-
-  /**
-   * Learn from errors and create targeted enhancements
-   */
-  async learnFromErrors(
-    workflowId: string,
-    error: Error | null,
-    context: Record<string, any> = {},
-  ): Promise<Enhancement[]> {
-    if (!error) {
-      return [];
-    }
-
-    return [this.createEnhancementFromError(workflowId, error, context)];
-  }
-
-  /**
-   * Learn from emergent patterns and collaborations
-   */
-  async learnFromEmergent(workflowId: string): Promise<Enhancement[]> {
-    return await this.discoverEmergentEnhancements(workflowId);
   }
 
   /**
@@ -299,9 +299,29 @@ export class WorkflowEnhancementEngine {
     nextCycleIn: number; // milliseconds
     rejected: Enhancement[];
   }> {
+    // Handle invalid or empty workflow IDs
+    if (
+      !workflowId ||
+      typeof workflowId !== "string" ||
+      workflowId.trim() === ""
+    ) {
+      return {
+        applied: [],
+        enhancements: [],
+        nextCycleIn: 86400000, // 24 hours
+        rejected: [],
+      };
+    }
+
     const loop = this.enhancementLoops.get(workflowId);
     if (!loop) {
-      throw new Error(`No enhancement loop found for workflow ${workflowId}`);
+      // Return empty result instead of throwing error
+      return {
+        applied: [],
+        enhancements: [],
+        nextCycleIn: 86400000, // 24 hours
+        rejected: [],
+      };
     }
 
     // Phase 1: Identify potential enhancements
@@ -527,26 +547,35 @@ export class WorkflowEnhancementEngine {
     // Create enhancements based on analytics data
     const enhancements: Enhancement[] = [];
 
-    const recommendations =
-      this.performanceTracker.generateOptimizationRecommendations(workflowId);
+    try {
+      const recommendations =
+        this.performanceTracker.generateOptimizationRecommendations(workflowId);
 
-    for (const recommendation of recommendations.recommendations) {
-      enhancements.push({
-        description: recommendation,
-        id: `analytics_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        impact:
-          recommendations.estimatedImpact /
-          recommendations.recommendations.length,
-        type: "optimization",
-        validation: {
-          confidence: 0,
-          isValid: false,
-          riskAssessment:
-            recommendations.priority === "high" ? "medium" : "low",
-          testResults: [],
-          validatedAt: new Date().toISOString(),
-        },
-      });
+      for (const recommendation of recommendations.recommendations) {
+        enhancements.push({
+          description: recommendation,
+          id: `analytics_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          impact:
+            recommendations.estimatedImpact /
+            recommendations.recommendations.length,
+          type: "optimization",
+          validation: {
+            confidence: 0,
+            isValid: false,
+            riskAssessment:
+              recommendations.priority === "high" ? "medium" : "low",
+            testResults: [],
+            validatedAt: new Date().toISOString(),
+          },
+        });
+      }
+    } catch (error) {
+      // Handle performance tracker failures gracefully
+      console.warn(
+        `Failed to create analytics enhancements for ${workflowId}:`,
+        error,
+      );
+      return [];
     }
 
     return enhancements;

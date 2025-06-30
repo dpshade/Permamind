@@ -84,11 +84,7 @@ async function createProfile(
 }
 
 async function evaluateHub(signer: JWKInterface, processId: string) {
-  try {
-    await evalProcess(signer, luaModule, processId);
-  } catch {
-    // Silent error handling for hub evaluation
-  }
+  await evalProcess(signer, luaModule, processId);
 }
 
 export const hubRegistryService = service();

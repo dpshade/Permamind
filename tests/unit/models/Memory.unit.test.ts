@@ -1,20 +1,21 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import type { Memory, MemoryMetadata } from "../../../src/models/Memory.js";
 
 describe("Memory Model", () => {
   describe("Memory interface validation", () => {
     it("should validate complete Memory object", () => {
       const completeMemory: Memory = {
-        id: "memory-123",
         content: "This is a test memory",
-        p: "user-public-key-456",
-        role: "user",
+        id: "memory-123",
+        importance: 0.8,
         metadata: {
           accessCount: 5,
           lastAccessed: "2024-01-15T10:30:00Z",
           tags: ["test", "memory", "validation"],
         },
-        importance: 0.8,
+        p: "user-public-key-456",
+        role: "user",
       };
 
       expect(completeMemory.id).toBe("memory-123");
@@ -28,16 +29,16 @@ describe("Memory Model", () => {
 
     it("should validate minimal Memory object", () => {
       const minimalMemory: Memory = {
-        id: "memory-456",
         content: "Minimal memory",
-        p: "user-key",
-        role: "assistant",
+        id: "memory-456",
+        importance: 0.5,
         metadata: {
           accessCount: 0,
           lastAccessed: "2024-01-15T10:30:00Z",
           tags: [],
         },
-        importance: 0.5,
+        p: "user-key",
+        role: "assistant",
       };
 
       expect(minimalMemory.id).toBe("memory-456");
@@ -52,16 +53,16 @@ describe("Memory Model", () => {
 
       roles.forEach((role) => {
         const memory: Memory = {
-          id: `memory-${role}`,
           content: `Memory for ${role}`,
-          p: "test-key",
-          role: role,
+          id: `memory-${role}`,
+          importance: 0.6,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [role],
           },
-          importance: 0.6,
+          p: "test-key",
+          role: role,
         };
 
         expect(memory.role).toBe(role);
@@ -126,16 +127,16 @@ describe("Memory Model", () => {
 
       importanceValues.forEach((importance) => {
         const memory: Memory = {
-          id: `memory-importance-${importance}`,
           content: `Memory with importance ${importance}`,
-          p: "test-key",
-          role: "user",
+          id: `memory-importance-${importance}`,
+          importance: importance,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [],
           },
-          importance: importance,
+          p: "test-key",
+          role: "user",
         };
 
         expect(memory.importance).toBe(importance);
@@ -150,16 +151,16 @@ describe("Memory Model", () => {
 
       extremeValues.forEach((importance) => {
         const memory: Memory = {
-          id: `memory-extreme-${importance}`,
           content: `Extreme importance memory`,
-          p: "test-key",
-          role: "user",
+          id: `memory-extreme-${importance}`,
+          importance: importance,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [],
           },
-          importance: importance,
+          p: "test-key",
+          role: "user",
         };
 
         expect(memory.importance).toBe(importance);
@@ -180,16 +181,16 @@ describe("Memory Model", () => {
 
       contentTypes.forEach((content, index) => {
         const memory: Memory = {
-          id: `memory-content-${index}`,
           content: content,
-          p: "test-key",
-          role: "user",
+          id: `memory-content-${index}`,
+          importance: 0.5,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [],
           },
-          importance: 0.5,
+          p: "test-key",
+          role: "user",
         };
 
         expect(memory.content).toBe(content);
@@ -201,16 +202,16 @@ describe("Memory Model", () => {
       const longContent = "Lorem ipsum ".repeat(1000);
 
       const memory: Memory = {
-        id: "memory-long-content",
         content: longContent,
-        p: "test-key",
-        role: "user",
+        id: "memory-long-content",
+        importance: 0.7,
         metadata: {
           accessCount: 1,
           lastAccessed: new Date().toISOString(),
           tags: ["long-content"],
         },
-        importance: 0.7,
+        p: "test-key",
+        role: "user",
       };
 
       expect(memory.content).toBe(longContent);
@@ -234,16 +235,16 @@ describe("Memory Model", () => {
 
       idFormats.forEach((id) => {
         const memory: Memory = {
-          id: id,
           content: `Memory with ID: ${id}`,
-          p: "test-key",
-          role: "user",
+          id: id,
+          importance: 0.5,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [],
           },
-          importance: 0.5,
+          p: "test-key",
+          role: "user",
         };
 
         expect(memory.id).toBe(id);
@@ -264,16 +265,16 @@ describe("Memory Model", () => {
 
       validTimestamps.forEach((timestamp, index) => {
         const memory: Memory = {
-          id: `memory-timestamp-${index}`,
           content: `Memory with timestamp`,
-          p: "test-key",
-          role: "user",
+          id: `memory-timestamp-${index}`,
+          importance: 0.5,
           metadata: {
             accessCount: 1,
             lastAccessed: timestamp,
             tags: [],
           },
-          importance: 0.5,
+          p: "test-key",
+          role: "user",
         };
 
         expect(memory.metadata.lastAccessed).toBe(timestamp);
@@ -297,16 +298,16 @@ describe("Memory Model", () => {
 
       publicKeys.forEach((p, index) => {
         const memory: Memory = {
-          id: `memory-key-${index}`,
           content: `Memory for public key`,
-          p: p,
-          role: "user",
+          id: `memory-key-${index}`,
+          importance: 0.5,
           metadata: {
             accessCount: 1,
             lastAccessed: new Date().toISOString(),
             tags: [],
           },
-          importance: 0.5,
+          p: p,
+          role: "user",
         };
 
         expect(memory.p).toBe(p);
@@ -329,16 +330,16 @@ describe("Memory Model", () => {
 
       tagSets.forEach((tags, index) => {
         const memory: Memory = {
-          id: `memory-tags-${index}`,
           content: `Memory with ${tags.length} tags`,
-          p: "test-key",
-          role: "user",
+          id: `memory-tags-${index}`,
+          importance: 0.5,
           metadata: {
             accessCount: tags.length,
             lastAccessed: new Date().toISOString(),
             tags: tags,
           },
-          importance: 0.5,
+          p: "test-key",
+          role: "user",
         };
 
         expect(memory.metadata.tags).toEqual(tags);

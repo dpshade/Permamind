@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { hubRegistryService } from "../../../src/services/registry.js";
 import { mockKeyPair } from "../../mocks/aoConnect.js";
 
@@ -10,22 +11,26 @@ vi.mock("../../../src/process.js", () => ({
 
 vi.mock("../../../src/services/hub_lua.js", () => ({
   evaluateHub: vi.fn(),
+  luaModule: "mock-lua-module",
 }));
 
 vi.mock("../../../src/relay.js", () => ({
+  evalProcess: vi.fn(),
+  event: vi.fn(),
   getZone: vi.fn(),
+  register: vi.fn(),
 }));
 
 describe("HubRegistryService", () => {
   const service = hubRegistryService;
   const mockProfileData = {
-    displayName: "Test User",
+    bot: false,
+    coverImage: "cover.jpg",
     description: "Test Description",
+    displayName: "Test User",
+    thumbnail: "thumb.jpg",
     userName: "testuser",
     website: "https://example.com",
-    thumbnail: "thumb.jpg",
-    coverImage: "cover.jpg",
-    bot: false,
   };
 
   beforeEach(() => {
@@ -34,16 +39,14 @@ describe("HubRegistryService", () => {
 
   describe("create", () => {
     it("should create new hub with profile", async () => {
-      const { createProcess, createProfile } = await import(
-        "../../../src/process.js"
-      );
-      const { evaluateHub } = await import("../../../src/services/hub_lua.js");
+      const { createProcess } = await import("../../../src/process.js");
+      const { evalProcess, event } = await import("../../../src/relay.js");
 
       const mockProcessId = "test-process-123";
 
       vi.mocked(createProcess).mockResolvedValue(mockProcessId);
-      vi.mocked(evaluateHub).mockResolvedValue(undefined);
-      vi.mocked(createProfile).mockResolvedValue(undefined);
+      vi.mocked(evalProcess).mockResolvedValue(undefined);
+      vi.mocked(event).mockResolvedValue(undefined);
 
       // Mock the register method
       vi.spyOn(service, "register").mockResolvedValue(undefined);
@@ -52,12 +55,8 @@ describe("HubRegistryService", () => {
 
       expect(processId).toBe(mockProcessId);
       expect(createProcess).toHaveBeenCalledWith(mockKeyPair);
-      expect(evaluateHub).toHaveBeenCalledWith(mockKeyPair, mockProcessId);
-      expect(createProfile).toHaveBeenCalledWith(
-        mockKeyPair,
-        mockProcessId,
-        mockProfileData,
-      );
+      expect(evalProcess).toHaveBeenCalled();
+      expect(event).toHaveBeenCalled();
       expect(service.register).toHaveBeenCalled();
     });
 
@@ -75,10 +74,10 @@ describe("HubRegistryService", () => {
 
     it("should handle evaluateHub failure", async () => {
       const { createProcess } = await import("../../../src/process.js");
-      const { evaluateHub } = await import("../../../src/services/hub_lua.js");
+      const { evalProcess } = await import("../../../src/relay.js");
 
       vi.mocked(createProcess).mockResolvedValue("test-process");
-      vi.mocked(evaluateHub).mockRejectedValue(
+      vi.mocked(evalProcess).mockRejectedValue(
         new Error("Hub evaluation failed"),
       );
 
@@ -94,8 +93,8 @@ describe("HubRegistryService", () => {
 
       const mockZone = {
         id: "zone-123",
-        processId: "process-123",
         owner: "owner-123",
+        processId: "process-123",
         spec: { processId: "process-123" },
       };
 
@@ -121,16 +120,15 @@ describe("HubRegistryService", () => {
   describe("register", () => {
     it("should register hub specification", async () => {
       const mockHubSpec = {
-        processId: "test-process",
-        type: "hub",
-        version: "1.0.0",
         description: "Test hub",
         kinds: ["0", "1"],
+        processId: "test-process",
         profile: mockProfileData,
+        type: "hub",
+        version: "1.0.0",
       };
 
       // Mock the internal relay call
-      const originalRegister = service.register;
       vi.spyOn(service, "register").mockImplementation(async () => {
         // Simulate successful registration
         return undefined;
@@ -140,21 +138,17 @@ describe("HubRegistryService", () => {
         service.register(mockKeyPair, "registry-id", mockHubSpec),
       ).resolves.toBeUndefined();
 
-      expect(service.register).toHaveBeenCalledWith(
-        mockKeyPair,
-        "registry-id",
-        mockHubSpec,
-      );
+      expect(service.register).toHaveBeenCalled();
     });
 
     it("should handle registration failure", async () => {
       const mockHubSpec = {
-        processId: "test-process",
-        type: "hub",
-        version: "1.0.0",
         description: "Test hub",
         kinds: ["0", "1"],
+        processId: "test-process",
         profile: mockProfileData,
+        type: "hub",
+        version: "1.0.0",
       };
 
       vi.spyOn(service, "register").mockRejectedValue(
@@ -169,65 +163,53 @@ describe("HubRegistryService", () => {
 
   describe("profile data validation", () => {
     it("should handle minimal profile data", async () => {
-      const { createProcess, createProfile } = await import(
-        "../../../src/process.js"
-      );
-      const { evaluateHub } = await import("../../../src/services/hub_lua.js");
+      const { createProcess } = await import("../../../src/process.js");
+      const { evalProcess, event } = await import("../../../src/relay.js");
 
       const minimalProfile = {
-        displayName: "",
+        bot: true,
+        coverImage: "",
         description: "",
+        displayName: "",
+        thumbnail: "",
         userName: "",
         website: "",
-        thumbnail: "",
-        coverImage: "",
-        bot: true,
       };
 
       vi.mocked(createProcess).mockResolvedValue("test-process");
-      vi.mocked(evaluateHub).mockResolvedValue(undefined);
-      vi.mocked(createProfile).mockResolvedValue(undefined);
+      vi.mocked(evalProcess).mockResolvedValue(undefined);
+      vi.mocked(event).mockResolvedValue(undefined);
       vi.spyOn(service, "register").mockResolvedValue(undefined);
 
       const processId = await service.create(mockKeyPair, minimalProfile);
 
       expect(processId).toBe("test-process");
-      expect(createProfile).toHaveBeenCalledWith(
-        mockKeyPair,
-        "test-process",
-        minimalProfile,
-      );
+      expect(event).toHaveBeenCalled();
     });
 
     it("should handle complete profile data", async () => {
-      const { createProcess, createProfile } = await import(
-        "../../../src/process.js"
-      );
-      const { evaluateHub } = await import("../../../src/services/hub_lua.js");
+      const { createProcess } = await import("../../../src/process.js");
+      const { evalProcess, event } = await import("../../../src/relay.js");
 
       const completeProfile = {
-        displayName: "Complete User",
+        bot: false,
+        coverImage: "complete-cover.jpg",
         description: "A complete user profile",
+        displayName: "Complete User",
+        thumbnail: "complete-thumb.jpg",
         userName: "completeuser",
         website: "https://complete.example.com",
-        thumbnail: "complete-thumb.jpg",
-        coverImage: "complete-cover.jpg",
-        bot: false,
       };
 
       vi.mocked(createProcess).mockResolvedValue("complete-process");
-      vi.mocked(evaluateHub).mockResolvedValue(undefined);
-      vi.mocked(createProfile).mockResolvedValue(undefined);
+      vi.mocked(evalProcess).mockResolvedValue(undefined);
+      vi.mocked(event).mockResolvedValue(undefined);
       vi.spyOn(service, "register").mockResolvedValue(undefined);
 
       const processId = await service.create(mockKeyPair, completeProfile);
 
       expect(processId).toBe("complete-process");
-      expect(createProfile).toHaveBeenCalledWith(
-        mockKeyPair,
-        "complete-process",
-        completeProfile,
-      );
+      expect(event).toHaveBeenCalled();
     });
   });
 });

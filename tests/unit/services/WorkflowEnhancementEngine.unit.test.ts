@@ -1,39 +1,41 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { WorkflowEnhancementEngine } from "../../../src/services/WorkflowEnhancementEngine.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import type {
   Enhancement,
   EnhancementType,
   LearningSource,
 } from "../../../src/models/WorkflowMemory.js";
 
+import { WorkflowEnhancementEngine } from "../../../src/services/WorkflowEnhancementEngine.js";
+
 // Mock dependencies
 const mockPerformanceTracker = {
-  recordPerformance: vi.fn(),
-  getPerformanceStats: vi.fn(),
   generateOptimizationRecommendations: vi.fn().mockReturnValue({
-    recommendations: [],
-    priority: "low",
     estimatedImpact: 0.1,
+    priority: "low",
+    recommendations: [],
   }),
+  getPerformanceStats: vi.fn(),
+  identifyEnhancements: vi.fn().mockReturnValue([]),
+  recordPerformance: vi.fn(),
   validateEnhancement: vi.fn().mockReturnValue({
-    isValid: true,
     confidence: 0.8,
+    isValid: true,
     riskAssessment: "low",
     testResults: [],
     validatedAt: new Date().toISOString(),
   }),
-  identifyEnhancements: vi.fn().mockReturnValue([]),
 };
 
 const mockRelationshipManager = {
-  getRelatedWorkflows: vi.fn().mockReturnValue([]),
-  findCollaborationOpportunities: vi.fn().mockReturnValue({
-    potentialPartners: [],
-    compositionOpportunities: [],
-    sharedCapabilities: [],
-    complementarySkills: [],
-  }),
   createRelationship: vi.fn(),
+  findCollaborationOpportunities: vi.fn().mockReturnValue({
+    complementarySkills: [],
+    compositionOpportunities: [],
+    potentialPartners: [],
+    sharedCapabilities: [],
+  }),
+  getRelatedWorkflows: vi.fn().mockReturnValue([]),
   getRelationships: vi.fn().mockReturnValue([]),
 };
 
@@ -70,13 +72,13 @@ describe("WorkflowEnhancementEngine", () => {
     it("should complete enhancement cycle successfully", async () => {
       // Initialize enhancement loop first
       engine.initializeEnhancementLoop(testWorkflowId, [
-        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+        { achieved: false, metric: "performance", targetValue: 0.8, weight: 1 },
       ]);
 
       mockPerformanceTracker.generateOptimizationRecommendations.mockReturnValue(
         {
-          recommendations: ["Optimize execution time"],
           priority: "medium",
+          recommendations: ["Optimize execution time"],
         },
       );
 
@@ -95,13 +97,13 @@ describe("WorkflowEnhancementEngine", () => {
     it("should handle enhancement cycle with no improvements", async () => {
       // Initialize enhancement loop first
       engine.initializeEnhancementLoop(testWorkflowId, [
-        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+        { achieved: false, metric: "performance", targetValue: 0.8, weight: 1 },
       ]);
 
       mockPerformanceTracker.generateOptimizationRecommendations.mockReturnValue(
         {
-          recommendations: [],
           priority: "low",
+          recommendations: [],
         },
       );
 
@@ -115,7 +117,7 @@ describe("WorkflowEnhancementEngine", () => {
     it("should handle errors gracefully", async () => {
       // Initialize enhancement loop first
       engine.initializeEnhancementLoop(testWorkflowId, [
-        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+        { achieved: false, metric: "performance", targetValue: 0.8, weight: 1 },
       ]);
 
       mockPerformanceTracker.generateOptimizationRecommendations.mockImplementation(
@@ -134,7 +136,7 @@ describe("WorkflowEnhancementEngine", () => {
   describe("learnFromErrors", () => {
     it("should create enhancement from error", async () => {
       const testError = new Error("TypeError: Cannot read property");
-      const context = { operation: "data processing", input: "malformed data" };
+      const context = { input: "malformed data", operation: "data processing" };
 
       const enhancements = await engine.learnFromErrors(
         testWorkflowId,
@@ -282,8 +284,8 @@ describe("WorkflowEnhancementEngine", () => {
   describe("learnFromEmergent", () => {
     it("should discover emergent enhancements from collaboration", async () => {
       mockRelationshipManager.findCollaborationOpportunities.mockReturnValue({
-        potentialPartners: ["partner-1", "partner-2"],
         compositionOpportunities: ["comp-1"],
+        potentialPartners: ["partner-1", "partner-2"],
       });
 
       const enhancements = await engine.learnFromEmergent(testWorkflowId);
@@ -296,8 +298,8 @@ describe("WorkflowEnhancementEngine", () => {
 
     it("should handle workflows with no collaboration opportunities", async () => {
       mockRelationshipManager.findCollaborationOpportunities.mockReturnValue({
-        potentialPartners: [],
         compositionOpportunities: [],
+        potentialPartners: [],
       });
 
       const enhancements = await engine.learnFromEmergent(testWorkflowId);
@@ -322,13 +324,13 @@ describe("WorkflowEnhancementEngine", () => {
 
       enhancementTypes.forEach((type) => {
         const enhancement: Enhancement = {
-          id: `test-${type}`,
-          type,
           description: `Test ${type} enhancement`,
+          id: `test-${type}`,
           impact: 0.5,
+          type,
           validation: {
-            isValid: true,
             confidence: 0.8,
+            isValid: true,
             riskAssessment: "low",
             testResults: [],
             validatedAt: new Date().toISOString(),
@@ -376,7 +378,7 @@ describe("WorkflowEnhancementEngine", () => {
     it("should handle concurrent enhancement cycles", async () => {
       // Initialize enhancement loop first
       engine.initializeEnhancementLoop(testWorkflowId, [
-        { metric: "performance", targetValue: 0.8, weight: 1, achieved: false },
+        { achieved: false, metric: "performance", targetValue: 0.8, weight: 1 },
       ]);
 
       const promises = [
