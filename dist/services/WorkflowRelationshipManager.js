@@ -131,12 +131,6 @@ export class WorkflowRelationshipManager {
         return dependents;
     }
     /**
-     * Get network statistics (alias for getEcosystemOverview)
-     */
-    getNetworkStatistics() {
-        return this.getEcosystemOverview();
-    }
-    /**
      * Get workflow ecosystem overview
      */
     getEcosystemOverview() {
@@ -162,6 +156,12 @@ export class WorkflowRelationshipManager {
      */
     getInheritanceChain(workflowId) {
         return this.inheritanceChains.get(workflowId) || [workflowId];
+    }
+    /**
+     * Get network statistics (alias for getEcosystemOverview)
+     */
+    getNetworkStatistics() {
+        return this.getEcosystemOverview();
     }
     /**
      * Get workflows by relationship type

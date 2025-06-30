@@ -50,11 +50,6 @@ async function createProfile(signer, hubId, profileData) {
     }
 }
 async function evaluateHub(signer, processId) {
-    try {
-        await evalProcess(signer, luaModule, processId);
-    }
-    catch {
-        // Silent error handling for hub evaluation
-    }
+    await evalProcess(signer, luaModule, processId);
 }
 export const hubRegistryService = service();

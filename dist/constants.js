@@ -36,12 +36,5 @@ export const AR_Token = "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10";
 export const AO_Token = "0syT13r0s0tgPmIed95bJnuSqaD29HQNN8D3ElLSrsc";
 export const BazarUCM = "U3TjJAZWJjlWBB4KAXSHKzuky81jtyh0zqH8rUL4Wd0";
 export function formatNumber(num) {
-    const suffixes = ["", "K", "M", "B", "T", "P", "E"];
-    const tier = (Math.log10(Math.abs(num)) / 3) | 0;
-    if (tier === 0)
-        return num.toString();
-    const suffix = suffixes[tier];
-    const scale = Math.pow(10, tier * 3);
-    const scaled = num / scale;
-    return scaled.toFixed(1).replace(/\.0$/, "") + suffix;
+    return num.toLocaleString();
 }

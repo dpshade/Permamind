@@ -113,6 +113,21 @@ export class WorkflowEnhancementEngine {
         this.enhancementLoops.set(workflowId, enhancementLoop);
     }
     /**
+     * Learn from emergent patterns and collaborations
+     */
+    async learnFromEmergent(workflowId) {
+        return await this.discoverEmergentEnhancements(workflowId);
+    }
+    /**
+     * Learn from errors and create targeted enhancements
+     */
+    async learnFromErrors(workflowId, error, context = {}) {
+        if (!error) {
+            return [];
+        }
+        return [this.createEnhancementFromError(workflowId, error, context)];
+    }
+    /**
      * Learn from peer workflows
      */
     async learnFromPeers(workflowId) {
@@ -141,21 +156,6 @@ export class WorkflowEnhancementEngine {
             return [];
         }
         return peerLearningEnhancements;
-    }
-    /**
-     * Learn from errors and create targeted enhancements
-     */
-    async learnFromErrors(workflowId, error, context = {}) {
-        if (!error) {
-            return [];
-        }
-        return [this.createEnhancementFromError(workflowId, error, context)];
-    }
-    /**
-     * Learn from emergent patterns and collaborations
-     */
-    async learnFromEmergent(workflowId) {
-        return await this.discoverEmergentEnhancements(workflowId);
     }
     /**
      * Process user feedback and create enhancements
@@ -190,9 +190,24 @@ export class WorkflowEnhancementEngine {
      * Run enhancement cycle for a workflow
      */
     async runEnhancementCycle(workflowId) {
+        // Handle invalid or empty workflow IDs
+        if (!workflowId || typeof workflowId !== 'string' || workflowId.trim() === '') {
+            return {
+                applied: [],
+                enhancements: [],
+                nextCycleIn: 86400000, // 24 hours
+                rejected: []
+            };
+        }
         const loop = this.enhancementLoops.get(workflowId);
         if (!loop) {
-            throw new Error(`No enhancement loop found for workflow ${workflowId}`);
+            // Return empty result instead of throwing error
+            return {
+                applied: [],
+                enhancements: [],
+                nextCycleIn: 86400000, // 24 hours
+                rejected: []
+            };
         }
         // Phase 1: Identify potential enhancements
         const potentialEnhancements = await this.identifyEnhancements(workflowId);
@@ -350,22 +365,29 @@ export class WorkflowEnhancementEngine {
     async createAnalyticsEnhancements(workflowId) {
         // Create enhancements based on analytics data
         const enhancements = [];
-        const recommendations = this.performanceTracker.generateOptimizationRecommendations(workflowId);
-        for (const recommendation of recommendations.recommendations) {
-            enhancements.push({
-                description: recommendation,
-                id: `analytics_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                impact: recommendations.estimatedImpact /
-                    recommendations.recommendations.length,
-                type: "optimization",
-                validation: {
-                    confidence: 0,
-                    isValid: false,
-                    riskAssessment: recommendations.priority === "high" ? "medium" : "low",
-                    testResults: [],
-                    validatedAt: new Date().toISOString(),
-                },
-            });
+        try {
+            const recommendations = this.performanceTracker.generateOptimizationRecommendations(workflowId);
+            for (const recommendation of recommendations.recommendations) {
+                enhancements.push({
+                    description: recommendation,
+                    id: `analytics_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    impact: recommendations.estimatedImpact /
+                        recommendations.recommendations.length,
+                    type: "optimization",
+                    validation: {
+                        confidence: 0,
+                        isValid: false,
+                        riskAssessment: recommendations.priority === "high" ? "medium" : "low",
+                        testResults: [],
+                        validatedAt: new Date().toISOString(),
+                    },
+                });
+            }
+        }
+        catch (error) {
+            // Handle performance tracker failures gracefully
+            console.warn(`Failed to create analytics enhancements for ${workflowId}:`, error);
+            return [];
         }
         return enhancements;
     }
