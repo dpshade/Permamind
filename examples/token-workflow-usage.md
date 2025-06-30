@@ -22,11 +22,12 @@ Get comprehensive metadata about the token:
 await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   handler: "Info",
-  parameters: "{}"
+  parameters: "{}",
 });
 ```
 
 **Expected Response:**
+
 ```json
 {
   "name": "My AO Token",
@@ -43,11 +44,12 @@ await aoMessage({
 await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   handler: "Balance",
-  parameters: "{}"
+  parameters: "{}",
 });
 ```
 
 **Expected Response:**
+
 ```
 Balance: 1500000000000000
 ```
@@ -59,8 +61,8 @@ await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   handler: "Balance",
   parameters: JSON.stringify({
-    Target: "target-address-to-check"
-  })
+    Target: "target-address-to-check",
+  }),
 });
 ```
 
@@ -76,12 +78,13 @@ await aoMessage({
   handler: "Transfer",
   parameters: JSON.stringify({
     Recipient: "recipient-address-here",
-    Quantity: "100000000000000" // 100 tokens with 12 decimals
-  })
+    Quantity: "100000000000000", // 100 tokens with 12 decimals
+  }),
 });
 ```
 
 **Expected Response:**
+
 ```
 Transfer successful - 100000000000000 tokens sent to recipient-address-here
 ```
@@ -94,8 +97,8 @@ await aoMessage({
   handler: "Transfer",
   parameters: JSON.stringify({
     Recipient: "whale-address-here",
-    Quantity: "1000000000000000000" // 1000 tokens
-  })
+    Quantity: "1000000000000000000", // 1000 tokens
+  }),
 });
 ```
 
@@ -111,8 +114,8 @@ await aoMessage({
   handler: "Approve",
   parameters: JSON.stringify({
     Spender: "dex-contract-address",
-    Quantity: "500000000000000" // 500 tokens allowance
-  })
+    Quantity: "500000000000000", // 500 tokens allowance
+  }),
 });
 ```
 
@@ -126,12 +129,13 @@ await aoMessage({
   handler: "Allowance",
   parameters: JSON.stringify({
     Owner: "token-owner-address",
-    Spender: "spender-address"
-  })
+    Spender: "spender-address",
+  }),
 });
 ```
 
 **Expected Response:**
+
 ```
 Allowance: 500000000000000
 ```
@@ -147,8 +151,8 @@ await aoMessage({
   parameters: JSON.stringify({
     From: "owner-who-approved-me",
     To: "final-recipient",
-    Quantity: "250000000000000" // 250 tokens
-  })
+    Quantity: "250000000000000", // 250 tokens
+  }),
 });
 ```
 
@@ -164,8 +168,8 @@ await aoMessage({
   handler: "Mint",
   parameters: JSON.stringify({
     Quantity: "1000000000000000", // 1000 new tokens
-    Target: "recipient-for-new-tokens" // optional, defaults to you
-  })
+    Target: "recipient-for-new-tokens", // optional, defaults to you
+  }),
 });
 ```
 
@@ -178,8 +182,8 @@ await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   handler: "Burn",
   parameters: JSON.stringify({
-    Quantity: "100000000000000" // Burn 100 tokens
-  })
+    Quantity: "100000000000000", // Burn 100 tokens
+  }),
 });
 ```
 
@@ -189,7 +193,7 @@ await aoMessage({
 
 ```javascript
 await storeWorkflowDefinition({
-  workflowDefinition: JSON.stringify(tokenWorkflow)
+  workflowDefinition: JSON.stringify(tokenWorkflow),
 });
 ```
 
@@ -197,7 +201,7 @@ await storeWorkflowDefinition({
 
 ```javascript
 const results = await searchWorkflowDefinitions({
-  query: "token finance transfer"
+  query: "token finance transfer",
 });
 
 // Extract the workflow from results
@@ -212,8 +216,8 @@ await aoMessage({
   handler: "Transfer",
   parameters: JSON.stringify({
     Recipient: "new-recipient",
-    Quantity: "50000000000000"
-  })
+    Quantity: "50000000000000",
+  }),
 });
 ```
 
@@ -225,11 +229,11 @@ await aoMessage({
 try {
   await aoMessage({
     workflowDefinition: JSON.stringify(tokenWorkflow),
-    handler: "Transfer", 
+    handler: "Transfer",
     parameters: JSON.stringify({
       Recipient: "recipient",
-      Quantity: "999999999999999999999" // Way more than you have
-    })
+      Quantity: "999999999999999999999", // Way more than you have
+    }),
   });
 } catch (error) {
   // Will return error response with "Insufficient-Balance" code
@@ -244,8 +248,8 @@ await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   handler: "Mint",
   parameters: JSON.stringify({
-    Quantity: "1000000000000000"
-  })
+    Quantity: "1000000000000000",
+  }),
 });
 // Returns: "Unauthorized" error
 ```
@@ -261,7 +265,7 @@ You can perform multiple operations by calling aoMessage multiple times:
 const balanceResult = await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   handler: "Balance",
-  parameters: "{}"
+  parameters: "{}",
 });
 
 // Parse balance and transfer half
@@ -273,8 +277,8 @@ await aoMessage({
   handler: "Transfer",
   parameters: JSON.stringify({
     Recipient: "savings-address",
-    Quantity: halfBalance.toString()
-  })
+    Quantity: halfBalance.toString(),
+  }),
 });
 ```
 
@@ -286,7 +290,7 @@ await aoMessage({
   workflowDefinition: JSON.stringify(tokenWorkflow),
   processId: "different-token-process-id", // Override the default
   handler: "Balance",
-  parameters: "{}"
+  parameters: "{}",
 });
 ```
 

@@ -9,116 +9,105 @@ import { WorkflowDefinition } from "../src/types/WorkflowDefinition.js";
 
 // Velocity Protocol Hub - Social messaging and event handling
 export const velocityHubWorkflow: WorkflowDefinition = {
-  id: "velocity-hub-v1",
-  name: "Velocity Hub",
-  description: "Decentralized social messaging hub using Velocity Protocol",
-  version: "1.0.0",
-  processId: "g_eSbkmD4LzfZtXaCLmeMcLIBQrqxnY-oFQJJNMIn4w", // Example hub
   capabilities: ["social-messaging", "event-streaming", "follow-management"],
   category: "social",
-  tags: ["velocity", "social", "messaging", "decentralized"],
-  network: "ao",
+  description: "Decentralized social messaging hub using Velocity Protocol",
+  documentation: {
+    docs: "https://github.com/SpaceTurtle-Dao/velocity-protocol",
+    github: "https://github.com/SpaceTurtle-Dao/velocity-protocol",
+  },
   handlers: [
     {
-      name: "Event",
+      capabilities: ["social-posting"],
       description: "Post a social event/message to the hub",
       messageSchema: {
         action: "Event",
         description: "Create a new social event",
-        tags: [
-          { name: "Action", value: "Event", required: true },
-          {
-            name: "Kind",
-            value: "1",
-            required: true,
-            description: "Event type (1 for text)",
-          },
-          {
-            name: "Content",
-            value: "",
-            required: true,
-            description: "Message content",
-            examples: ["Hello world!", "GM frens!"],
-          },
-        ],
         examples: [
           {
             description: "Simple text message",
+            expectedResponse: "Message posted successfully",
             tags: [
               { name: "Action", value: "Event" },
               { name: "Kind", value: "1" },
               { name: "Content", value: "Hello from AO!" },
             ],
-            expectedResponse: "Message posted successfully",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Event" },
+          {
+            description: "Event type (1 for text)",
+            name: "Kind",
+            required: true,
+            value: "1",
+          },
+          {
+            description: "Message content",
+            examples: ["Hello world!", "GM frens!"],
+            name: "Content",
+            required: true,
+            value: "",
           },
         ],
       },
+      name: "Event",
+      rateLimit: { requestsPerMinute: 60 },
       responsePatterns: [
         {
-          messageType: "success",
+          format: { dataType: "string", structured: false },
           indicators: { tags: [{ name: "Status", values: ["Success"] }] },
-          format: { structured: false, dataType: "string" },
+          messageType: "success",
         },
       ],
-      capabilities: ["social-posting"],
-      rateLimit: { requestsPerMinute: 60 },
     },
     {
-      name: "FetchEvents",
+      capabilities: ["data-retrieval", "event-filtering"],
       description: "Retrieve events from the hub with filtering",
       messageSchema: {
         action: "FetchEvents",
         description: "Fetch filtered events from the hub",
-        tags: [
-          { name: "Action", value: "FetchEvents", required: true },
-          {
-            name: "Filters",
-            value: "",
-            required: true,
-            description: "JSON filter string",
-            examples: ['[{"kinds":["1"],"limit":10}]'],
-          },
-        ],
         examples: [
           {
             description: "Get latest 10 text messages",
+            expectedResponse: "Array of event objects",
             tags: [
               { name: "Action", value: "FetchEvents" },
               { name: "Filters", value: '[{"kinds":["1"],"limit":10}]' },
             ],
-            expectedResponse: "Array of event objects",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "FetchEvents" },
+          {
+            description: "JSON filter string",
+            examples: ['[{"kinds":["1"],"limit":10}]'],
+            name: "Filters",
+            required: true,
+            value: "",
           },
         ],
       },
+      name: "FetchEvents",
+      rateLimit: { requestsPerMinute: 120 },
       responsePatterns: [
         {
-          messageType: "data",
+          format: { dataType: "json", structured: true },
           indicators: {},
-          format: { structured: true, dataType: "json" },
+          messageType: "data",
         },
       ],
-      capabilities: ["data-retrieval", "event-filtering"],
-      rateLimit: { requestsPerMinute: 120 },
     },
     {
-      name: "Follow",
+      capabilities: ["social-networking"],
       description: "Follow another user on the social network",
       messageSchema: {
         action: "Follow",
         description: "Add a user to your follow list",
-        tags: [
-          { name: "Action", value: "Follow", required: true },
-          {
-            name: "Target",
-            value: "",
-            required: true,
-            description: "Address to follow",
-            examples: ["1234...abcd", "user_address_here"],
-          },
-        ],
         examples: [
           {
             description: "Follow a user",
+            expectedResponse: "Follow relationship created",
             tags: [
               { name: "Action", value: "Follow" },
               {
@@ -126,354 +115,333 @@ export const velocityHubWorkflow: WorkflowDefinition = {
                 value: "1234567890abcdef1234567890abcdef12345678",
               },
             ],
-            expectedResponse: "Follow relationship created",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Follow" },
+          {
+            description: "Address to follow",
+            examples: ["1234...abcd", "user_address_here"],
+            name: "Target",
+            required: true,
+            value: "",
           },
         ],
       },
+      name: "Follow",
+      rateLimit: { requestsPerMinute: 30 },
       responsePatterns: [
         {
-          messageType: "success",
+          format: { dataType: "string", structured: false },
           indicators: {},
-          format: { structured: false, dataType: "string" },
+          messageType: "success",
         },
       ],
-      capabilities: ["social-networking"],
-      rateLimit: { requestsPerMinute: 30 },
     },
   ],
-  documentation: {
-    docs: "https://github.com/SpaceTurtle-Dao/velocity-protocol",
-    github: "https://github.com/SpaceTurtle-Dao/velocity-protocol",
-  },
+  id: "velocity-hub-v1",
+  name: "Velocity Hub",
+  network: "ao",
+  processId: "g_eSbkmD4LzfZtXaCLmeMcLIBQrqxnY-oFQJJNMIn4w", // Example hub
+  tags: ["velocity", "social", "messaging", "decentralized"],
   verification: {
     codeVerified: true,
-    riskLevel: "low",
     permissions: ["read-events", "post-events", "manage-follows"],
+    riskLevel: "low",
   },
+  version: "1.0.0",
 };
 
 // Token Process - Standard AO token functionality
 export const tokenWorkflow: WorkflowDefinition = {
-  id: "ao-token-v1",
-  name: "AO Token",
-  description:
-    "Standard AO token with transfer, balance, and metadata functionality",
-  version: "1.0.0",
-  processId: "EXAMPLE_TOKEN_PROCESS_ID", // To be replaced with actual token process
   capabilities: ["token-transfer", "balance-query", "token-metadata"],
   category: "finance",
-  tags: ["token", "currency", "finance", "transfer"],
-  network: "ao",
+  description:
+    "Standard AO token with transfer, balance, and metadata functionality",
+  documentation: {
+    docs: "https://cookbook_ao.g8way.io/concepts/tokens.html",
+  },
   handlers: [
     {
-      name: "Transfer",
+      capabilities: ["token-transfer"],
+      costs: { description: "Network fee", tokenCost: 1 },
       description: "Transfer tokens to another address",
       messageSchema: {
         action: "Transfer",
         description: "Send tokens to a recipient",
-        tags: [
-          { name: "Action", value: "Transfer", required: true },
-          {
-            name: "Recipient",
-            value: "",
-            required: true,
-            description: "Recipient address",
-          },
-          {
-            name: "Quantity",
-            value: "",
-            required: true,
-            description: "Amount to transfer",
-            examples: ["100", "1000000000000"],
-          },
-        ],
         examples: [
           {
             description: "Transfer 100 tokens",
+            expectedResponse: "Transfer successful",
             tags: [
               { name: "Action", value: "Transfer" },
               { name: "Recipient", value: "abc123...def456" },
               { name: "Quantity", value: "100" },
             ],
-            expectedResponse: "Transfer successful",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Transfer" },
+          {
+            description: "Recipient address",
+            name: "Recipient",
+            required: true,
+            value: "",
+          },
+          {
+            description: "Amount to transfer",
+            examples: ["100", "1000000000000"],
+            name: "Quantity",
+            required: true,
+            value: "",
           },
         ],
       },
+      name: "Transfer",
+      rateLimit: { requestsPerMinute: 100 },
       responsePatterns: [
         {
-          messageType: "success",
+          format: { dataType: "string", structured: false },
           indicators: { tags: [{ name: "Status", values: ["Success"] }] },
-          format: { structured: false, dataType: "string" },
+          messageType: "success",
         },
         {
-          messageType: "error",
+          format: { dataType: "string", structured: false },
           indicators: {
             errorCodes: ["Insufficient-Balance", "Invalid-Recipient"],
           },
-          format: { structured: false, dataType: "string" },
+          messageType: "error",
         },
       ],
-      capabilities: ["token-transfer"],
-      costs: { tokenCost: 1, description: "Network fee" },
-      rateLimit: { requestsPerMinute: 100 },
     },
     {
-      name: "Balance",
+      capabilities: ["balance-query"],
       description: "Check token balance for an address",
       messageSchema: {
         action: "Balance",
         description: "Query token balance",
-        tags: [
-          { name: "Action", value: "Balance", required: true },
-          {
-            name: "Target",
-            value: "",
-            required: false,
-            description: "Address to check (defaults to sender)",
-          },
-        ],
         examples: [
           {
             description: "Check your own balance",
-            tags: [{ name: "Action", value: "Balance" }],
             expectedResponse: "Balance: 1000",
+            tags: [{ name: "Action", value: "Balance" }],
           },
           {
             description: "Check another address balance",
+            expectedResponse: "Balance: 500",
             tags: [
               { name: "Action", value: "Balance" },
               { name: "Target", value: "xyz789...uvw123" },
             ],
-            expectedResponse: "Balance: 500",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Balance" },
+          {
+            description: "Address to check (defaults to sender)",
+            name: "Target",
+            required: false,
+            value: "",
           },
         ],
       },
+      name: "Balance",
+      rateLimit: { requestsPerMinute: 200 },
       responsePatterns: [
         {
-          messageType: "data",
-          indicators: {},
           format: {
-            structured: false,
             dataType: "string",
             parser: "Extract number from 'Balance: X' format",
+            structured: false,
           },
+          indicators: {},
+          messageType: "data",
         },
       ],
-      capabilities: ["balance-query"],
-      rateLimit: { requestsPerMinute: 200 },
     },
     {
-      name: "Info",
+      capabilities: ["token-metadata"],
       description: "Get token metadata and information",
       messageSchema: {
         action: "Info",
         description: "Retrieve token information",
-        tags: [{ name: "Action", value: "Info", required: true }],
         examples: [
           {
             description: "Get token info",
-            tags: [{ name: "Action", value: "Info" }],
             expectedResponse: "Token name, symbol, total supply, etc.",
+            tags: [{ name: "Action", value: "Info" }],
           },
         ],
+        tags: [{ name: "Action", required: true, value: "Info" }],
       },
+      name: "Info",
+      rateLimit: { requestsPerMinute: 500 },
       responsePatterns: [
         {
-          messageType: "data",
+          format: { dataType: "json", structured: true },
           indicators: {},
-          format: { structured: true, dataType: "json" },
+          messageType: "data",
         },
       ],
-      capabilities: ["token-metadata"],
-      rateLimit: { requestsPerMinute: 500 },
     },
   ],
-  documentation: {
-    docs: "https://cookbook_ao.g8way.io/concepts/tokens.html",
-  },
+  id: "ao-token-v1",
+  name: "AO Token",
+  network: "ao",
+  processId: "EXAMPLE_TOKEN_PROCESS_ID", // To be replaced with actual token process
+  tags: ["token", "currency", "finance", "transfer"],
   verification: {
     codeVerified: true,
-    riskLevel: "low",
     permissions: ["read-balance", "transfer-tokens"],
+    riskLevel: "low",
   },
+  version: "1.0.0",
 };
 
 // Chat Room Process - Group messaging
 export const chatRoomWorkflow: WorkflowDefinition = {
-  id: "ao-chatroom-v1",
-  name: "AO Chat Room",
-  description: "Multi-user chat room with message history and user management",
-  version: "1.0.0",
-  processId: "EXAMPLE_CHAT_PROCESS_ID",
   capabilities: ["group-messaging", "user-management", "message-history"],
   category: "social",
-  tags: ["chat", "messaging", "group", "communication"],
-  network: "ao",
+  description: "Multi-user chat room with message history and user management",
   handlers: [
     {
-      name: "Say",
+      capabilities: ["group-messaging"],
       description: "Send a message to the chat room",
       messageSchema: {
         action: "Say",
         description: "Post a message to the chat",
-        tags: [
-          { name: "Action", value: "Say", required: true },
-          {
-            name: "Message",
-            value: "",
-            required: true,
-            description: "Chat message content",
-          },
-        ],
         examples: [
           {
             description: "Send a chat message",
+            expectedResponse: "Message sent to chat",
             tags: [
               { name: "Action", value: "Say" },
               { name: "Message", value: "Hello everyone!" },
             ],
-            expectedResponse: "Message sent to chat",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Say" },
+          {
+            description: "Chat message content",
+            name: "Message",
+            required: true,
+            value: "",
           },
         ],
       },
+      name: "Say",
+      rateLimit: { requestsPerMinute: 60 },
       responsePatterns: [
         {
-          messageType: "success",
+          format: { dataType: "string", structured: false },
           indicators: {},
-          format: { structured: false, dataType: "string" },
+          messageType: "success",
         },
       ],
-      capabilities: ["group-messaging"],
-      rateLimit: { requestsPerMinute: 60 },
     },
     {
-      name: "GetMessages",
+      capabilities: ["message-history"],
       description: "Retrieve recent chat messages",
       messageSchema: {
         action: "GetMessages",
         description: "Fetch chat history",
-        tags: [
-          { name: "Action", value: "GetMessages", required: true },
-          {
-            name: "Count",
-            value: "10",
-            required: false,
-            description: "Number of messages to retrieve",
-          },
-        ],
         examples: [
           {
             description: "Get last 10 messages",
+            expectedResponse: "Array of chat messages",
             tags: [
               { name: "Action", value: "GetMessages" },
               { name: "Count", value: "10" },
             ],
-            expectedResponse: "Array of chat messages",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "GetMessages" },
+          {
+            description: "Number of messages to retrieve",
+            name: "Count",
+            required: false,
+            value: "10",
           },
         ],
       },
+      name: "GetMessages",
+      rateLimit: { requestsPerMinute: 120 },
       responsePatterns: [
         {
-          messageType: "data",
+          format: { dataType: "json", structured: true },
           indicators: {},
-          format: { structured: true, dataType: "json" },
+          messageType: "data",
         },
       ],
-      capabilities: ["message-history"],
-      rateLimit: { requestsPerMinute: 120 },
     },
     {
-      name: "Join",
+      capabilities: ["user-management"],
       description: "Join the chat room",
       messageSchema: {
         action: "Join",
         description: "Add yourself to the chat room",
-        tags: [
-          { name: "Action", value: "Join", required: true },
-          {
-            name: "Username",
-            value: "",
-            required: false,
-            description: "Display name for the chat",
-          },
-        ],
         examples: [
           {
             description: "Join with a username",
+            expectedResponse: "Welcome to the chat room!",
             tags: [
               { name: "Action", value: "Join" },
               { name: "Username", value: "ChatUser123" },
             ],
-            expectedResponse: "Welcome to the chat room!",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Join" },
+          {
+            description: "Display name for the chat",
+            name: "Username",
+            required: false,
+            value: "",
           },
         ],
       },
+      name: "Join",
+      rateLimit: { requestsPerMinute: 10 },
       responsePatterns: [
         {
-          messageType: "success",
+          format: { dataType: "string", structured: false },
           indicators: {},
-          format: { structured: false, dataType: "string" },
+          messageType: "success",
         },
       ],
-      capabilities: ["user-management"],
-      rateLimit: { requestsPerMinute: 10 },
     },
   ],
+  id: "ao-chatroom-v1",
+  name: "AO Chat Room",
+  network: "ao",
+  processId: "EXAMPLE_CHAT_PROCESS_ID",
+  tags: ["chat", "messaging", "group", "communication"],
   verification: {
     codeVerified: false,
-    riskLevel: "medium",
     permissions: ["post-messages", "read-messages", "join-room"],
+    riskLevel: "medium",
   },
+  version: "1.0.0",
 };
 
 // Registry/Directory Process - Service discovery
 export const registryWorkflow: WorkflowDefinition = {
-  id: "ao-registry-v1",
-  name: "AO Service Registry",
-  description: "Directory service for discovering and registering AO processes",
-  version: "1.0.0",
-  processId: "EXAMPLE_REGISTRY_PROCESS_ID",
   capabilities: ["service-discovery", "registration", "search"],
   category: "infrastructure",
-  tags: ["registry", "directory", "discovery", "infrastructure"],
-  network: "ao",
+  description: "Directory service for discovering and registering AO processes",
   handlers: [
     {
-      name: "Register",
+      capabilities: ["registration"],
       description: "Register a service in the directory",
       messageSchema: {
         action: "Register",
         description: "Add a service to the registry",
-        tags: [
-          { name: "Action", value: "Register", required: true },
-          {
-            name: "Name",
-            value: "",
-            required: true,
-            description: "Service name",
-          },
-          {
-            name: "Description",
-            value: "",
-            required: true,
-            description: "Service description",
-          },
-          {
-            name: "ProcessId",
-            value: "",
-            required: true,
-            description: "AO process ID",
-          },
-          {
-            name: "Category",
-            value: "",
-            required: false,
-            description: "Service category",
-          },
-        ],
         examples: [
           {
             description: "Register a token service",
+            expectedResponse: "Service registered successfully",
             tags: [
               { name: "Action", value: "Register" },
               { name: "Name", value: "MyToken" },
@@ -481,69 +449,101 @@ export const registryWorkflow: WorkflowDefinition = {
               { name: "ProcessId", value: "abc123...def456" },
               { name: "Category", value: "finance" },
             ],
-            expectedResponse: "Service registered successfully",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Register" },
+          {
+            description: "Service name",
+            name: "Name",
+            required: true,
+            value: "",
+          },
+          {
+            description: "Service description",
+            name: "Description",
+            required: true,
+            value: "",
+          },
+          {
+            description: "AO process ID",
+            name: "ProcessId",
+            required: true,
+            value: "",
+          },
+          {
+            description: "Service category",
+            name: "Category",
+            required: false,
+            value: "",
           },
         ],
       },
+      name: "Register",
+      rateLimit: { requestsPerMinute: 20 },
       responsePatterns: [
         {
-          messageType: "success",
+          format: { dataType: "string", structured: false },
           indicators: {},
-          format: { structured: false, dataType: "string" },
+          messageType: "success",
         },
       ],
-      capabilities: ["registration"],
-      rateLimit: { requestsPerMinute: 20 },
     },
     {
-      name: "Search",
+      capabilities: ["service-discovery", "search"],
       description: "Search for services in the registry",
       messageSchema: {
         action: "Search",
         description: "Find services by name or category",
-        tags: [
-          { name: "Action", value: "Search", required: true },
-          {
-            name: "Query",
-            value: "",
-            required: true,
-            description: "Search term or category",
-          },
-          {
-            name: "Limit",
-            value: "10",
-            required: false,
-            description: "Max results to return",
-          },
-        ],
         examples: [
           {
             description: "Search for token services",
+            expectedResponse: "List of matching services",
             tags: [
               { name: "Action", value: "Search" },
               { name: "Query", value: "token" },
               { name: "Limit", value: "5" },
             ],
-            expectedResponse: "List of matching services",
+          },
+        ],
+        tags: [
+          { name: "Action", required: true, value: "Search" },
+          {
+            description: "Search term or category",
+            name: "Query",
+            required: true,
+            value: "",
+          },
+          {
+            description: "Max results to return",
+            name: "Limit",
+            required: false,
+            value: "10",
           },
         ],
       },
+      name: "Search",
+      rateLimit: { requestsPerMinute: 100 },
       responsePatterns: [
         {
-          messageType: "data",
+          format: { dataType: "json", structured: true },
           indicators: {},
-          format: { structured: true, dataType: "json" },
+          messageType: "data",
         },
       ],
-      capabilities: ["service-discovery", "search"],
-      rateLimit: { requestsPerMinute: 100 },
     },
   ],
+  id: "ao-registry-v1",
+  name: "AO Service Registry",
+  network: "ao",
+  processId: "EXAMPLE_REGISTRY_PROCESS_ID",
+  tags: ["registry", "directory", "discovery", "infrastructure"],
   verification: {
     codeVerified: false,
-    riskLevel: "low",
     permissions: ["read-registry", "register-service"],
+    riskLevel: "low",
   },
+  version: "1.0.0",
 };
 
 // Export all workflow definitions
@@ -554,13 +554,6 @@ export const exampleWorkflows: WorkflowDefinition[] = [
   registryWorkflow,
 ];
 
-// Utility function to get workflow by ID
-export function getWorkflowDefinition(
-  id: string,
-): WorkflowDefinition | undefined {
-  return exampleWorkflows.find((workflow) => workflow.id === id);
-}
-
 // Utility function to search workflows by capability
 export function findWorkflowsByCapability(
   capability: string,
@@ -568,6 +561,13 @@ export function findWorkflowsByCapability(
   return exampleWorkflows.filter((workflow) =>
     workflow.capabilities.includes(capability),
   );
+}
+
+// Utility function to get workflow by ID
+export function getWorkflowDefinition(
+  id: string,
+): undefined | WorkflowDefinition {
+  return exampleWorkflows.find((workflow) => workflow.id === id);
 }
 
 // Utility function to get workflows by category

@@ -6,6 +6,8 @@ import { z } from "zod";
 import { HUB_REGISTRY_ID } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
+import { AOMessageService } from "./services/AOMessageService.js";
+import { MarkdownWorkflowService } from "./services/MarkdownWorkflowService.js";
 import { memoryService } from "./services/memory.js";
 import { hubRegistryService } from "./services/registry.js";
 import { WorkflowAnalyticsService } from "./services/WorkflowAnalyticsService.js";
@@ -13,8 +15,6 @@ import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.
 import { WorkflowHubService, } from "./services/WorkflowHubService.js";
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
-import { AOMessageService } from "./services/AOMessageService.js";
-import { MarkdownWorkflowService } from "./services/MarkdownWorkflowService.js";
 let keyPair;
 let publicKey;
 let hubId;
@@ -1480,14 +1480,14 @@ server.addTool({
             }
             // Create the AO message request
             const request = {
-                processId: args.processId || workflowDefinition.processId,
-                handler: args.handler,
-                parameters,
                 data: args.data,
+                handler: args.handler,
                 metadata: {
-                    timeout: args.timeout,
                     priority: args.priority,
+                    timeout: args.timeout,
                 },
+                parameters,
+                processId: args.processId || workflowDefinition.processId,
             };
             // Execute the message through AOMessageService
             const response = await aoMessageService.executeMessage(workflowDefinition, request);
@@ -1500,16 +1500,16 @@ Parameters: ${JSON.stringify(parameters)}
 Response: ${JSON.stringify(response.data)}`;
                     await aiMemoryService.addEnhanced(keyPair, hubId, {
                         content: memoryContent,
-                        memoryType: "procedure",
-                        importance: 0.7,
                         context: {
                             domain: "ao_interaction",
                             topic: workflowDefinition.category,
                         },
+                        importance: 0.7,
+                        memoryType: "procedure",
                         metadata: {
-                            tags: ["ao_process", workflowDefinition.name, args.handler],
-                            lastAccessed: new Date().toISOString(),
                             accessCount: 0,
+                            lastAccessed: new Date().toISOString(),
+                            tags: ["ao_process", workflowDefinition.name, args.handler],
                         },
                         p: publicKey,
                         role: "system",
@@ -1523,20 +1523,21 @@ Response: ${JSON.stringify(response.data)}`;
         }
         catch (error) {
             return JSON.stringify({
-                success: false,
                 error: {
                     code: "TOOL_ERROR",
-                    message: error instanceof Error ? error.message : "Unknown error",
                     details: error,
+                    message: error instanceof Error ? error.message : "Unknown error",
                 },
+                success: false,
             }, null, 2);
         }
     },
     name: "aoMessage",
     parameters: z.object({
-        workflowDefinition: z
+        data: z
             .string()
-            .describe("JSON string containing the workflow definition that describes the AO process, its handlers, and message formats"),
+            .optional()
+            .describe("Data payload for the message (if required by handler)"),
         handler: z
             .string()
             .describe("Name of the handler/action to invoke on the AO process"),
@@ -1544,26 +1545,25 @@ Response: ${JSON.stringify(response.data)}`;
             .string()
             .optional()
             .describe("JSON string or simple value containing parameters for the handler"),
-        processId: z
-            .string()
-            .optional()
-            .describe("Override process ID (uses workflow definition default if not provided)"),
-        data: z
-            .string()
-            .optional()
-            .describe("Data payload for the message (if required by handler)"),
-        timeout: z
-            .number()
-            .optional()
-            .describe("Timeout in milliseconds (default: 30000)"),
         priority: z
             .enum(["low", "medium", "high"])
             .optional()
             .describe("Message priority (default: medium)"),
+        processId: z
+            .string()
+            .optional()
+            .describe("Override process ID (uses workflow definition default if not provided)"),
         storeAsMemory: z
             .boolean()
             .optional()
             .describe("Whether to store this interaction as a memory (default: true)"),
+        timeout: z
+            .number()
+            .optional()
+            .describe("Timeout in milliseconds (default: 30000)"),
+        workflowDefinition: z
+            .string()
+            .describe("JSON string containing the workflow definition that describes the AO process, its handlers, and message formats"),
     }),
 });
 // Enhanced AO Message Tool - Markdown Workflow Support
@@ -1599,22 +1599,27 @@ server.addTool({
                 try {
                     const memoryContent = `AO Process Interaction (Natural Language)
 Request: ${args.request}
-Process: ${args.processId || 'from workflow'}
+Process: ${args.processId || "from workflow"}
 Success: ${response.success}
 Response: ${JSON.stringify(response.data)}
-Reasoning: ${response.reasoningChain?.join(' → ') || 'Not available'}`;
+Reasoning: ${response.reasoningChain?.join(" → ") || "Not available"}`;
                     await aiMemoryService.addEnhanced(keyPair, hubId, {
                         content: memoryContent,
-                        memoryType: "procedure",
-                        importance: 0.8,
                         context: {
                             domain: "ao_interaction_nl",
                             topic: "natural_language_workflow",
                         },
+                        importance: 0.8,
+                        memoryType: "procedure",
                         metadata: {
-                            tags: ["ao_process", "natural_language", "workflow", args.request.split(' ')[0]],
-                            lastAccessed: new Date().toISOString(),
                             accessCount: 0,
+                            lastAccessed: new Date().toISOString(),
+                            tags: [
+                                "ao_process",
+                                "natural_language",
+                                "workflow",
+                                args.request.split(" ")[0],
+                            ],
                         },
                         p: publicKey,
                         role: "system",
@@ -1628,21 +1633,31 @@ Reasoning: ${response.reasoningChain?.join(' → ') || 'Not available'}`;
         }
         catch (error) {
             return JSON.stringify({
-                success: false,
                 error: {
                     code: "TOOL_ERROR",
-                    message: error instanceof Error ? error.message : "Unknown error",
                     details: error,
+                    message: error instanceof Error ? error.message : "Unknown error",
                 },
+                success: false,
             }, null, 2);
         }
     },
     name: "aoMessageNL",
     parameters: z.object({
-        markdownWorkflow: z.string().describe("Markdown documentation describing the AO process, its actions, and parameter mapping. Should be human-readable workflow documentation."),
-        request: z.string().describe("Natural language request describing what you want to do (e.g., 'transfer 100 tokens to alice', 'check my balance', 'mint 500 tokens')"),
-        processId: z.string().optional().describe("Override process ID (uses workflow default if not provided)"),
-        storeAsMemory: z.boolean().optional().describe("Whether to store this interaction as a memory (default: true)"),
+        markdownWorkflow: z
+            .string()
+            .describe("Markdown documentation describing the AO process, its actions, and parameter mapping. Should be human-readable workflow documentation."),
+        processId: z
+            .string()
+            .optional()
+            .describe("Override process ID (uses workflow default if not provided)"),
+        request: z
+            .string()
+            .describe("Natural language request describing what you want to do (e.g., 'transfer 100 tokens to alice', 'check my balance', 'mint 500 tokens')"),
+        storeAsMemory: z
+            .boolean()
+            .optional()
+            .describe("Whether to store this interaction as a memory (default: true)"),
     }),
 });
 // Workflow Definition Management Tool
@@ -1667,8 +1682,8 @@ server.addTool({
                 !workflowDefinition.name ||
                 !workflowDefinition.processId) {
                 return JSON.stringify({
-                    success: false,
                     error: "Missing required fields: id, name, or processId",
+                    success: false,
                 });
             }
             // Create memory content
@@ -1687,13 +1702,15 @@ ${JSON.stringify(workflowDefinition, null, 2)}`;
             // Store as enhanced memory
             const result = await aiMemoryService.addEnhanced(keyPair, hubId, {
                 content: memoryContent,
-                memoryType: "knowledge",
-                importance: 0.8,
                 context: {
                     domain: "workflow_definitions",
                     topic: workflowDefinition.category,
                 },
+                importance: 0.8,
+                memoryType: "knowledge",
                 metadata: {
+                    accessCount: 0,
+                    lastAccessed: new Date().toISOString(),
                     tags: [
                         "workflow_definition",
                         workflowDefinition.id,
@@ -1701,23 +1718,21 @@ ${JSON.stringify(workflowDefinition, null, 2)}`;
                         ...workflowDefinition.capabilities,
                         ...workflowDefinition.tags,
                     ],
-                    lastAccessed: new Date().toISOString(),
-                    accessCount: 0,
                 },
                 p: publicKey,
                 role: "system",
             });
             return JSON.stringify({
-                success: true,
-                message: `Workflow definition '${workflowDefinition.name}' stored successfully`,
-                workflowId: workflowDefinition.id,
                 memoryId: result,
+                message: `Workflow definition '${workflowDefinition.name}' stored successfully`,
+                success: true,
+                workflowId: workflowDefinition.id,
             });
         }
         catch (error) {
             return JSON.stringify({
-                success: false,
                 error: error instanceof Error ? error.message : "Unknown error",
+                success: false,
             });
         }
     },
@@ -1745,9 +1760,9 @@ server.addTool({
             // Search for workflow definitions in memory
             const searchQuery = `workflow_definition ${args.query}`;
             const memories = await aiMemoryService.searchAdvanced(hubId, searchQuery, {
-                memoryType: "knowledge",
                 domain: "workflow_definitions",
                 importanceThreshold: 0.5,
+                memoryType: "knowledge",
             });
             // Extract workflow definitions from memory content
             const workflowDefinitions = memories
@@ -1767,16 +1782,16 @@ server.addTool({
             })
                 .filter((def) => def !== null);
             return JSON.stringify({
-                success: true,
                 count: workflowDefinitions.length,
-                workflowDefinitions: workflowDefinitions,
                 searchQuery: args.query,
+                success: true,
+                workflowDefinitions: workflowDefinitions,
             }, null, 2);
         }
         catch (error) {
             return JSON.stringify({
-                success: false,
                 error: error instanceof Error ? error.message : "Unknown error",
+                success: false,
             });
         }
     },

@@ -7,7 +7,7 @@
   "processId": "YOUR_TOKEN_PROCESS_ID_HERE",
   "capabilities": [
     "token-transfer",
-    "balance-query", 
+    "balance-query",
     "allowance-management",
     "token-metadata",
     "mint-burn",
@@ -37,7 +37,10 @@
             "value": "",
             "required": true,
             "description": "The address to send tokens to",
-            "examples": ["1234567890abcdef1234567890abcdef12345678", "ao-process-id-here"]
+            "examples": [
+              "1234567890abcdef1234567890abcdef12345678",
+              "ao-process-id-here"
+            ]
           },
           {
             "name": "Quantity",
@@ -52,7 +55,10 @@
             "description": "Transfer 100 tokens",
             "tags": [
               { "name": "Action", "value": "Transfer" },
-              { "name": "Recipient", "value": "abc123def456ghi789jkl012mno345pqr678stu90" },
+              {
+                "name": "Recipient",
+                "value": "abc123def456ghi789jkl012mno345pqr678stu90"
+              },
               { "name": "Quantity", "value": "100" }
             ],
             "expectedResponse": "Transfer successful - 100 tokens sent to abc123...stu90"
@@ -61,7 +67,10 @@
             "description": "Transfer with large amount",
             "tags": [
               { "name": "Action", "value": "Transfer" },
-              { "name": "Recipient", "value": "xyz987uvw654rst321nop098mno765abc432def10" },
+              {
+                "name": "Recipient",
+                "value": "xyz987uvw654rst321nop098mno765abc432def10"
+              },
               { "name": "Quantity", "value": "1000000000000" }
             ],
             "expectedResponse": "Transfer successful"
@@ -83,7 +92,11 @@
         {
           "messageType": "error",
           "indicators": {
-            "errorCodes": ["Insufficient-Balance", "Invalid-Recipient", "Transfer-Failed"]
+            "errorCodes": [
+              "Insufficient-Balance",
+              "Invalid-Recipient",
+              "Transfer-Failed"
+            ]
           },
           "format": {
             "structured": false,
@@ -118,22 +131,26 @@
             "value": "",
             "required": false,
             "description": "Address to check balance for (defaults to sender if omitted)",
-            "examples": ["1234567890abcdef1234567890abcdef12345678", "your-address-here"]
+            "examples": [
+              "1234567890abcdef1234567890abcdef12345678",
+              "your-address-here"
+            ]
           }
         ],
         "examples": [
           {
             "description": "Check your own balance",
-            "tags": [
-              { "name": "Action", "value": "Balance" }
-            ],
+            "tags": [{ "name": "Action", "value": "Balance" }],
             "expectedResponse": "Balance: 1500"
           },
           {
             "description": "Check another address balance",
             "tags": [
               { "name": "Action", "value": "Balance" },
-              { "name": "Target", "value": "abc123def456ghi789jkl012mno345pqr678stu90" }
+              {
+                "name": "Target",
+                "value": "abc123def456ghi789jkl012mno345pqr678stu90"
+              }
             ],
             "expectedResponse": "Balance: 750"
           }
@@ -172,9 +189,7 @@
         "examples": [
           {
             "description": "Get token information",
-            "tags": [
-              { "name": "Action", "value": "Info" }
-            ],
+            "tags": [{ "name": "Action", "value": "Info" }],
             "expectedResponse": "JSON object with name, symbol, decimals, totalSupply, etc."
           }
         ]
@@ -313,7 +328,11 @@
         {
           "messageType": "error",
           "indicators": {
-            "errorCodes": ["Insufficient-Balance", "Invalid-Quantity", "Burn-Failed"]
+            "errorCodes": [
+              "Insufficient-Balance",
+              "Invalid-Quantity",
+              "Burn-Failed"
+            ]
           },
           "format": {
             "structured": false,
@@ -441,7 +460,11 @@
         {
           "messageType": "error",
           "indicators": {
-            "errorCodes": ["Insufficient-Allowance", "Insufficient-Balance", "Transfer-Failed"]
+            "errorCodes": [
+              "Insufficient-Allowance",
+              "Insufficient-Balance",
+              "Transfer-Failed"
+            ]
           },
           "format": {
             "structured": false,
@@ -527,6 +550,11 @@
     "codeVerified": true,
     "auditedBy": ["AO Security Team", "Community Review"],
     "riskLevel": "low",
-    "permissions": ["read-balance", "transfer-tokens", "manage-allowances", "mint-burn-tokens"]
+    "permissions": [
+      "read-balance",
+      "transfer-tokens",
+      "manage-allowances",
+      "mint-burn-tokens"
+    ]
   }
 }

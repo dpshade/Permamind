@@ -1,4 +1,5 @@
 import { JWKInterface } from "arweave/node/lib/wallet.js";
+
 import { send } from "../process.js";
 import {
   AOHandlerDefinition,
@@ -31,11 +32,10 @@ export class AOMessageService {
       const validation = this.validateRequest(workflowDefinition, request);
       if (!validation.valid) {
         return {
-          success: false,
           error: {
             code: "VALIDATION_FAILED",
-            message: "Request validation failed",
             details: validation.errors,
+            message: "Request validation failed",
           },
           executionTime: Date.now() - startTime,
           metadata: {
@@ -43,6 +43,7 @@ export class AOMessageService {
             processId: request.processId,
             timestamp: new Date().toISOString(),
           },
+          success: false,
         };
       }
 
@@ -52,7 +53,6 @@ export class AOMessageService {
       );
       if (!handler) {
         return {
-          success: false,
           error: {
             code: "HANDLER_NOT_FOUND",
             message: `Handler '${request.handler}' not found in workflow definition`,
@@ -63,6 +63,7 @@ export class AOMessageService {
             processId: request.processId,
             timestamp: new Date().toISOString(),
           },
+          success: false,
         };
       }
 
@@ -71,10 +72,10 @@ export class AOMessageService {
 
       // Create execution context for debugging/logging
       const context: WorkflowExecutionContext = {
-        workflowDefinition,
+        constructedMessage,
         selectedHandler: handler,
         userRequest: JSON.stringify(request.parameters),
-        constructedMessage,
+        workflowDefinition,
       };
 
       // Send the message using existing AO infrastructure
@@ -89,23 +90,22 @@ export class AOMessageService {
       const processedResponse = this.processResponse(handler, rawResponse);
 
       return {
-        success: true,
         data: processedResponse,
-        rawResponse,
         executionTime: Date.now() - startTime,
         metadata: {
           handler: request.handler,
           processId: request.processId,
           timestamp: new Date().toISOString(),
         },
+        rawResponse,
+        success: true,
       };
     } catch (error) {
       return {
-        success: false,
         error: {
           code: "EXECUTION_ERROR",
-          message: error instanceof Error ? error.message : "Unknown error",
           details: error,
+          message: error instanceof Error ? error.message : "Unknown error",
         },
         executionTime: Date.now() - startTime,
         metadata: {
@@ -113,8 +113,24 @@ export class AOMessageService {
           processId: request.processId,
           timestamp: new Date().toISOString(),
         },
+        success: false,
       };
     }
+  }
+
+  /**
+   * Get workflow capabilities and help information
+   */
+  getWorkflowInfo(workflowDefinition: WorkflowDefinition): {
+    capabilities: string[];
+    documentation: string;
+    handlers: string[];
+  } {
+    return {
+      capabilities: workflowDefinition.capabilities,
+      documentation: this.generateDocumentation(workflowDefinition),
+      handlers: workflowDefinition.handlers.map((h) => h.name),
+    };
   }
 
   /**
@@ -124,9 +140,9 @@ export class AOMessageService {
     handler: AOHandlerDefinition,
     request: AOMessageRequest,
   ): {
+    data?: string;
     processId: string;
     tags: { name: string; value: string }[];
-    data?: string;
   } {
     const tags: { name: string; value: string }[] = [];
 
@@ -169,9 +185,9 @@ export class AOMessageService {
     }
 
     return {
+      data,
       processId: request.processId,
       tags,
-      data,
     };
   }
 
@@ -212,55 +228,6 @@ export class AOMessageService {
   }
 
   /**
-   * Process raw AO response based on handler's response patterns
-   */
-  private processResponse(handler: AOHandlerDefinition, rawResponse: any): any {
-    // If no response patterns defined, return raw response
-    if (!handler.responsePatterns || handler.responsePatterns.length === 0) {
-      return rawResponse;
-    }
-
-    // Try to match response against each pattern
-    for (const pattern of handler.responsePatterns) {
-      if (this.matchesResponsePattern(pattern, rawResponse)) {
-        return this.formatResponse(pattern, rawResponse);
-      }
-    }
-
-    // If no patterns match, return raw response with warning
-    return {
-      _warning: "Response did not match any expected patterns",
-      _rawResponse: rawResponse,
-    };
-  }
-
-  /**
-   * Check if response matches a given pattern
-   */
-  private matchesResponsePattern(pattern: any, response: any): boolean {
-    // Simple pattern matching - can be enhanced based on actual response structures
-    if (pattern.indicators.tags) {
-      // Check if response has expected tags
-      if (!response.Tags) return false;
-
-      for (const tagPattern of pattern.indicators.tags) {
-        const responseTag = response.Tags.find(
-          (tag: any) => tag.name === tagPattern.name,
-        );
-        if (!responseTag || !tagPattern.values.includes(responseTag.value)) {
-          return false;
-        }
-      }
-    }
-
-    if (pattern.indicators.errorCodes && response.Error) {
-      return pattern.indicators.errorCodes.includes(response.Error);
-    }
-
-    return true;
-  }
-
-  /**
    * Format response according to pattern specification
    */
   private formatResponse(pattern: any, response: any): any {
@@ -279,82 +246,6 @@ export class AOMessageService {
 
     // For non-structured or other formats, return appropriate data
     return response.Data || response;
-  }
-
-  /**
-   * Validate request against workflow definition
-   */
-  private validateRequest(
-    workflowDefinition: WorkflowDefinition,
-    request: AOMessageRequest,
-  ): WorkflowValidationResult {
-    const errors: string[] = [];
-    const warnings: string[] = [];
-    const suggestions: string[] = [];
-
-    // Check if handler exists
-    const handler = workflowDefinition.handlers.find(
-      (h) => h.name === request.handler,
-    );
-    if (!handler) {
-      errors.push(`Handler '${request.handler}' not found`);
-      suggestions.push(
-        `Available handlers: ${workflowDefinition.handlers.map((h) => h.name).join(", ")}`,
-      );
-      return { valid: false, errors, warnings, suggestions };
-    }
-
-    // Check if process ID matches
-    if (request.processId !== workflowDefinition.processId) {
-      warnings.push(
-        `Process ID mismatch: expected ${workflowDefinition.processId}, got ${request.processId}`,
-      );
-    }
-
-    // Validate required parameters are present
-    for (const tagSchema of handler.messageSchema.tags) {
-      if (tagSchema.required && tagSchema.name !== "Action") {
-        const paramKey = this.findParameterKey(
-          tagSchema.name,
-          request.parameters,
-        );
-        if (!paramKey || request.parameters[paramKey] === undefined) {
-          errors.push(`Required parameter '${tagSchema.name}' is missing`);
-          if (tagSchema.examples) {
-            suggestions.push(
-              `Examples for '${tagSchema.name}': ${tagSchema.examples.join(", ")}`,
-            );
-          }
-        }
-      }
-    }
-
-    // Check data requirements
-    if (handler.messageSchema.data?.required && !request.data) {
-      errors.push("Data field is required for this handler");
-    }
-
-    return {
-      valid: errors.length === 0,
-      errors,
-      warnings,
-      suggestions,
-    };
-  }
-
-  /**
-   * Get workflow capabilities and help information
-   */
-  getWorkflowInfo(workflowDefinition: WorkflowDefinition): {
-    capabilities: string[];
-    handlers: string[];
-    documentation: string;
-  } {
-    return {
-      capabilities: workflowDefinition.capabilities,
-      handlers: workflowDefinition.handlers.map((h) => h.name),
-      documentation: this.generateDocumentation(workflowDefinition),
-    };
   }
 
   /**
@@ -405,5 +296,115 @@ export class AOMessageService {
     }
 
     return doc;
+  }
+
+  /**
+   * Check if response matches a given pattern
+   */
+  private matchesResponsePattern(pattern: any, response: any): boolean {
+    // Simple pattern matching - can be enhanced based on actual response structures
+    if (pattern.indicators.tags) {
+      // Check if response has expected tags
+      if (!response.Tags) return false;
+
+      for (const tagPattern of pattern.indicators.tags) {
+        const responseTag = response.Tags.find(
+          (tag: any) => tag.name === tagPattern.name,
+        );
+        if (!responseTag || !tagPattern.values.includes(responseTag.value)) {
+          return false;
+        }
+      }
+    }
+
+    if (pattern.indicators.errorCodes && response.Error) {
+      return pattern.indicators.errorCodes.includes(response.Error);
+    }
+
+    return true;
+  }
+
+  /**
+   * Process raw AO response based on handler's response patterns
+   */
+  private processResponse(handler: AOHandlerDefinition, rawResponse: any): any {
+    // If no response patterns defined, return raw response
+    if (!handler.responsePatterns || handler.responsePatterns.length === 0) {
+      return rawResponse;
+    }
+
+    // Try to match response against each pattern
+    for (const pattern of handler.responsePatterns) {
+      if (this.matchesResponsePattern(pattern, rawResponse)) {
+        return this.formatResponse(pattern, rawResponse);
+      }
+    }
+
+    // If no patterns match, return raw response with warning
+    return {
+      _rawResponse: rawResponse,
+      _warning: "Response did not match any expected patterns",
+    };
+  }
+
+  /**
+   * Validate request against workflow definition
+   */
+  private validateRequest(
+    workflowDefinition: WorkflowDefinition,
+    request: AOMessageRequest,
+  ): WorkflowValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const suggestions: string[] = [];
+
+    // Check if handler exists
+    const handler = workflowDefinition.handlers.find(
+      (h) => h.name === request.handler,
+    );
+    if (!handler) {
+      errors.push(`Handler '${request.handler}' not found`);
+      suggestions.push(
+        `Available handlers: ${workflowDefinition.handlers.map((h) => h.name).join(", ")}`,
+      );
+      return { errors, suggestions, valid: false, warnings };
+    }
+
+    // Check if process ID matches
+    if (request.processId !== workflowDefinition.processId) {
+      warnings.push(
+        `Process ID mismatch: expected ${workflowDefinition.processId}, got ${request.processId}`,
+      );
+    }
+
+    // Validate required parameters are present
+    for (const tagSchema of handler.messageSchema.tags) {
+      if (tagSchema.required && tagSchema.name !== "Action") {
+        const paramKey = this.findParameterKey(
+          tagSchema.name,
+          request.parameters,
+        );
+        if (!paramKey || request.parameters[paramKey] === undefined) {
+          errors.push(`Required parameter '${tagSchema.name}' is missing`);
+          if (tagSchema.examples) {
+            suggestions.push(
+              `Examples for '${tagSchema.name}': ${tagSchema.examples.join(", ")}`,
+            );
+          }
+        }
+      }
+    }
+
+    // Check data requirements
+    if (handler.messageSchema.data?.required && !request.data) {
+      errors.push("Data field is required for this handler");
+    }
+
+    return {
+      errors,
+      suggestions,
+      valid: errors.length === 0,
+      warnings,
+    };
   }
 }

@@ -68,12 +68,12 @@ export const createProcess = async (signer: JWKInterface) => {
 };
 
 export interface TokenDeploymentConfig {
+  denomination?: number;
+  description?: string;
+  logo?: string;
   name: string;
   ticker: string;
-  denomination?: number;
   totalSupply?: string;
-  logo?: string;
-  description?: string;
 }
 
 export const createTokenProcess = async (

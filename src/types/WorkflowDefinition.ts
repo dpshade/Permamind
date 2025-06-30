@@ -5,196 +5,128 @@
  * enabling dynamic interaction without hard-coded tools for each process.
  */
 
-export interface AOTag {
-  name: string;
-  value: string;
-  required?: boolean;
-  description?: string;
-  examples?: string[];
-}
-
-export interface AOMessageSchema {
-  action: string;
-  description: string;
-  tags: AOTag[];
-  data?: {
-    required: boolean;
-    format: "string" | "json" | "lua" | "binary";
-    description: string;
-    examples?: string[];
-  };
-  examples?: {
-    description: string;
-    tags: { name: string; value: string }[];
-    data?: string;
-    expectedResponse?: string;
-  }[];
-}
-
-export interface AOResponsePattern {
-  messageType: "success" | "error" | "data" | "status";
-  indicators: {
-    tags?: { name: string; values: string[] }[];
-    dataPattern?: string; // regex or description
-    errorCodes?: string[];
-  };
-  format: {
-    structured: boolean;
-    dataType: "string" | "json" | "lua" | "binary";
-    parser?: string; // description of how to parse
-  };
-}
-
 export interface AOHandlerDefinition {
-  name: string;
-  description: string;
-  messageSchema: AOMessageSchema;
-  responsePatterns: AOResponsePattern[];
   capabilities: string[];
-  requirements?: string[];
-  rateLimit?: {
-    requestsPerMinute: number;
-    cooldownMs?: number;
-  };
   costs?: {
     computeUnits?: number;
-    tokenCost?: number;
     description?: string;
+    tokenCost?: number;
   };
-}
-
-export interface WorkflowDefinition {
-  // Process metadata
-  id: string;
-  name: string;
   description: string;
-  version: string;
-  author?: string;
-  processId: string;
-
-  // Capabilities and classification
-  capabilities: string[];
-  category:
-    | "social"
-    | "finance"
-    | "gaming"
-    | "utility"
-    | "data"
-    | "ai"
-    | "infrastructure"
-    | "other";
-  tags: string[];
-
-  // Process configuration
-  network: "ao" | "arweave" | "other";
-  scheduler?: string;
-  module?: string;
-
-  // Handler definitions
-  handlers: AOHandlerDefinition[];
-
-  // Process-specific information
-  documentation?: {
-    website?: string;
-    github?: string;
-    docs?: string;
-    examples?: string;
+  messageSchema: AOMessageSchema;
+  name: string;
+  rateLimit?: {
+    cooldownMs?: number;
+    requestsPerMinute: number;
   };
-
-  // Performance and reliability info
-  metrics?: {
-    avgResponseTime?: number;
-    successRate?: number;
-    lastUpdated?: string;
-    userRating?: number;
-  };
-
-  // Security and trust
-  verification?: {
-    codeVerified: boolean;
-    auditedBy?: string[];
-    riskLevel: "low" | "medium" | "high";
-    permissions: string[];
-  };
+  requirements?: string[];
+  responsePatterns: AOResponsePattern[];
 }
 
 export interface AOMessageRequest {
-  processId: string;
-  handler: string;
-  parameters: Record<string, any>;
   data?: string;
+  handler: string;
   metadata?: {
-    timeout?: number;
+    priority?: "high" | "low" | "medium";
     retries?: number;
-    priority?: "low" | "medium" | "high";
+    timeout?: number;
   };
+  parameters: Record<string, any>;
+  processId: string;
 }
 
 export interface AOMessageResponse {
-  success: boolean;
   data?: any;
-  rawResponse?: any;
-  messageId?: string;
-  executionTime?: number;
   error?: {
     code: string;
-    message: string;
     details?: any;
+    message: string;
   };
+  executionTime?: number;
+  messageId?: string;
   metadata?: {
     handler: string;
     processId: string;
     timestamp: string;
   };
+  rawResponse?: any;
+  success: boolean;
 }
 
-export interface WorkflowExecutionContext {
-  workflowDefinition: WorkflowDefinition;
-  selectedHandler: AOHandlerDefinition;
-  userRequest: string;
-  constructedMessage: {
-    processId: string;
-    tags: { name: string; value: string }[];
-    data?: string;
+export interface AOMessageSchema {
+  action: string;
+  data?: {
+    description: string;
+    examples?: string[];
+    format: "binary" | "json" | "lua" | "string";
+    required: boolean;
   };
+  description: string;
+  examples?: {
+    data?: string;
+    description: string;
+    expectedResponse?: string;
+    tags: { name: string; value: string }[];
+  }[];
+  tags: AOTag[];
 }
 
-// Utility types for workflow discovery and management
-export interface WorkflowRegistry {
-  workflows: Map<string, WorkflowDefinition>;
-  addWorkflow(definition: WorkflowDefinition): void;
-  getWorkflow(id: string): WorkflowDefinition | undefined;
-  findByCapability(capability: string): WorkflowDefinition[];
-  findByCategory(category: string): WorkflowDefinition[];
-  search(query: string): WorkflowDefinition[];
+export interface AOResponsePattern {
+  format: {
+    dataType: "binary" | "json" | "lua" | "string";
+    parser?: string; // description of how to parse
+    structured: boolean;
+  };
+  indicators: {
+    dataPattern?: string; // regex or description
+    errorCodes?: string[];
+    tags?: { name: string; values: string[] }[];
+  };
+  messageType: "data" | "error" | "status" | "success";
 }
 
-export interface WorkflowValidationResult {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-  suggestions: string[];
+export interface AOTag {
+  description?: string;
+  examples?: string[];
+  name: string;
+  required?: boolean;
+  value: string;
 }
 
 // Enhanced interfaces for markdown workflows
 export interface MarkdownWorkflowRequest {
   markdownWorkflow: string;
-  request: string;
   processId?: string;
+  request: string;
   storeAsMemory?: boolean;
 }
 
 export interface MarkdownWorkflowResponse {
-  success: boolean;
   data?: any;
-  rawResponse?: any;
-  executionTime?: number;
-  reasoningChain?: string[];
   error?: {
     code: string;
-    message: string;
     details?: any;
+    message: string;
   };
+  executionTime?: number;
+  rawResponse?: any;
+  reasoningChain?: string[];
+  success: boolean;
+}
+
+export interface NaturalLanguageExample {
+  description: string;
+  expectedAction: string;
+  expectedParameters: Record<string, string>;
+  phrase: string;
+}
+
+export interface ParameterMapping {
+  conversion?: "decimal" | "none";
+  examples: string[];
+  parameter: string;
+  patterns: string[];
+  type: "address" | "amount" | "boolean" | "string";
 }
 
 export interface WorkflowActionMapping {
@@ -203,26 +135,94 @@ export interface WorkflowActionMapping {
   parameterMappings: ParameterMapping[];
 }
 
-export interface ParameterMapping {
-  parameter: string;
-  patterns: string[];
-  type: 'address' | 'amount' | 'string' | 'boolean';
-  conversion?: 'decimal' | 'none';
-  examples: string[];
+export interface WorkflowDefinition {
+  author?: string;
+  // Capabilities and classification
+  capabilities: string[];
+  category:
+    | "ai"
+    | "data"
+    | "finance"
+    | "gaming"
+    | "infrastructure"
+    | "other"
+    | "social"
+    | "utility";
+  description: string;
+  // Process-specific information
+  documentation?: {
+    docs?: string;
+    examples?: string;
+    github?: string;
+    website?: string;
+  };
+  // Handler definitions
+  handlers: AOHandlerDefinition[];
+
+  // Process metadata
+  id: string;
+  // Performance and reliability info
+  metrics?: {
+    avgResponseTime?: number;
+    lastUpdated?: string;
+    successRate?: number;
+    userRating?: number;
+  };
+  module?: string;
+
+  name: string;
+  // Process configuration
+  network: "ao" | "arweave" | "other";
+  processId: string;
+
+  scheduler?: string;
+
+  tags: string[];
+
+  // Security and trust
+  verification?: {
+    auditedBy?: string[];
+    codeVerified: boolean;
+    permissions: string[];
+    riskLevel: "high" | "low" | "medium";
+  };
+
+  version: string;
+}
+
+export interface WorkflowExecutionContext {
+  constructedMessage: {
+    data?: string;
+    processId: string;
+    tags: { name: string; value: string }[];
+  };
+  selectedHandler: AOHandlerDefinition;
+  userRequest: string;
+  workflowDefinition: WorkflowDefinition;
 }
 
 export interface WorkflowMetadata {
-  processId?: string;
-  name?: string;
   category?: string;
   decimals?: number;
-  version?: string;
   description?: string;
+  name?: string;
+  processId?: string;
+  version?: string;
 }
 
-export interface NaturalLanguageExample {
-  phrase: string;
-  expectedAction: string;
-  expectedParameters: Record<string, string>;
-  description: string;
+// Utility types for workflow discovery and management
+export interface WorkflowRegistry {
+  addWorkflow(definition: WorkflowDefinition): void;
+  findByCapability(capability: string): WorkflowDefinition[];
+  findByCategory(category: string): WorkflowDefinition[];
+  getWorkflow(id: string): undefined | WorkflowDefinition;
+  search(query: string): WorkflowDefinition[];
+  workflows: Map<string, WorkflowDefinition>;
+}
+
+export interface WorkflowValidationResult {
+  errors: string[];
+  suggestions: string[];
+  valid: boolean;
+  warnings: string[];
 }

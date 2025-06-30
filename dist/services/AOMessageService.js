@@ -19,11 +19,10 @@ export class AOMessageService {
             const validation = this.validateRequest(workflowDefinition, request);
             if (!validation.valid) {
                 return {
-                    success: false,
                     error: {
                         code: "VALIDATION_FAILED",
-                        message: "Request validation failed",
                         details: validation.errors,
+                        message: "Request validation failed",
                     },
                     executionTime: Date.now() - startTime,
                     metadata: {
@@ -31,13 +30,13 @@ export class AOMessageService {
                         processId: request.processId,
                         timestamp: new Date().toISOString(),
                     },
+                    success: false,
                 };
             }
             // Find the specified handler
             const handler = workflowDefinition.handlers.find((h) => h.name === request.handler);
             if (!handler) {
                 return {
-                    success: false,
                     error: {
                         code: "HANDLER_NOT_FOUND",
                         message: `Handler '${request.handler}' not found in workflow definition`,
@@ -48,40 +47,40 @@ export class AOMessageService {
                         processId: request.processId,
                         timestamp: new Date().toISOString(),
                     },
+                    success: false,
                 };
             }
             // Construct the message based on handler schema
             const constructedMessage = this.constructMessage(handler, request);
             // Create execution context for debugging/logging
             const context = {
-                workflowDefinition,
+                constructedMessage,
                 selectedHandler: handler,
                 userRequest: JSON.stringify(request.parameters),
-                constructedMessage,
+                workflowDefinition,
             };
             // Send the message using existing AO infrastructure
             const rawResponse = await send(this.keyPair, constructedMessage.processId, constructedMessage.tags, constructedMessage.data || null);
             // Process the response based on handler's response patterns
             const processedResponse = this.processResponse(handler, rawResponse);
             return {
-                success: true,
                 data: processedResponse,
-                rawResponse,
                 executionTime: Date.now() - startTime,
                 metadata: {
                     handler: request.handler,
                     processId: request.processId,
                     timestamp: new Date().toISOString(),
                 },
+                rawResponse,
+                success: true,
             };
         }
         catch (error) {
             return {
-                success: false,
                 error: {
                     code: "EXECUTION_ERROR",
-                    message: error instanceof Error ? error.message : "Unknown error",
                     details: error,
+                    message: error instanceof Error ? error.message : "Unknown error",
                 },
                 executionTime: Date.now() - startTime,
                 metadata: {
@@ -89,8 +88,19 @@ export class AOMessageService {
                     processId: request.processId,
                     timestamp: new Date().toISOString(),
                 },
+                success: false,
             };
         }
+    }
+    /**
+     * Get workflow capabilities and help information
+     */
+    getWorkflowInfo(workflowDefinition) {
+        return {
+            capabilities: workflowDefinition.capabilities,
+            documentation: this.generateDocumentation(workflowDefinition),
+            handlers: workflowDefinition.handlers.map((h) => h.name),
+        };
     }
     /**
      * Construct AO message tags and data based on handler schema and request parameters
@@ -131,9 +141,9 @@ export class AOMessageService {
             }
         }
         return {
+            data,
             processId: request.processId,
             tags,
-            data,
         };
     }
     /**
@@ -165,24 +175,69 @@ export class AOMessageService {
         return undefined;
     }
     /**
-     * Process raw AO response based on handler's response patterns
+     * Format response according to pattern specification
      */
-    processResponse(handler, rawResponse) {
-        // If no response patterns defined, return raw response
-        if (!handler.responsePatterns || handler.responsePatterns.length === 0) {
-            return rawResponse;
-        }
-        // Try to match response against each pattern
-        for (const pattern of handler.responsePatterns) {
-            if (this.matchesResponsePattern(pattern, rawResponse)) {
-                return this.formatResponse(pattern, rawResponse);
+    formatResponse(pattern, response) {
+        if (pattern.format.structured && pattern.format.dataType === "json") {
+            try {
+                if (response.Data) {
+                    return JSON.parse(response.Data);
+                }
+            }
+            catch (error) {
+                return {
+                    _parseError: "Failed to parse JSON response",
+                    _rawData: response.Data,
+                };
             }
         }
-        // If no patterns match, return raw response with warning
-        return {
-            _warning: "Response did not match any expected patterns",
-            _rawResponse: rawResponse,
-        };
+        // For non-structured or other formats, return appropriate data
+        return response.Data || response;
+    }
+    /**
+     * Generate human-readable documentation for a workflow
+     */
+    generateDocumentation(workflowDefinition) {
+        let doc = `# ${workflowDefinition.name}
+
+`;
+        doc += `${workflowDefinition.description}
+
+`;
+        doc += `**Process ID:** ${workflowDefinition.processId}
+`;
+        doc += `**Version:** ${workflowDefinition.version}
+`;
+        doc += `**Category:** ${workflowDefinition.category}
+`;
+        doc += `**Capabilities:** ${workflowDefinition.capabilities.join(", ")}
+
+`;
+        doc += `## Available Handlers
+
+`;
+        for (const handler of workflowDefinition.handlers) {
+            doc += `### ${handler.name}
+`;
+            doc += `${handler.description}
+
+`;
+            doc += `**Required Parameters:**
+`;
+            for (const tag of handler.messageSchema.tags) {
+                if (tag.required && tag.name !== "Action") {
+                    doc += `- ${tag.name}: ${tag.description || "No description"}
+`;
+                    if (tag.examples) {
+                        doc += `  Examples: ${tag.examples.join(", ")}
+`;
+                    }
+                }
+            }
+            doc += `
+`;
+        }
+        return doc;
     }
     /**
      * Check if response matches a given pattern
@@ -206,24 +261,24 @@ export class AOMessageService {
         return true;
     }
     /**
-     * Format response according to pattern specification
+     * Process raw AO response based on handler's response patterns
      */
-    formatResponse(pattern, response) {
-        if (pattern.format.structured && pattern.format.dataType === "json") {
-            try {
-                if (response.Data) {
-                    return JSON.parse(response.Data);
-                }
-            }
-            catch (error) {
-                return {
-                    _parseError: "Failed to parse JSON response",
-                    _rawData: response.Data,
-                };
+    processResponse(handler, rawResponse) {
+        // If no response patterns defined, return raw response
+        if (!handler.responsePatterns || handler.responsePatterns.length === 0) {
+            return rawResponse;
+        }
+        // Try to match response against each pattern
+        for (const pattern of handler.responsePatterns) {
+            if (this.matchesResponsePattern(pattern, rawResponse)) {
+                return this.formatResponse(pattern, rawResponse);
             }
         }
-        // For non-structured or other formats, return appropriate data
-        return response.Data || response;
+        // If no patterns match, return raw response with warning
+        return {
+            _rawResponse: rawResponse,
+            _warning: "Response did not match any expected patterns",
+        };
     }
     /**
      * Validate request against workflow definition
@@ -237,7 +292,7 @@ export class AOMessageService {
         if (!handler) {
             errors.push(`Handler '${request.handler}' not found`);
             suggestions.push(`Available handlers: ${workflowDefinition.handlers.map((h) => h.name).join(", ")}`);
-            return { valid: false, errors, warnings, suggestions };
+            return { errors, suggestions, valid: false, warnings };
         }
         // Check if process ID matches
         if (request.processId !== workflowDefinition.processId) {
@@ -260,47 +315,10 @@ export class AOMessageService {
             errors.push("Data field is required for this handler");
         }
         return {
-            valid: errors.length === 0,
             errors,
-            warnings,
             suggestions,
+            valid: errors.length === 0,
+            warnings,
         };
-    }
-    /**
-     * Get workflow capabilities and help information
-     */
-    getWorkflowInfo(workflowDefinition) {
-        return {
-            capabilities: workflowDefinition.capabilities,
-            handlers: workflowDefinition.handlers.map((h) => h.name),
-            documentation: this.generateDocumentation(workflowDefinition),
-        };
-    }
-    /**
-     * Generate human-readable documentation for a workflow
-     */
-    generateDocumentation(workflowDefinition) {
-        let doc = `# ${workflowDefinition.name}\n\n`;
-        doc += `${workflowDefinition.description}\n\n`;
-        doc += `**Process ID:** ${workflowDefinition.processId}\n`;
-        doc += `**Version:** ${workflowDefinition.version}\n`;
-        doc += `**Category:** ${workflowDefinition.category}\n`;
-        doc += `**Capabilities:** ${workflowDefinition.capabilities.join(", ")}\n\n`;
-        doc += `## Available Handlers\n\n`;
-        for (const handler of workflowDefinition.handlers) {
-            doc += `### ${handler.name}\n`;
-            doc += `${handler.description}\n\n`;
-            doc += `**Required Parameters:**\n`;
-            for (const tag of handler.messageSchema.tags) {
-                if (tag.required && tag.name !== "Action") {
-                    doc += `- ${tag.name}: ${tag.description || "No description"}\n`;
-                    if (tag.examples) {
-                        doc += `  Examples: ${tag.examples.join(", ")}\n`;
-                    }
-                }
-            }
-            doc += `\n`;
-        }
-        return doc;
     }
 }
