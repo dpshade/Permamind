@@ -1,8 +1,8 @@
-# Visual - Visual Development Workflow
+# Visual - Visual Development 
 
-A visual feedback-driven development workflow for UI/UX features and visual components.
+A visual feedback-driven development  for UI/UX features and visual components.
 
-## Workflow Overview
+##  Overview
 
 Execute development with continuous visual validation:
 
@@ -42,7 +42,7 @@ Execute development with continuous visual validation:
 /visual <ui_feature_description>
 ```
 
-## Detailed Workflow Steps
+## Detailed  Steps
 
 ### 1. Visual Planning
 
@@ -105,7 +105,7 @@ Execute development with continuous visual validation:
 - Save in organized folder structure
 - Include before/after comparisons when iterating
 
-## Example Workflow
+## Example 
 
 1. **Write Code**: Implement dashboard card component
 2. **Screenshot**: Capture card in different container sizes

@@ -189,24 +189,23 @@ describe("ServiceName", () => {
 });
 ```
 
-## Memory and Workflow System
+## Memory System
 
 ### AI Memory Types
 
 - **conversation**: Chat interactions and context
 - **knowledge**: Factual information and learning
-- **procedure**: Step-by-step processes and workflows
+- **procedure**: Step-by-step processes and methods
 - **reasoning**: Decision trees and logic chains
 - **enhancement**: Code improvements and optimizations
 - **performance**: Metrics and benchmarking data
-- **workflow**: Process definitions and execution history
 
-### Workflow Definitions
+### Memory Features
 
-- **JSON Format**: Structured workflow definitions with handlers
-- **Markdown Format**: Natural language workflows with AI interpretation
-- **Natural Language Processing**: Intelligent parameter extraction
-- **Process Integration**: Dynamic AO process interaction
+- **Enhanced Search**: Advanced filtering with importance scoring
+- **Memory Linking**: Create relationships between memories
+- **Analytics**: Pattern analysis and usage insights
+- **Batch Operations**: Efficient bulk memory operations
 
 ## Security Considerations
 
@@ -286,7 +285,7 @@ TEST_TIMEOUT=60000           # Test timeout in ms
 ### Velocity Protocol
 
 - Decentralized social/operational network for AO
-- Hub registry for workflow discovery
+- Hub registry for memory storage
 - Zone-based organization and permissions
 
 ### FastMCP Features
@@ -338,17 +337,17 @@ export class ServiceName {
 }
 ```
 
-### AO Workflow Execution
+### Setup and Initialization
 
 ```typescript
-const markdownWorkflow = "# Workflow Definition...";
-const userRequest = "natural language request";
+// Interactive setup with keypair generation and hub creation
+const setupResult = await setupPermamind({
+  generateKeypair: true, // Create temporary wallet
+  createHub: true, // Create memory hub
+});
 
-const result = await markdownWorkflowService.executeWorkflowRequest(
-  markdownWorkflow,
-  userRequest,
-  processId,
-);
+// Check setup status
+const healthCheck = await healthCheck();
 ```
 
 ### Memory Storage
@@ -364,4 +363,14 @@ const memory: Partial<AIMemory> = {
 await aiMemoryService.addEnhanced(signer, hubId, memory);
 ```
 
-This project represents a cutting-edge implementation of persistent AI memory using decentralized technologies, combining the reliability of Arweave with the computational power of AO and the standardization of MCP.
+### First-Time Setup Flow
+
+1. **Check Status**: Use `setupPermamind()` to check current configuration
+2. **Generate Wallet**: Use `setupPermamind({ generateKeypair: true })` for temporary wallet
+3. **Create Hub**: Use `setupPermamind({ createHub: true })` for memory storage
+4. **Complete Setup**: Use `setupPermamind({ generateKeypair: true, createHub: true })` for full setup
+5. **Verify**: Use `healthCheck()` to confirm everything is working
+
+For permanent storage, set the `SEED_PHRASE` environment variable before starting Claude Desktop.
+
+This project provides a robust, decentralized AI memory layer using Arweave for permanent storage and AO for computational capabilities, all standardized through the MCP protocol.

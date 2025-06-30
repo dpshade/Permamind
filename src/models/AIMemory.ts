@@ -50,8 +50,7 @@ export type MemoryType =
   | "knowledge"
   | "performance"
   | "procedure"
-  | "reasoning"
-  | "workflow";
+  | "reasoning";
 
 export interface ReasoningStep {
   confidence: number; // 0-1
