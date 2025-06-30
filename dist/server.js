@@ -13,9 +13,11 @@ import { WorkflowEnhancementEngine } from "./services/WorkflowEnhancementEngine.
 import { WorkflowHubService, } from "./services/WorkflowHubService.js";
 import { WorkflowPerformanceTracker } from "./services/WorkflowPerformanceTracker.js";
 import { WorkflowRelationshipManager } from "./services/WorkflowRelationshipManager.js";
+import { AOMessageService } from "./services/AOMessageService.js";
 let keyPair;
 let publicKey;
 let hubId;
+let aoMessageService;
 // Centralized workflow hub for all workflow-related storage and discovery
 const CENTRALIZED_WORKFLOW_HUB_ID = "HwMaF8hOPt1xUBkDhI3k00INvr5t4d6V9dLmCGj5YYg";
 // Configure environment variables silently for MCP protocol compatibility
@@ -29,6 +31,7 @@ async function init() {
         keyPair = await arweave.wallets.generate();
     }
     publicKey = await arweave.wallets.jwkToAddress(keyPair);
+    aoMessageService = new AOMessageService(keyPair);
     try {
         const zone = await hubRegistryService.getZoneById(HUB_REGISTRY_ID(), publicKey);
         hubId = zone.spec.processId;
@@ -1440,6 +1443,238 @@ server.addTool({
         userRequest: z
             .string()
             .describe("Natural language description of what the user wants to accomplish"),
+    }),
+});
+// Universal AO Message Tool - Dynamic workflow support
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: false,
+        title: "AO Message",
+    },
+    description: `Universal tool for sending messages to ANY AO process based on workflow definitions. 
+    This enables dynamic interaction with any AO application without hardcoded tools.
+    
+    Provide a workflow definition (JSON) that describes the process handlers and message formats,
+    then specify which handler to use and the parameters. The AI will construct the proper AO message
+    and handle the response according to the workflow specification.
+    
+    This is the key to Permamind's universal AO support - one tool for all processes.`,
+    execute: async (args) => {
+        try {
+            // Parse the workflow definition
+            const workflowDefinition = JSON.parse(args.workflowDefinition);
+            // Parse parameters if provided as JSON string
+            let parameters = {};
+            if (args.parameters) {
+                try {
+                    parameters = JSON.parse(args.parameters);
+                }
+                catch (e) {
+                    // If not valid JSON, treat as simple string parameter
+                    parameters = { value: args.parameters };
+                }
+            }
+            // Create the AO message request
+            const request = {
+                processId: args.processId || workflowDefinition.processId,
+                handler: args.handler,
+                parameters,
+                data: args.data,
+                metadata: {
+                    timeout: args.timeout,
+                    priority: args.priority,
+                },
+            };
+            // Execute the message through AOMessageService
+            const response = await aoMessageService.executeMessage(workflowDefinition, request);
+            // Store the interaction as a memory if successful
+            if (response.success && args.storeAsMemory !== false) {
+                try {
+                    const memoryContent = `AO Process Interaction: ${workflowDefinition.name}
+Handler: ${args.handler}
+Parameters: ${JSON.stringify(parameters)}
+Response: ${JSON.stringify(response.data)}`;
+                    await aiMemoryService.addEnhanced(keyPair, hubId, {
+                        content: memoryContent,
+                        memoryType: "procedure",
+                        importance: 0.7,
+                        context: {
+                            domain: "ao_interaction",
+                            topic: workflowDefinition.category,
+                        },
+                        metadata: {
+                            tags: ["ao_process", workflowDefinition.name, args.handler],
+                            lastAccessed: new Date().toISOString(),
+                            accessCount: 0,
+                        },
+                        p: publicKey,
+                        role: "system",
+                    });
+                }
+                catch (memoryError) {
+                    // Don't fail the main operation if memory storage fails
+                }
+            }
+            return JSON.stringify(response, null, 2);
+        }
+        catch (error) {
+            return JSON.stringify({
+                success: false,
+                error: {
+                    code: "TOOL_ERROR",
+                    message: error instanceof Error ? error.message : "Unknown error",
+                    details: error,
+                },
+            }, null, 2);
+        }
+    },
+    name: "aoMessage",
+    parameters: z.object({
+        workflowDefinition: z.string().describe("JSON string containing the workflow definition that describes the AO process, its handlers, and message formats"),
+        handler: z.string().describe("Name of the handler/action to invoke on the AO process"),
+        parameters: z.string().optional().describe("JSON string or simple value containing parameters for the handler"),
+        processId: z.string().optional().describe("Override process ID (uses workflow definition default if not provided)"),
+        data: z.string().optional().describe("Data payload for the message (if required by handler)"),
+        timeout: z.number().optional().describe("Timeout in milliseconds (default: 30000)"),
+        priority: z.enum(["low", "medium", "high"]).optional().describe("Message priority (default: medium)"),
+        storeAsMemory: z.boolean().optional().describe("Whether to store this interaction as a memory (default: true)"),
+    }),
+});
+// Workflow Definition Management Tool
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: false,
+        title: "Store Workflow Definition",
+    },
+    description: `Store a workflow definition in Permamind's memory system for later use with the aoMessage tool.
+    This enables building a library of AO process definitions that can be shared and reused.
+    
+    Workflow definitions describe how to interact with specific AO processes, including their
+    handlers, message formats, and response patterns. Once stored, they can be retrieved
+    and used with the aoMessage tool for dynamic AO interactions.`,
+    execute: async (args) => {
+        try {
+            // Parse and validate the workflow definition
+            const workflowDefinition = JSON.parse(args.workflowDefinition);
+            // Validate required fields
+            if (!workflowDefinition.id || !workflowDefinition.name || !workflowDefinition.processId) {
+                return JSON.stringify({
+                    success: false,
+                    error: "Missing required fields: id, name, or processId"
+                });
+            }
+            // Create memory content
+            const memoryContent = `Workflow Definition: ${workflowDefinition.name}
+ID: ${workflowDefinition.id}
+Process ID: ${workflowDefinition.processId}
+Category: ${workflowDefinition.category}
+Capabilities: ${workflowDefinition.capabilities.join(", ")}
+Description: ${workflowDefinition.description}
+
+Available Handlers:
+${workflowDefinition.handlers.map(h => `- ${h.name}: ${h.description}`).join("\n")}
+
+Full Definition:
+${JSON.stringify(workflowDefinition, null, 2)}`;
+            // Store as enhanced memory
+            const result = await aiMemoryService.addEnhanced(keyPair, hubId, {
+                content: memoryContent,
+                memoryType: "knowledge",
+                importance: 0.8,
+                context: {
+                    domain: "workflow_definitions",
+                    topic: workflowDefinition.category,
+                },
+                metadata: {
+                    tags: [
+                        "workflow_definition",
+                        workflowDefinition.id,
+                        workflowDefinition.category,
+                        ...workflowDefinition.capabilities,
+                        ...workflowDefinition.tags
+                    ],
+                    lastAccessed: new Date().toISOString(),
+                    accessCount: 0,
+                },
+                p: publicKey,
+                role: "system",
+            });
+            return JSON.stringify({
+                success: true,
+                message: `Workflow definition '${workflowDefinition.name}' stored successfully`,
+                workflowId: workflowDefinition.id,
+                memoryId: result
+            });
+        }
+        catch (error) {
+            return JSON.stringify({
+                success: false,
+                error: error instanceof Error ? error.message : "Unknown error"
+            });
+        }
+    },
+    name: "storeWorkflowDefinition",
+    parameters: z.object({
+        workflowDefinition: z.string().describe("JSON string containing the complete workflow definition"),
+    }),
+});
+// Workflow Definition Search Tool
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Search Workflow Definitions",
+    },
+    description: `Search stored workflow definitions by name, capability, category, or process ID.
+    This helps find existing workflow definitions for use with the aoMessage tool.
+    
+    Results include the full workflow definition JSON that can be used directly
+    with the aoMessage tool for dynamic AO process interactions.`,
+    execute: async (args) => {
+        try {
+            // Search for workflow definitions in memory
+            const searchQuery = `workflow_definition ${args.query}`;
+            const memories = await aiMemoryService.searchAdvanced(hubId, searchQuery, {
+                memoryType: "knowledge",
+                domain: "workflow_definitions",
+                importanceThreshold: 0.5,
+            });
+            // Extract workflow definitions from memory content
+            const workflowDefinitions = memories
+                .map(memory => {
+                try {
+                    // Extract JSON from memory content
+                    const content = memory.content || "";
+                    const jsonMatch = content.match(/Full Definition:\s*(\{[\s\S]*\})$/);
+                    if (jsonMatch) {
+                        return JSON.parse(jsonMatch[1]);
+                    }
+                    return null;
+                }
+                catch (e) {
+                    return null;
+                }
+            })
+                .filter(def => def !== null);
+            return JSON.stringify({
+                success: true,
+                count: workflowDefinitions.length,
+                workflowDefinitions: workflowDefinitions,
+                searchQuery: args.query
+            }, null, 2);
+        }
+        catch (error) {
+            return JSON.stringify({
+                success: false,
+                error: error instanceof Error ? error.message : "Unknown error"
+            });
+        }
+    },
+    name: "searchWorkflowDefinitions",
+    parameters: z.object({
+        query: z.string().describe("Search query (name, capability, category, or process ID)"),
     }),
 });
 /*server.addResource({
