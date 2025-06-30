@@ -1929,7 +1929,8 @@ Capabilities: ${workflowDefinition.capabilities.join(", ")}
 Description: ${workflowDefinition.description}
 
 Available Handlers:
-${workflowDefinition.handlers.map((h) => `- ${h.name}: ${h.description}`).join("\n")}
+${workflowDefinition.handlers.map((h) => `- ${h.name}: ${h.description}`).join("
+")}
 
 Full Definition:
 ${JSON.stringify(workflowDefinition, null, 2)}`;

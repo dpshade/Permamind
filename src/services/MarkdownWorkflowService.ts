@@ -1,5 +1,5 @@
 import { JWKInterface } from "arweave/node/lib/wallet.js";
-import { send } from "../process.js";
+import { send, createTokenProcess, TokenDeploymentConfig } from "../process.js";
 
 /**
  * MarkdownWorkflowService - Intelligent service for parsing markdown workflows
@@ -66,6 +66,11 @@ export class MarkdownWorkflowService {
         };
       }
 
+      // Handle token deployment specially
+      if (messageComponents.action === "Deploy") {
+        return await this.handleTokenDeployment(messageComponents, startTime);
+      }
+
       // Construct AO message tags
       const tags = this.constructAOMessage(messageComponents);
 
@@ -98,6 +103,85 @@ export class MarkdownWorkflowService {
         error: {
           code: "EXECUTION_ERROR",
           message: error instanceof Error ? error.message : "Unknown error",
+          details: error
+        },
+        executionTime: Date.now() - startTime
+      };
+    }
+  }
+
+  /**
+   * Handle token deployment process creation
+   */
+  private async handleTokenDeployment(
+    messageComponents: {
+      action?: string;
+      parameters: Record<string, string>;
+      data?: string;
+      reasoningChain: string[];
+    },
+    startTime: number
+  ): Promise<{
+    success: boolean;
+    data?: any;
+    rawResponse?: any;
+    executionTime?: number;
+    reasoningChain?: string[];
+    error?: {
+      code: string;
+      message: string;
+      details?: any;
+    };
+  }> {
+    try {
+      const { parameters, reasoningChain } = messageComponents;
+      
+      // Extract required deployment parameters
+      if (!parameters.Name || !parameters.Ticker) {
+        return {
+          success: false,
+          error: {
+            code: "MISSING_DEPLOYMENT_PARAMS",
+            message: "Token name and ticker are required for deployment",
+            details: { parameters, reasoningChain }
+          },
+          executionTime: Date.now() - startTime
+        };
+      }
+
+      const config: TokenDeploymentConfig = {
+        name: parameters.Name,
+        ticker: parameters.Ticker,
+        denomination: parameters.Denomination ? parseInt(parameters.Denomination) : 12,
+        totalSupply: parameters["Total-Supply"],
+        logo: parameters.Logo,
+        description: parameters.Description
+      };
+
+      reasoningChain.push(`Creating token with config: ${JSON.stringify(config)}`);
+
+      // Create the token process
+      const processId = await createTokenProcess(this.keyPair, config);
+
+      reasoningChain.push(`Token deployed successfully with process ID: ${processId}`);
+
+      return {
+        success: true,
+        data: {
+          processId,
+          message: `Token deployed successfully. Process ID: ${processId}`,
+          config
+        },
+        executionTime: Date.now() - startTime,
+        reasoningChain
+      };
+
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: "DEPLOYMENT_ERROR",
+          message: error instanceof Error ? error.message : "Token deployment failed",
           details: error
         },
         executionTime: Date.now() - startTime
@@ -203,7 +287,8 @@ export class MarkdownWorkflowService {
     const actionSections = markdownWorkflow.split(/^### /m).slice(1);
     
     for (const section of actionSections) {
-      const lines = section.split('\n');
+      const lines = section.split('
+');
       const actionName = lines[0].trim();
       
       // Look for natural language examples
@@ -231,7 +316,7 @@ export class MarkdownWorkflowService {
       const text = example.replace(/"/g, '').toLowerCase();
       
       // Extract action verbs
-      const actionWords = text.match(/\b(transfer|send|move|check|balance|mint|create|burn|destroy|approve|allow|info|details|allowance)\b/g) || [];
+      const actionWords = text.match(/(transfer|send|move|check|balance|mint|create|burn|destroy|approve|allow|info|details|allowance)/g) || [];
       keywords.push(...actionWords);
     }
     
@@ -351,6 +436,81 @@ export class MarkdownWorkflowService {
       }
     }
 
+    // 4. Extract token deployment parameters
+    const tokenNamePatterns = [
+      /(?:called|named)\s+([A-Za-z][A-Za-z0-9\s]+?)(?:\s+with|\s+symbol|$)/i,
+      /token\s+([A-Za-z][A-Za-z0-9\s]+?)(?:\s+with|\s+symbol|$)/i
+    ];
+    
+    for (const pattern of tokenNamePatterns) {
+      const match = userRequest.match(pattern);
+      if (match) {
+        params.Name = match[1].trim();
+        reasoning.push(`Extracted token name: ${match[1].trim()}`);
+        break;
+      }
+    }
+
+    const tickerPatterns = [
+      /(?:symbol|ticker)\s+([A-Z]{2,10})/i,
+      /with\s+symbol\s+([A-Z]{2,10})/i
+    ];
+    
+    for (const pattern of tickerPatterns) {
+      const match = userRequest.match(pattern);
+      if (match) {
+        params.Ticker = match[1].toUpperCase();
+        reasoning.push(`Extracted ticker: ${match[1].toUpperCase()}`);
+        break;
+      }
+    }
+
+    const supplyPatterns = [
+      /(\d+(?:\.\d+)?)\s*(?:million|mil)\s*supply/i,
+      /(\d+(?:\.\d+)?)\s*supply/i
+    ];
+    
+    for (const pattern of supplyPatterns) {
+      const match = userRequest.match(pattern);
+      if (match) {
+        let supply = parseFloat(match[1]);
+        if (userRequest.toLowerCase().includes('million') || userRequest.toLowerCase().includes('mil')) {
+          supply *= 1000000;
+        }
+        const totalSupply = (supply * Math.pow(10, decimals)).toString();
+        params["Total-Supply"] = totalSupply;
+        reasoning.push(`Extracted total supply: ${supply} = ${totalSupply} smallest units`);
+        break;
+      }
+    }
+
+    const decimalPatterns = [
+      /(\d+)\s*decimals?/i
+    ];
+    
+    for (const pattern of decimalPatterns) {
+      const match = userRequest.match(pattern);
+      if (match) {
+        params.Denomination = match[1];
+        reasoning.push(`Extracted decimals: ${match[1]}`);
+        break;
+      }
+    }
+
+    const descriptionPatterns = [
+      /description\s+['""]([^'"]+)['"]/i,
+      /description\s+(.+?)(?:\s+with|$)/i
+    ];
+    
+    for (const pattern of descriptionPatterns) {
+      const match = userRequest.match(pattern);
+      if (match) {
+        params.Description = match[1].trim();
+        reasoning.push(`Extracted description: ${match[1].trim()}`);
+        break;
+      }
+    }
+
     return { params, reasoning };
   }
 
@@ -411,7 +571,8 @@ export class MarkdownWorkflowService {
     const sections = markdownWorkflow.split(/^### /m).slice(1);
     
     for (const section of sections) {
-      const actionName = section.split('\n')[0].trim();
+      const actionName = section.split('
+')[0].trim();
       if (actionName && !actionName.includes('Configuration') && !actionName.includes('Notes')) {
         actions.push(actionName);
       }
@@ -427,27 +588,35 @@ export class MarkdownWorkflowService {
     const metadata = this.parseWorkflowMetadata(markdownWorkflow);
     const actions = this.getAvailableActions(markdownWorkflow);
     
-    let summary = `# ${metadata.name || 'AO Workflow'}\n\n`;
+    let summary = `# ${metadata.name || 'AO Workflow'}
+
+`;
     
     if (metadata.processId) {
-      summary += `**Process ID:** ${metadata.processId}\n`;
+      summary += `**Process ID:** ${metadata.processId}
+`;
     }
     if (metadata.category) {
-      summary += `**Category:** ${metadata.category}\n`;
+      summary += `**Category:** ${metadata.category}
+`;
     }
     
-    summary += `\n**Available Actions:** ${actions.join(', ')}\n\n`;
-    summary += `This workflow supports natural language requests. You can use phrases like:\n`;
+    summary += `
+**Available Actions:** ${actions.join(', ')}
+
+`;
+    summary += `This workflow supports natural language requests. You can use phrases like:
+`;
     
     // Extract example phrases from the workflow
     const exampleSection = markdownWorkflow.match(/\*\*Natural Language Examples:\*\*(.*?)(?=\*\*|---)/gs);
     if (exampleSection) {
       const examples = exampleSection[0].match(/"([^"]+)"/g) || [];
       for (const example of examples.slice(0, 5)) { // Show first 5 examples
-        summary += `- ${example}\n`;
+        summary += `- ${example}
+`;
       }
     }
     
     return summary;
   }
-}

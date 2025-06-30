@@ -363,27 +363,45 @@ export class AOMessageService {
   private generateDocumentation(
     workflowDefinition: WorkflowDefinition,
   ): string {
-    let doc = `# ${workflowDefinition.name}\n\n`;
-    doc += `${workflowDefinition.description}\n\n`;
-    doc += `**Process ID:** ${workflowDefinition.processId}\n`;
-    doc += `**Version:** ${workflowDefinition.version}\n`;
-    doc += `**Category:** ${workflowDefinition.category}\n`;
-    doc += `**Capabilities:** ${workflowDefinition.capabilities.join(", ")}\n\n`;
+    let doc = `# ${workflowDefinition.name}
 
-    doc += `## Available Handlers\n\n`;
+`;
+    doc += `${workflowDefinition.description}
+
+`;
+    doc += `**Process ID:** ${workflowDefinition.processId}
+`;
+    doc += `**Version:** ${workflowDefinition.version}
+`;
+    doc += `**Category:** ${workflowDefinition.category}
+`;
+    doc += `**Capabilities:** ${workflowDefinition.capabilities.join(", ")}
+
+`;
+
+    doc += `## Available Handlers
+
+`;
     for (const handler of workflowDefinition.handlers) {
-      doc += `### ${handler.name}\n`;
-      doc += `${handler.description}\n\n`;
-      doc += `**Required Parameters:**\n`;
+      doc += `### ${handler.name}
+`;
+      doc += `${handler.description}
+
+`;
+      doc += `**Required Parameters:**
+`;
       for (const tag of handler.messageSchema.tags) {
         if (tag.required && tag.name !== "Action") {
-          doc += `- ${tag.name}: ${tag.description || "No description"}\n`;
+          doc += `- ${tag.name}: ${tag.description || "No description"}
+`;
           if (tag.examples) {
-            doc += `  Examples: ${tag.examples.join(", ")}\n`;
+            doc += `  Examples: ${tag.examples.join(", ")}
+`;
           }
         }
       }
-      doc += `\n`;
+      doc += `
+`;
     }
 
     return doc;

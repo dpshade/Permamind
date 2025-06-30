@@ -67,6 +67,48 @@ export const createProcess = async (signer: JWKInterface) => {
   return processId;
 };
 
+export interface TokenDeploymentConfig {
+  name: string;
+  ticker: string;
+  denomination?: number;
+  totalSupply?: string;
+  logo?: string;
+  description?: string;
+}
+
+export const createTokenProcess = async (
+  signer: JWKInterface,
+  config: TokenDeploymentConfig,
+) => {
+  const tags = [
+    { name: "Name", value: config.name },
+    { name: "Ticker", value: config.ticker },
+    { name: "Denomination", value: (config.denomination || 12).toString() },
+  ];
+
+  if (config.totalSupply) {
+    tags.push({ name: "Total-Supply", value: config.totalSupply });
+  }
+
+  if (config.logo) {
+    tags.push({ name: "Logo", value: config.logo });
+  }
+
+  if (config.description) {
+    tags.push({ name: "Description", value: config.description });
+  }
+
+  const processId = await spawn({
+    module: AOS_MODULE(),
+    scheduler: SCHEDULER(),
+    signer: createDataItemSigner(signer),
+    tags: tags,
+  });
+
+  await sleep(3000);
+  return processId;
+};
+
 const readMessage = async (messageId: string, processId: string) => {
   const { Error } = await result({
     message: messageId,

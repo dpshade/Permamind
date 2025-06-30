@@ -8,6 +8,7 @@
 A comprehensive AO token implementation with transfer, balance, allowance, and metadata capabilities following AO token standards.
 
 ## Capabilities
+- Token deployment and process creation
 - Token transfers between addresses
 - Balance queries for any address
 - Allowance management (approve/transferFrom pattern)
@@ -198,6 +199,47 @@ A comprehensive AO token implementation with transfer, balance, allowance, and m
 - User says "from [address]" or "[address] to" → maps to Owner tag
 - User says "to [address]" or "can [address] spend" → maps to Spender tag
 - User says "allowance/how much can" → maps to Allowance action
+
+---
+
+### Deploy
+**Description:** Create a new token process with specified parameters.
+
+**AO Process Creation:**
+- Creates new AO process with token module
+- Name: `[token_name]` - Full name of the token
+- Ticker: `[symbol]` - Token symbol/ticker (e.g., "MYCOIN")
+- Denomination: `[decimals]` - Number of decimal places (default: 12)
+- Total-Supply: `[initial_supply]` - Initial token supply (optional)
+- Logo: `[arweave_tx_id]` - Arweave transaction ID for token logo (optional)
+- Description: `[description]` - Token description (optional)
+
+**Natural Language Examples:**
+- "launch a token called MyToken with symbol MT" → Deploy with Name: MyToken, Ticker: MT
+- "create a new token named SuperCoin with ticker SUPER and 1 million supply" → Deploy with Name: SuperCoin, Ticker: SUPER, Total-Supply: 1000000000000000000
+- "deploy token GoldCoin symbol GOLD with 18 decimals" → Deploy with Name: GoldCoin, Ticker: GOLD, Denomination: 18
+- "make a token called TestToken with symbol TEST and description 'A test token'" → Deploy with Name: TestToken, Ticker: TEST, Description: A test token
+
+**Expected Responses:**
+- Success: "Token deployed successfully. Process ID: [process_id]"
+- Error: "Token deployment failed: [error_reason]"
+
+**Parameter Mapping:**
+- User says "launch/create/deploy/make" + "token" → maps to Deploy action
+- User says "called/named [name]" → maps to Name tag
+- User says "symbol/ticker [symbol]" → maps to Ticker tag
+- User says "[number] decimals" → maps to Denomination tag
+- User says "[number] supply" → maps to Total-Supply tag (convert to wei/smallest units)
+- User says "description [text]" → maps to Description tag
+- User says "logo [tx_id]" → maps to Logo tag
+
+**Token Creation Process:**
+1. Parse token parameters from natural language
+2. Validate required fields (Name, Ticker)
+3. Apply defaults (Denomination: 12)
+4. Convert supply to smallest units if specified
+5. Create AO process with token module and configuration tags
+6. Return new process ID for token interaction
 
 ## Token Configuration
 
