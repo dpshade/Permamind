@@ -1,324 +1,71 @@
-import { send } from "../process.js";
-/**
- * AOMessageService - Core service for constructing and sending AO messages
- * based on workflow definitions. This enables dynamic interaction with any
- * AO process without hardcoded tools.
- */
-export class AOMessageService {
-    keyPair;
-    constructor(keyPair) {
-        this.keyPair = keyPair;
-    }
-    /**
-     * Execute a message to an AO process based on workflow definition
-     */
-    async executeMessage(workflowDefinition, request) {
-        const startTime = Date.now();
-        try {
-            // Validate the request against the workflow definition
-            const validation = this.validateRequest(workflowDefinition, request);
-            if (!validation.valid) {
-                return {
-                    error: {
-                        code: "VALIDATION_FAILED",
-                        details: validation.errors,
-                        message: "Request validation failed",
-                    },
-                    executionTime: Date.now() - startTime,
-                    metadata: {
-                        handler: request.handler,
-                        processId: request.processId,
-                        timestamp: new Date().toISOString(),
-                    },
-                    success: false,
-                };
-            }
-            // Find the specified handler
-            const handler = workflowDefinition.handlers.find((h) => h.name === request.handler);
-            if (!handler) {
-                return {
-                    error: {
-                        code: "HANDLER_NOT_FOUND",
-                        message: `Handler '${request.handler}' not found in workflow definition`,
-                    },
-                    executionTime: Date.now() - startTime,
-                    metadata: {
-                        handler: request.handler,
-                        processId: request.processId,
-                        timestamp: new Date().toISOString(),
-                    },
-                    success: false,
-                };
-            }
-            // Construct the message based on handler schema
-            const constructedMessage = this.constructMessage(handler, request);
-            // Create execution context for debugging/logging
-            const context = {
-                constructedMessage,
-                selectedHandler: handler,
-                userRequest: JSON.stringify(request.parameters),
-                workflowDefinition,
-            };
-            // Send the message using existing AO infrastructure
-            const rawResponse = await send(this.keyPair, constructedMessage.processId, constructedMessage.tags, constructedMessage.data || null);
-            // Process the response based on handler's response patterns
-            const processedResponse = this.processResponse(handler, rawResponse);
-            return {
-                data: processedResponse,
-                executionTime: Date.now() - startTime,
-                metadata: {
-                    handler: request.handler,
-                    processId: request.processId,
-                    timestamp: new Date().toISOString(),
-                },
-                rawResponse,
-                success: true,
-            };
-        }
-        catch (error) {
-            return {
-                error: {
-                    code: "EXECUTION_ERROR",
-                    details: error,
-                    message: error instanceof Error ? error.message : "Unknown error",
-                },
-                executionTime: Date.now() - startTime,
-                metadata: {
-                    handler: request.handler,
-                    processId: request.processId,
-                    timestamp: new Date().toISOString(),
-                },
-                success: false,
-            };
-        }
-    }
-    /**
-     * Get workflow capabilities and help information
-     */
-    getWorkflowInfo(workflowDefinition) {
-        return {
-            capabilities: workflowDefinition.capabilities,
-            documentation: this.generateDocumentation(workflowDefinition),
-            handlers: workflowDefinition.handlers.map((h) => h.name),
-        };
-    }
-    /**
-     * Construct AO message tags and data based on handler schema and request parameters
-     */
-    constructMessage(handler, request) {
-        const tags = [];
-        // Process each tag in the handler's message schema
-        for (const tagSchema of handler.messageSchema.tags) {
-            let value;
-            if (tagSchema.name === "Action") {
-                // Action tag is always the handler's action
-                value = handler.messageSchema.action;
-            }
-            else {
-                // Look for the tag value in request parameters
-                const paramKey = this.findParameterKey(tagSchema.name, request.parameters);
-                if (paramKey && request.parameters[paramKey] !== undefined) {
-                    value = String(request.parameters[paramKey]);
-                }
-                else if (tagSchema.required) {
-                    throw new Error(`Required tag '${tagSchema.name}' not found in request parameters`);
+import { read, send } from "../process.js";
+const WRITE_ACTIONS = new Set([
+    "Eval",
+    "Event",
+    "Register",
+    "Relay",
+    "SetOwner",
+    "SetRelay",
+    "Subscribe",
+    "Transfer",
+    "UnSubscribe",
+    "Update-Profile",
+]);
+const service = () => {
+    return {
+        executeMessage: async (signer, message) => {
+            try {
+                if (service().isWriteOperation(message.tags)) {
+                    return await service().sendWriteMessage(signer, message);
                 }
                 else {
-                    // Skip optional tags that aren't provided
-                    continue;
-                }
-            }
-            tags.push({ name: tagSchema.name, value });
-        }
-        // Handle data field if specified in schema
-        let data;
-        if (handler.messageSchema.data) {
-            if (request.data) {
-                data = request.data;
-            }
-            else if (handler.messageSchema.data.required) {
-                throw new Error("Required data field not provided in request");
-            }
-        }
-        return {
-            data,
-            processId: request.processId,
-            tags,
-        };
-    }
-    /**
-     * Find parameter key that matches tag name (case-insensitive, flexible matching)
-     */
-    findParameterKey(tagName, parameters) {
-        // Direct match
-        if (parameters[tagName] !== undefined) {
-            return tagName;
-        }
-        // Case-insensitive match
-        const lowerTagName = tagName.toLowerCase();
-        for (const [key, value] of Object.entries(parameters)) {
-            if (key.toLowerCase() === lowerTagName) {
-                return key;
-            }
-        }
-        // Common variations
-        const variations = [
-            tagName.replace(/[-_]/g, ""), // Remove dashes/underscores
-            tagName.replace(/([A-Z])/g, "_$1").toLowerCase(), // camelCase to snake_case
-            tagName.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase()), // snake_case to camelCase
-        ];
-        for (const variation of variations) {
-            if (parameters[variation] !== undefined) {
-                return variation;
-            }
-        }
-        return undefined;
-    }
-    /**
-     * Format response according to pattern specification
-     */
-    formatResponse(pattern, response) {
-        if (pattern.format.structured && pattern.format.dataType === "json") {
-            try {
-                if (response.Data) {
-                    return JSON.parse(response.Data);
+                    return await service().sendReadMessage(message);
                 }
             }
             catch (error) {
                 return {
-                    _parseError: "Failed to parse JSON response",
-                    _rawData: response.Data,
+                    error: error instanceof Error ? error.message : "Unknown error",
+                    success: false,
                 };
             }
-        }
-        // For non-structured or other formats, return appropriate data
-        return response.Data || response;
-    }
-    /**
-     * Generate human-readable documentation for a workflow
-     */
-    generateDocumentation(workflowDefinition) {
-        let doc = `# ${workflowDefinition.name}
-
-`;
-        doc += `${workflowDefinition.description}
-
-`;
-        doc += `**Process ID:** ${workflowDefinition.processId}
-`;
-        doc += `**Version:** ${workflowDefinition.version}
-`;
-        doc += `**Category:** ${workflowDefinition.category}
-`;
-        doc += `**Capabilities:** ${workflowDefinition.capabilities.join(", ")}
-
-`;
-        doc += `## Available Handlers
-
-`;
-        for (const handler of workflowDefinition.handlers) {
-            doc += `### ${handler.name}
-`;
-            doc += `${handler.description}
-
-`;
-            doc += `**Required Parameters:**
-`;
-            for (const tag of handler.messageSchema.tags) {
-                if (tag.required && tag.name !== "Action") {
-                    doc += `- ${tag.name}: ${tag.description || "No description"}
-`;
-                    if (tag.examples) {
-                        doc += `  Examples: ${tag.examples.join(", ")}
-`;
-                    }
-                }
-            }
-            doc += `
-`;
-        }
-        return doc;
-    }
-    /**
-     * Check if response matches a given pattern
-     */
-    matchesResponsePattern(pattern, response) {
-        // Simple pattern matching - can be enhanced based on actual response structures
-        if (pattern.indicators.tags) {
-            // Check if response has expected tags
-            if (!response.Tags)
+        },
+        isWriteOperation: (tags) => {
+            const actionTag = tags.find((tag) => tag.name === "Action");
+            if (!actionTag) {
                 return false;
-            for (const tagPattern of pattern.indicators.tags) {
-                const responseTag = response.Tags.find((tag) => tag.name === tagPattern.name);
-                if (!responseTag || !tagPattern.values.includes(responseTag.value)) {
-                    return false;
-                }
             }
-        }
-        if (pattern.indicators.errorCodes && response.Error) {
-            return pattern.indicators.errorCodes.includes(response.Error);
-        }
-        return true;
-    }
-    /**
-     * Process raw AO response based on handler's response patterns
-     */
-    processResponse(handler, rawResponse) {
-        // If no response patterns defined, return raw response
-        if (!handler.responsePatterns || handler.responsePatterns.length === 0) {
-            return rawResponse;
-        }
-        // Try to match response against each pattern
-        for (const pattern of handler.responsePatterns) {
-            if (this.matchesResponsePattern(pattern, rawResponse)) {
-                return this.formatResponse(pattern, rawResponse);
+            return WRITE_ACTIONS.has(actionTag.value);
+        },
+        sendReadMessage: async (message) => {
+            try {
+                const result = await read(message.processId, message.tags);
+                return {
+                    data: result,
+                    success: true,
+                };
             }
-        }
-        // If no patterns match, return raw response with warning
-        return {
-            _rawResponse: rawResponse,
-            _warning: "Response did not match any expected patterns",
-        };
-    }
-    /**
-     * Validate request against workflow definition
-     */
-    validateRequest(workflowDefinition, request) {
-        const errors = [];
-        const warnings = [];
-        const suggestions = [];
-        // Check if handler exists
-        const handler = workflowDefinition.handlers.find((h) => h.name === request.handler);
-        if (!handler) {
-            errors.push(`Handler '${request.handler}' not found`);
-            suggestions.push(`Available handlers: ${workflowDefinition.handlers.map((h) => h.name).join(", ")}`);
-            return { errors, suggestions, valid: false, warnings };
-        }
-        // Check if process ID matches
-        if (request.processId !== workflowDefinition.processId) {
-            warnings.push(`Process ID mismatch: expected ${workflowDefinition.processId}, got ${request.processId}`);
-        }
-        // Validate required parameters are present
-        for (const tagSchema of handler.messageSchema.tags) {
-            if (tagSchema.required && tagSchema.name !== "Action") {
-                const paramKey = this.findParameterKey(tagSchema.name, request.parameters);
-                if (!paramKey || request.parameters[paramKey] === undefined) {
-                    errors.push(`Required parameter '${tagSchema.name}' is missing`);
-                    if (tagSchema.examples) {
-                        suggestions.push(`Examples for '${tagSchema.name}': ${tagSchema.examples.join(", ")}`);
-                    }
-                }
+            catch (error) {
+                return {
+                    error: error instanceof Error ? error.message : "Read operation failed",
+                    success: false,
+                };
             }
-        }
-        // Check data requirements
-        if (handler.messageSchema.data?.required && !request.data) {
-            errors.push("Data field is required for this handler");
-        }
-        return {
-            errors,
-            suggestions,
-            valid: errors.length === 0,
-            warnings,
-        };
-    }
-}
+        },
+        sendWriteMessage: async (signer, message) => {
+            try {
+                const result = await send(signer, message.processId, message.tags, message.data || null);
+                return {
+                    data: result,
+                    success: true,
+                };
+            }
+            catch (error) {
+                return {
+                    error: error instanceof Error ? error.message : "Write operation failed",
+                    success: false,
+                };
+            }
+        },
+    };
+};
+export const aoMessageService = service();
