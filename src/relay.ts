@@ -10,11 +10,31 @@ import {
   Info,
   Register,
 } from "./messageFactory.js";
-import {
-  VIP01Filter,
-  VIP01FilterOptions,
-  VIP01FilterResult,
-} from "./models/VIP01Filter.js";
+// VIP01Filter types replaced with manual interfaces
+interface Filter {
+  ids?: string[];
+  authors?: string[];
+  kinds?: string[];
+  since?: number;
+  until?: number;
+  tags?: Record<string, string[]>;
+  search?: string;
+  limit?: number;
+}
+
+interface FilterOptions {
+  enableClientLimiting?: boolean;
+  enableSorting?: boolean;
+  includeMetadata?: boolean;
+}
+
+interface FilterResult {
+  events: unknown[];
+  totalCount?: number;
+  hasMore?: boolean;
+  newestTimestamp?: number;
+  oldestTimestamp?: number;
+}
 import { read, send } from "./process.js";
 import { processVIP01Results } from "./utils/vip01Processing.js";
 
@@ -91,9 +111,9 @@ export const fetchEvents = async (
  */
 export const fetchEventsVIP01 = async (
   processId: string,
-  filter: VIP01Filter,
-  options: VIP01FilterOptions = {},
-): Promise<VIP01FilterResult> => {
+  filter: Filter,
+  options: FilterOptions = {},
+): Promise<FilterResult> => {
   try {
     const filtersJson = JSON.stringify([filter]);
     const message = FetchEvents(filtersJson);

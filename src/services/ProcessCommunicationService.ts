@@ -379,8 +379,8 @@ const extractParameterValue = (
 ): unknown => {
   // Parameter-specific patterns first
   const specificPatterns = [
-    new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
-    new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
+    new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
+    new RegExp(`${paramName}\s+([^\s]+)`, "i"),
   ];
 
   // Check parameter-specific patterns first
@@ -399,9 +399,9 @@ const extractParameterValue = (
   // Type-specific fallback patterns
   if (paramType === "number") {
     const numberPatterns = [
-      new RegExp(`send\\s+([0-9.]+)`, "i"),
-      new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
-      new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
+      new RegExp(`send\s+([0-9.]+)`, "i"),
+      new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+      new RegExp(`([0-9.]+)\s+tokens?`, "i"),
       new RegExp(`([0-9.]+)`, "g"), // Last resort: any number
     ];
 
@@ -418,8 +418,8 @@ const extractParameterValue = (
   ) {
     // Address/recipient patterns
     const addressPatterns = [
-      new RegExp(`to\\s+([^\\s]+)`, "i"),
-      new RegExp(`recipient\\s+([^\\s]+)`, "i"),
+      new RegExp(`to\s+([^\s]+)`, "i"),
+      new RegExp(`recipient\s+([^\s]+)`, "i"),
     ];
 
     for (const pattern of addressPatterns) {
