@@ -1,4 +1,4 @@
-import { createVIP01Filter } from "../models/VIP01Filter.js";
+// VIP01Filter removed - using manual filters now
 import { event, fetchEvents, fetchEventsVIP01 } from "../relay.js";
 // Constants for memory kinds
 const MEMORY_KINDS = {
@@ -253,16 +253,15 @@ const aiService = () => {
         },
         getMemoryRelationships: async (hubId, memoryId) => {
             try {
-                const vip01FilterParams = {
+                const filterParams = {
                     kinds: [MEMORY_KINDS.AI_MEMORY],
                     limit: 500,
                     tags: { ai_type: ["link"] },
                 };
                 if (memoryId) {
-                    vip01FilterParams.tags.from_memory_id = [memoryId];
+                    filterParams.tags.from_memory_id = [memoryId];
                 }
-                const vip01Filter = createVIP01Filter(vip01FilterParams);
-                const result = await fetchEventsVIP01(hubId, vip01Filter);
+                const result = await fetchEventsVIP01(hubId, filterParams);
                 if (!result || !result.events) {
                     return [];
                 }
@@ -283,12 +282,12 @@ const aiService = () => {
         },
         getReasoningChain: async (hubId, chainId) => {
             try {
-                const vip01Filter = createVIP01Filter({
+                const filter = {
                     kinds: [MEMORY_KINDS.REASONING_CHAIN],
                     limit: 1, // Only need one reasoning chain
                     tags: { chainId: [chainId] },
-                });
-                const result = await fetchEventsVIP01(hubId, vip01Filter);
+                };
+                const result = await fetchEventsVIP01(hubId, filter);
                 if (!result || !result.events || result.events.length === 0)
                     return null;
                 const event = result.events[0];
@@ -383,13 +382,13 @@ const aiService = () => {
         },
         searchAdvanced: async (hubId, query, filters) => {
             try {
-                // Build VIP-01 compliant filter
-                const vip01FilterParams = {
+                // Build filter
+                const filterParams = {
                     kinds: [MEMORY_KINDS.AI_MEMORY],
-                    limit: 100, // Default limit as per VIP-01
+                    limit: 100,
                 };
                 if (query) {
-                    vip01FilterParams.search = query;
+                    filterParams.search = query;
                 }
                 // Build tags object for AI-specific filtering
                 const tags = {};
@@ -407,19 +406,18 @@ const aiService = () => {
                     tags.ai_domain = [filters.domain];
                 }
                 if (Object.keys(tags).length > 0) {
-                    vip01FilterParams.tags = tags;
+                    filterParams.tags = tags;
                 }
                 // Add time range filtering if provided
                 if (filters?.timeRange) {
                     if (filters.timeRange.start) {
-                        vip01FilterParams.since = new Date(filters.timeRange.start).getTime();
+                        filterParams.since = new Date(filters.timeRange.start).getTime();
                     }
                     if (filters.timeRange.end) {
-                        vip01FilterParams.until = new Date(filters.timeRange.end).getTime();
+                        filterParams.until = new Date(filters.timeRange.end).getTime();
                     }
                 }
-                const vip01Filter = createVIP01Filter(vip01FilterParams);
-                const result = await fetchEventsVIP01(hubId, vip01Filter);
+                const result = await fetchEventsVIP01(hubId, filterParams);
                 if (!result || !result.events) {
                     return [];
                 }
