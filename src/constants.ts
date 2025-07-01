@@ -27,6 +27,10 @@ export function MU_URL(): string {
   return "https://mu.velocity.cloudnet.marshal.ao";
 }
 
+export function ProcessHub(): string {
+  return "-a5m_wyuxstuhBotGvkvTeao3BjACRdR2z4FcLHQfc8";
+}
+
 export function SCHEDULER(): string {
   return "Tm7v2ddwSr_5UxjmuCmhkMSZpzhtKJkkpLMZK_p6mQU";
 }
@@ -49,3 +53,5 @@ export const BazarUCM = "U3TjJAZWJjlWBB4KAXSHKzuky81jtyh0zqH8rUL4Wd0";
 export function formatNumber(num: number) {
   return num.toLocaleString();
 }
+
+//Y3EMIurCZKqO8Dm_86dsbdHNdwM86Yswk7v4hsGp45I Hello test

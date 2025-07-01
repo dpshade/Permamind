@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "permamind": {
+      "command": "permamind",
+      "env": {
+        "SEED_PHRASE": "try amateur wise reflect cram army grass crop urge say awkward mixture"
+      }
+    }
+  }
+}

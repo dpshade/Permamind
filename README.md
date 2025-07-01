@@ -35,6 +35,14 @@ This MCP server leverages the Velocity Protocol on AO and Arweave (the permaweb)
 - **Conflict Resolution**: Handle concurrent memory updates
 - **Hub Discovery**: Find and connect to specialized memory hubs
 
+### Natural Language Process Integration
+
+- **Universal AO Process Support**: Interact with any AO process using natural language
+- **Markdown-Based Documentation**: Developers document processes in simple markdown format
+- **Intelligent Request Parsing**: Automatically interprets user requests and extracts parameters
+- **Seamless Message Formatting**: Converts natural language to proper AO message tags
+- **Dynamic Process Discovery**: Connect to new processes without manual tool creation
+
 ## 🚀 Quick Installation
 
 ### NPM Installation (Recommended)
@@ -194,6 +202,10 @@ $env:SEED_PHRASE="your twelve word mnemonic phrase here"
 - **`addReasoningChain`** - Store AI reasoning processes and decision paths
 - **`getMemoryAnalytics`** - Get memory usage analytics and patterns
 - **`addMemoriesBatch`** - Efficient batch memory operations
+
+### Natural Language Process Integration
+
+- **`executeProcessAction`** - Interact with any AO process using natural language and markdown documentation
 
 ## 🔧 Troubleshooting
 
@@ -446,6 +458,43 @@ await mcp.addReasoningChain({
 });
 ```
 
+### Natural Language Process Communication
+
+```javascript
+// Interact with any AO process using natural language
+await mcp.executeProcessAction({
+  processId: "token-process-id",
+  processMarkdown: `
+# Token Process
+
+## transfer
+Transfer tokens to another user
+- recipient: wallet address (required)
+- amount: number of tokens (required)
+- memo: optional message (optional)
+
+## balance
+Get current balance
+- account: wallet address to check (optional)
+`,
+  request: "Send 100 tokens to alice with memo 'payment for services'",
+});
+
+// Query process data
+await mcp.executeProcessAction({
+  processId: "nft-marketplace-id",
+  processMarkdown: "...", // marketplace documentation
+  request: "Show me all NFTs under 50 tokens in the art category",
+});
+
+// DAO governance interaction
+await mcp.executeProcessAction({
+  processId: "dao-process-id",
+  processMarkdown: "...", // DAO documentation
+  request: "Vote yes on proposal #5 with reason 'Good for project growth'",
+});
+```
+
 ## 🌐 Velocity Protocol Extensions
 
 Permamind implements AI-specific extensions to the Velocity Protocol:
@@ -483,11 +532,22 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
+### Core Project
+
 - **Repository**: https://github.com/ALLiDoizCode/Permamind
 - **Velocity Protocol**: https://github.com/SpaceTurtle-Dao/velocity-protocol
 - **AO Cookbook**: https://github.com/permaweb/ao-cookbook
 - **Arweave**: https://arweave.org
 - **Marshal AO Testnet**: https://x.com/Marshal_AO
+
+### Documentation
+
+- **[Quick Start Guide](docs/QUICK_START.md)** - Get started with process integration in 5 minutes
+- **[Process Integration Guide](docs/PROCESS_INTEGRATION.md)** - Comprehensive guide for AO process developers
+- **[Process Template](docs/process-template.md)** - Markdown template for documenting processes
+- **[Token Process Example](examples/token-process.md)** - Example token contract documentation
+- **[NFT Marketplace Example](examples/nft-marketplace.md)** - Example marketplace documentation
+- **[DAO Governance Example](examples/dao-governance.md)** - Example governance system documentation
 
 ## 🙏 Acknowledgments
 

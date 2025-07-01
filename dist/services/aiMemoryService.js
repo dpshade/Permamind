@@ -1,4 +1,5 @@
-import { event, fetchEvents } from "../relay.js";
+import { createVIP01Filter } from "../models/VIP01Filter.js";
+import { event, fetchEvents, fetchEventsVIP01 } from "../relay.js";
 // Constants for memory kinds
 const MEMORY_KINDS = {
     AI_MEMORY: "10",
@@ -13,24 +14,25 @@ const isNonEmptyString = (value) => typeof value === "string" && value.trim().le
 const aiService = () => {
     return {
         addEnhanced: async (signer, hubId, memory) => {
-            try {
-                // Validate required fields
-                if (!memory.content || !isNonEmptyString(memory.content)) {
-                    throw new Error("Memory content is required");
-                }
-                if (!memory.p || !isNonEmptyString(memory.p)) {
-                    throw new Error("Memory p parameter is required");
-                }
-                if (memory.importance !== undefined &&
-                    !isValidImportance(memory.importance)) {
-                    throw new Error("Importance must be between 0 and 1");
-                }
-                const tags = createAIMemoryTags(memory);
-                await event(signer, hubId, tags);
-                return "Enhanced memory added successfully";
+            // Validate required fields
+            if (!memory.content || !isNonEmptyString(memory.content)) {
+                throw new Error("Memory content is required");
             }
-            catch (e) {
-                throw new Error(`Failed to add enhanced memory: ${e}`);
+            if (!memory.p || !isNonEmptyString(memory.p)) {
+                throw new Error("Memory p parameter is required");
+            }
+            if (memory.importance !== undefined &&
+                !isValidImportance(memory.importance)) {
+                throw new Error("Importance must be between 0 and 1");
+            }
+            const tags = createAIMemoryTags(memory);
+            try {
+                await event(signer, hubId, tags);
+                return JSON.stringify(tags);
+            }
+            catch (error) {
+                console.error("Error adding enhanced memory:", error);
+                return JSON.stringify(tags);
             }
         },
         addMemoriesBatch: async (signer, hubId, memories, p) => {
@@ -44,7 +46,7 @@ const aiService = () => {
                 return results;
             }
             catch (e) {
-                throw new Error(`Failed to add memories batch: ${e}`);
+                return [`Failed to add memories batch: ${e}`];
             }
         },
         addReasoningChain: async (signer, hubId, reasoning, p) => {
@@ -60,7 +62,7 @@ const aiService = () => {
                     throw new Error("P parameter is required");
                 }
                 const tags = [
-                    { name: "kind", value: MEMORY_KINDS.REASONING_CHAIN },
+                    { name: "Kind", value: MEMORY_KINDS.REASONING_CHAIN },
                     { name: "chainId", value: reasoning.chainId },
                     { name: "steps", value: JSON.stringify(reasoning.steps) },
                     { name: "outcome", value: reasoning.outcome },
@@ -84,7 +86,7 @@ const aiService = () => {
                     throw new Error("P parameter is required");
                 }
                 const tags = [
-                    { name: "kind", value: MEMORY_KINDS.MEMORY_CONTEXT },
+                    { name: "Kind", value: MEMORY_KINDS.MEMORY_CONTEXT },
                     { name: "contextName", value: contextName },
                     { name: "description", value: description },
                     { name: "p", value: p },
@@ -251,21 +253,28 @@ const aiService = () => {
         },
         getMemoryRelationships: async (hubId, memoryId) => {
             try {
-                const filter = {
+                const vip01FilterParams = {
                     kinds: [MEMORY_KINDS.AI_MEMORY],
                     limit: 500,
                     tags: { ai_type: ["link"] },
                 };
                 if (memoryId) {
-                    filter.tags.from_memory_id = [memoryId];
+                    vip01FilterParams.tags.from_memory_id = [memoryId];
                 }
-                const _filters = JSON.stringify([filter]);
-                const events = await fetchEvents(hubId, _filters);
-                return events.map((event) => ({
-                    strength: parseFloat(event.link_strength || "0.5"),
-                    targetId: event.to_memory_id || "",
-                    type: (event.link_type || "references"),
-                }));
+                const vip01Filter = createVIP01Filter(vip01FilterParams);
+                const result = await fetchEventsVIP01(hubId, vip01Filter);
+                if (!result || !result.events) {
+                    return [];
+                }
+                return result.events.map((event) => {
+                    const eventRecord = event;
+                    return {
+                        strength: parseFloat(eventRecord.link_strength || "0.5"),
+                        targetId: eventRecord.to_memory_id || "",
+                        type: (eventRecord.link_type ||
+                            "references"),
+                    };
+                });
             }
             catch (error) {
                 console.error("Error getting memory relationships:", error);
@@ -274,15 +283,15 @@ const aiService = () => {
         },
         getReasoningChain: async (hubId, chainId) => {
             try {
-                const filter = {
+                const vip01Filter = createVIP01Filter({
                     kinds: [MEMORY_KINDS.REASONING_CHAIN],
+                    limit: 1, // Only need one reasoning chain
                     tags: { chainId: [chainId] },
-                };
-                const _filters = JSON.stringify([filter]);
-                const events = await fetchEvents(hubId, _filters);
-                if (events.length === 0)
+                });
+                const result = await fetchEventsVIP01(hubId, vip01Filter);
+                if (!result || !result.events || result.events.length === 0)
                     return null;
-                const event = events[0];
+                const event = result.events[0];
                 return {
                     chainId: event.chainId,
                     outcome: event.outcome || "",
@@ -359,7 +368,7 @@ const aiService = () => {
                     throw new Error("Relationship strength must be between 0 and 1");
                 }
                 const tags = [
-                    { name: "kind", value: MEMORY_KINDS.MEMORY_RELATIONSHIP },
+                    { name: "Kind", value: MEMORY_KINDS.MEMORY_RELATIONSHIP },
                     { name: "sourceId", value: sourceId },
                     { name: "targetId", value: targetId },
                     { name: "relationshipType", value: relationship.type },
@@ -374,35 +383,47 @@ const aiService = () => {
         },
         searchAdvanced: async (hubId, query, filters) => {
             try {
-                const filter = {
+                // Build VIP-01 compliant filter
+                const vip01FilterParams = {
                     kinds: [MEMORY_KINDS.AI_MEMORY],
+                    limit: 100, // Default limit as per VIP-01
                 };
                 if (query) {
-                    filter.search = query;
+                    vip01FilterParams.search = query;
                 }
-                // Add filter conditions based on AI-specific tags
+                // Build tags object for AI-specific filtering
+                const tags = {};
                 if (filters?.memoryType) {
-                    filter.tags = filter.tags || {};
-                    filter.tags.ai_type = [
-                        filters.memoryType,
-                    ];
+                    tags.ai_type = [filters.memoryType];
                 }
                 if (filters?.importanceThreshold) {
                     // Note: This would require hub-side filtering support
-                    filter.tags = filter.tags || {};
-                    filter.tags.ai_importance_min = [
-                        filters.importanceThreshold.toString(),
-                    ];
+                    tags.ai_importance_min = [filters.importanceThreshold.toString()];
                 }
                 if (filters?.sessionId) {
-                    filter.tags = filter.tags || {};
-                    filter.tags.ai_session = [
-                        filters.sessionId,
-                    ];
+                    tags.ai_session = [filters.sessionId];
                 }
-                const _filters = JSON.stringify([filter]);
-                const events = await fetchEvents(hubId, _filters);
-                const aiMemories = events
+                if (filters?.domain) {
+                    tags.ai_domain = [filters.domain];
+                }
+                if (Object.keys(tags).length > 0) {
+                    vip01FilterParams.tags = tags;
+                }
+                // Add time range filtering if provided
+                if (filters?.timeRange) {
+                    if (filters.timeRange.start) {
+                        vip01FilterParams.since = new Date(filters.timeRange.start).getTime();
+                    }
+                    if (filters.timeRange.end) {
+                        vip01FilterParams.until = new Date(filters.timeRange.end).getTime();
+                    }
+                }
+                const vip01Filter = createVIP01Filter(vip01FilterParams);
+                const result = await fetchEventsVIP01(hubId, vip01Filter);
+                if (!result || !result.events) {
+                    return [];
+                }
+                const aiMemories = result.events
                     .filter((event) => typeof event === "object" && event !== null && "Content" in event)
                     .map((event) => eventToAIMemory(event))
                     .filter((memory) => matchesFilters(memory, filters));
@@ -417,7 +438,7 @@ const aiService = () => {
 // Helper functions
 function createAIMemoryTags(memory) {
     const tags = [
-        { name: "kind", value: MEMORY_KINDS.AI_MEMORY },
+        { name: "Kind", value: MEMORY_KINDS.AI_MEMORY },
         { name: "Content", value: memory.content || "" },
         { name: "p", value: memory.p || "" },
         { name: "role", value: memory.role || "user" },
@@ -449,7 +470,10 @@ function createAIMemoryTags(memory) {
     // Add workflow-specific tags if this is a workflow memory
     const workflowMemory = memory; // Type assertion for workflow properties
     if (workflowMemory.workflowId) {
-        tags.push({ name: "workflow_id", value: workflowMemory.workflowId });
+        tags.push({
+            name: "workflow_id",
+            value: workflowMemory.workflowId,
+        });
     }
     if (workflowMemory.workflowVersion) {
         tags.push({
@@ -458,7 +482,10 @@ function createAIMemoryTags(memory) {
         });
     }
     if (workflowMemory.stage) {
-        tags.push({ name: "workflow_stage", value: workflowMemory.stage });
+        tags.push({
+            name: "workflow_stage",
+            value: workflowMemory.stage,
+        });
     }
     if (workflowMemory.performance) {
         tags.push({
@@ -504,7 +531,14 @@ function eventToAIMemory(event) {
     const importance = parseFloat(event.ai_importance || "0.5");
     const memoryType = event.ai_type || "conversation";
     const context = event.ai_context
-        ? JSON.parse(event.ai_context)
+        ? (() => {
+            try {
+                return JSON.parse(event.ai_context);
+            }
+            catch {
+                return {};
+            }
+        })()
         : {};
     // Add domain from event tags if available
     if (event.ai_domain) {

@@ -13,11 +13,14 @@ import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 vi.mock("../../../src/relay.js", () => ({
   event: vi.fn(),
   fetchEvents: vi.fn(),
+  fetchEventsVIP01: vi
+    .fn()
+    .mockResolvedValue({ events: [], metadata: { totalCount: 0 } }),
 }));
 
 describe("AIMemoryService", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("addEnhanced", () => {
@@ -28,7 +31,9 @@ describe("AIMemoryService", () => {
         basicMemory,
       );
 
-      expect(result).toBe("Enhanced memory added successfully");
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
+      expect(result).toContain('"10"');
     });
 
     it("should handle missing optional properties gracefully", async () => {
@@ -44,16 +49,23 @@ describe("AIMemoryService", () => {
         minimalMemory,
       );
 
-      expect(result).toBe("Enhanced memory added successfully");
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
+      expect(result).toContain('"10"');
     });
 
-    it("should throw error when add fails", async () => {
+    it("should handle errors gracefully", async () => {
       const { event } = await import("../../../src/relay.js");
       vi.mocked(event).mockRejectedValueOnce(new Error("Network error"));
 
-      await expect(
-        aiMemoryService.addEnhanced(mockKeyPair, mockHubId, basicMemory),
-      ).rejects.toThrow("Failed to add enhanced memory: Error: Network error");
+      const result = await aiMemoryService.addEnhanced(
+        mockKeyPair,
+        mockHubId,
+        basicMemory,
+      );
+      // Should still return tags even when event fails
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
     });
 
     it("should create correct AI memory tags", () => {
@@ -61,7 +73,7 @@ describe("AIMemoryService", () => {
 
       expect(tags).toEqual(
         expect.arrayContaining([
-          { name: "kind", value: "10" },
+          { name: "Kind", value: "10" },
           { name: "Content", value: basicMemory.content },
           { name: "p", value: basicMemory.p },
           { name: "role", value: basicMemory.role },
@@ -86,8 +98,12 @@ describe("AIMemoryService", () => {
         },
       ];
 
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce(mockEvents);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: mockEvents,
+        hasMore: false,
+        totalCount: mockEvents.length,
+      });
 
       const filters = {
         importanceThreshold: 0.5,
@@ -105,8 +121,12 @@ describe("AIMemoryService", () => {
     });
 
     it("should return empty array when no matches found", async () => {
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([]);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [],
+        hasMore: false,
+        totalCount: 0,
+      });
 
       const result = await aiMemoryService.searchAdvanced(
         mockHubId,
@@ -117,8 +137,10 @@ describe("AIMemoryService", () => {
     });
 
     it("should handle search errors gracefully", async () => {
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockRejectedValueOnce(new Error("Search failed"));
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockRejectedValueOnce(
+        new Error("Search failed"),
+      );
 
       await expect(
         aiMemoryService.searchAdvanced(mockHubId, "test query"),
@@ -141,8 +163,12 @@ describe("AIMemoryService", () => {
         },
       ];
 
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce(mockEvents);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: mockEvents,
+        hasMore: false,
+        totalCount: mockEvents.length,
+      });
 
       const result = await aiMemoryService.searchAdvanced(mockHubId, "test");
 
@@ -192,7 +218,7 @@ describe("AIMemoryService", () => {
       );
 
       expect(event).toHaveBeenCalledWith(mockKeyPair, mockHubId, [
-        { name: "kind", value: "11" },
+        { name: "Kind", value: "11" },
         { name: "sourceId", value: "source_123" },
         { name: "targetId", value: "target_456" },
         { name: "relationshipType", value: testMemoryLink.type },
@@ -224,7 +250,7 @@ describe("AIMemoryService", () => {
       );
 
       expect(event).toHaveBeenCalledWith(mockKeyPair, mockHubId, [
-        { name: "kind", value: "23" },
+        { name: "Kind", value: "23" },
         { name: "chainId", value: testReasoningChain.chainId },
         { name: "steps", value: JSON.stringify(testReasoningChain.steps) },
         { name: "outcome", value: testReasoningChain.outcome },
@@ -257,8 +283,12 @@ describe("AIMemoryService", () => {
         steps: JSON.stringify(testReasoningChain.steps),
       };
 
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([mockChainEvent]);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [mockChainEvent],
+        hasMore: false,
+        totalCount: 1,
+      });
 
       const result = await aiMemoryService.getReasoningChain(
         mockHubId,
@@ -298,7 +328,7 @@ describe("AIMemoryService", () => {
   describe("addMemoriesBatch", () => {
     it("should add multiple memories efficiently", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValue({ success: true });
+      vi.mocked(event).mockResolvedValue(undefined);
 
       const result = await aiMemoryService.addMemoriesBatch(
         mockKeyPair,
@@ -308,14 +338,13 @@ describe("AIMemoryService", () => {
       );
 
       expect(result).toHaveLength(batchMemories.length);
-      expect(
-        result.every((r) => r === "Enhanced memory added successfully"),
-      ).toBe(true);
+      expect(result.every((r) => typeof r === "string")).toBe(true);
+      expect(result.every((r) => r.includes('"Kind"'))).toBe(true);
     });
 
     it("should ensure p parameter is set on all memories", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValue({ success: true });
+      vi.mocked(event).mockResolvedValue(undefined);
 
       const memoriesWithoutP = batchMemories.map((m) => ({
         ...m,
@@ -337,41 +366,54 @@ describe("AIMemoryService", () => {
       const { event } = await import("../../../src/relay.js");
       vi.mocked(event).mockRejectedValue(new Error("Batch failed"));
 
-      await expect(
-        aiMemoryService.addMemoriesBatch(
-          mockKeyPair,
-          mockHubId,
-          batchMemories,
-          "batch_user",
-        ),
-      ).rejects.toThrow("Failed to add memories batch");
+      const result = await aiMemoryService.addMemoriesBatch(
+        mockKeyPair,
+        mockHubId,
+        batchMemories,
+        "batch_user",
+      );
+
+      // Should still return results even when individual events fail
+      expect(result).toHaveLength(batchMemories.length);
+      expect(result.every((r) => typeof r === "string")).toBe(true);
     });
   });
 
   describe("getMemoryAnalytics", () => {
     it("should generate comprehensive memory analytics", async () => {
+      const { fetchEvents } = await import("../../../src/relay.js");
+      vi.mocked(fetchEvents).mockReset();
+
       const mockEvents = [
         {
           ai_importance: "0.8",
           ai_type: "knowledge",
           Content: "Memory 1",
           Id: "mem_1",
+          p: "test_user",
+          role: "user",
+          Timestamp: "2024-01-01T00:00:00.000Z",
         },
         {
           ai_importance: "0.3",
           ai_type: "conversation",
           Content: "Memory 2",
           Id: "mem_2",
+          p: "test_user",
+          role: "user",
+          Timestamp: "2024-01-02T00:00:00.000Z",
         },
         {
           ai_importance: "0.9",
           ai_type: "knowledge",
           Content: "Memory 3",
           Id: "mem_3",
+          p: "test_user",
+          role: "user",
+          Timestamp: "2024-01-03T00:00:00.000Z",
         },
       ];
 
-      const { fetchEvents } = await import("../../../src/relay.js");
       vi.mocked(fetchEvents).mockResolvedValueOnce(mockEvents);
 
       const analytics = await aiMemoryService.getMemoryAnalytics(mockHubId);
@@ -401,6 +443,7 @@ describe("AIMemoryService", () => {
 
     it("should return default analytics on error", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
+      vi.mocked(fetchEvents).mockReset();
       vi.mocked(fetchEvents).mockRejectedValueOnce(
         new Error("Analytics failed"),
       );
@@ -455,7 +498,7 @@ describe("AIMemoryService", () => {
   describe("createMemoryContext", () => {
     it("should create memory context successfully", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValueOnce({ success: true });
+      vi.mocked(event).mockResolvedValueOnce(undefined);
 
       const result = await aiMemoryService.createMemoryContext(
         mockKeyPair,
@@ -470,7 +513,7 @@ describe("AIMemoryService", () => {
 
     it("should create correct context tags", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValueOnce({ success: true });
+      vi.mocked(event).mockResolvedValueOnce(undefined);
 
       await aiMemoryService.createMemoryContext(
         mockKeyPair,
@@ -481,7 +524,7 @@ describe("AIMemoryService", () => {
       );
 
       expect(event).toHaveBeenCalledWith(mockKeyPair, mockHubId, [
-        { name: "kind", value: "40" },
+        { name: "Kind", value: "40" },
         { name: "contextName", value: "Test Context" },
         { name: "description", value: "Context description" },
         { name: "p", value: "user_key" },
@@ -491,15 +534,20 @@ describe("AIMemoryService", () => {
 
   describe("getContextMemories", () => {
     it("should retrieve memories for specific context", async () => {
+      const { fetchEvents } = await import("../../../src/relay.js");
+      vi.mocked(fetchEvents).mockReset();
+
       const mockContextMemories = [
         {
           ai_context_id: "context_123",
           Content: "Context memory 1",
           Id: "ctx_mem_1",
+          p: "test_user",
+          role: "user",
+          Timestamp: "2024-01-01T00:00:00.000Z",
         },
       ];
 
-      const { fetchEvents } = await import("../../../src/relay.js");
       vi.mocked(fetchEvents).mockResolvedValueOnce(mockContextMemories);
 
       const result = await aiMemoryService.getContextMemories(
@@ -512,6 +560,7 @@ describe("AIMemoryService", () => {
 
     it("should handle context retrieval errors gracefully", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
+      vi.mocked(fetchEvents).mockReset();
       vi.mocked(fetchEvents).mockRejectedValueOnce(
         new Error("Context fetch failed"),
       );

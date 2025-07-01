@@ -113,7 +113,7 @@ local function filter(filter, events)
         for key, tags in pairs(filter.tags) do
             _events = utils.filter(function(e)
                 if e[key] then
-                    return utils.includes(e[key], tags)
+                    return utils.includes(json.encode(e[key]), tags)
                 end
                 return false
             end, events)
@@ -122,12 +122,9 @@ local function filter(filter, events)
 
     if filter.search then
         _events = utils.filter(function(e)
-            local search_lower = string.lower(filter.search)            
-   
-            if e and string.find(string.lower(json.encode(e)), search_lower) then
+            if string.find(string.lower(json.encode(e)), string.lower(filter.search)) then
                 return true
             end
-            
             return false
         end, _events)
     end

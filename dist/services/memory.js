@@ -1,3 +1,4 @@
+import { createVIP01Filter } from "../models/VIP01Filter.js";
 import { event, fetchEvents } from "../relay.js";
 //search
 const service = () => {
@@ -13,9 +14,10 @@ const service = () => {
         fetch: async (hubId) => {
             const memories = [];
             try {
-                const filter = {
+                const filter = createVIP01Filter({
                     kinds: ["10"],
-                };
+                    limit: 100, // Default limit as per VIP-01
+                });
                 const _filters = JSON.stringify([filter]);
                 const events = await fetchEvents(hubId, _filters);
                 for (let i = 0; i < events.length; i++) {
@@ -35,13 +37,12 @@ const service = () => {
         fetchByUser: async (hubId, user) => {
             const memories = [];
             try {
-                const filter = {
+                const filter = createVIP01Filter({
                     kinds: ["10"],
-                };
-                const filter2 = {
+                    limit: 100, // Default limit as per VIP-01
                     tags: { p: [user] },
-                };
-                const _filters = JSON.stringify([filter, filter2]);
+                });
+                const _filters = JSON.stringify([filter]);
                 const events = await fetchEvents(hubId, _filters);
                 for (let i = 0; i < events.length; i++) {
                     if (events[i] &&
@@ -58,10 +59,11 @@ const service = () => {
             return memories;
         },
         get: async (hub, id) => {
-            const filter = {
+            const filter = createVIP01Filter({
                 ids: [id],
                 kinds: ["10"],
-            };
+                limit: 1, // Only need one result for get operation
+            });
             const _filters = JSON.stringify([filter]);
             const events = await fetchEvents(hub, _filters);
             if (events.length == 0)
@@ -72,10 +74,11 @@ const service = () => {
         search: async (hubId, value) => {
             const memories = [];
             try {
-                const filter = {
+                const filter = createVIP01Filter({
                     kinds: ["10"],
+                    limit: 100, // Default limit as per VIP-01
                     search: value,
-                };
+                });
                 const _filters = JSON.stringify([filter]);
                 const events = await fetchEvents(hubId, _filters);
                 for (let i = 0; i < events.length; i++) {
