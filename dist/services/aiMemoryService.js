@@ -263,6 +263,9 @@ const aiService = () => {
                 }
                 const vip01Filter = createVIP01Filter(vip01FilterParams);
                 const result = await fetchEventsVIP01(hubId, vip01Filter);
+                if (!result || !result.events) {
+                    return [];
+                }
                 return result.events.map((event) => {
                     const eventRecord = event;
                     return {
@@ -286,7 +289,7 @@ const aiService = () => {
                     tags: { chainId: [chainId] },
                 });
                 const result = await fetchEventsVIP01(hubId, vip01Filter);
-                if (result.events.length === 0)
+                if (!result || !result.events || result.events.length === 0)
                     return null;
                 const event = result.events[0];
                 return {
@@ -417,6 +420,9 @@ const aiService = () => {
                 }
                 const vip01Filter = createVIP01Filter(vip01FilterParams);
                 const result = await fetchEventsVIP01(hubId, vip01Filter);
+                if (!result || !result.events) {
+                    return [];
+                }
                 const aiMemories = result.events
                     .filter((event) => typeof event === "object" && event !== null && "Content" in event)
                     .map((event) => eventToAIMemory(event))

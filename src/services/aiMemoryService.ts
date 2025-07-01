@@ -429,6 +429,10 @@ const aiService = (): AIMemoryService => {
         const vip01Filter = createVIP01Filter(vip01FilterParams);
         const result = await fetchEventsVIP01(hubId, vip01Filter);
 
+        if (!result || !result.events) {
+          return [];
+        }
+
         return result.events.map((event: unknown) => {
           const eventRecord = event as Record<string, unknown>;
           return {
@@ -458,7 +462,8 @@ const aiService = (): AIMemoryService => {
         });
         const result = await fetchEventsVIP01(hubId, vip01Filter);
 
-        if (result.events.length === 0) return null;
+        if (!result || !result.events || result.events.length === 0)
+          return null;
 
         const event = result.events[0] as Record<string, unknown>;
         return {
@@ -633,6 +638,10 @@ const aiService = (): AIMemoryService => {
 
         const vip01Filter = createVIP01Filter(vip01FilterParams);
         const result = await fetchEventsVIP01(hubId, vip01Filter);
+
+        if (!result || !result.events) {
+          return [];
+        }
 
         const aiMemories = result.events
           .filter(
