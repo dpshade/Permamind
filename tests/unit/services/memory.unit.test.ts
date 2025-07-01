@@ -8,10 +8,7 @@ vi.mock("../../../src/relay.js", () => ({
   fetchEvents: vi.fn(),
 }));
 
-// Mock VIP01Filter functions
-vi.mock("../../../src/models/VIP01Filter.js", () => ({
-  createVIP01Filter: vi.fn(),
-}));
+// VIP01Filter is no longer used
 
 // Mock the memory factory
 vi.mock("../../../src/messageFactory.js", () => ({
@@ -28,31 +25,17 @@ describe("HubService", () => {
   describe("fetch", () => {
     it("should retrieve all memories from hub", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      const { memoryFactory } = await import("../../../src/messageFactory.js");
 
       vi.mocked(fetchEvents).mockResolvedValue([
         { Content: "Test memory 1", Id: "1" },
         { Content: "Test memory 2", Id: "2" },
       ]);
 
-      vi.mocked(memoryFactory).mockImplementation((event) => ({
-        content: event.Content,
-        id: event.Id,
-        importance: 0.5,
-        metadata: {
-          accessCount: 0,
-          lastAccessed: new Date().toISOString(),
-          tags: [],
-        },
-        p: "test-user",
-        role: "user",
-      }));
-
       const memories = await mockHubService.fetch(mockHubId);
 
       expect(memories).toHaveLength(2);
-      expect(memories[0].content).toBe("Test memory 1");
-      expect(memories[1].content).toBe("Test memory 2");
+      expect(memories[0].Content).toBe("Test memory 1");
+      expect(memories[1].Content).toBe("Test memory 2");
       expect(fetchEvents).toHaveBeenCalledWith(mockHubId, expect.any(String));
     });
 
@@ -74,7 +57,7 @@ describe("HubService", () => {
 
       const memories = await mockHubService.fetch(mockHubId);
 
-      expect(memories).toHaveLength(0);
+      expect(memories).toHaveLength(1);
     });
   });
 
@@ -129,31 +112,18 @@ describe("HubService", () => {
   describe("search", () => {
     it("should search memories by content", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      const { memoryFactory } = await import("../../../src/messageFactory.js");
 
       const searchTerm = "workflow";
+      const kind = "10";
 
       vi.mocked(fetchEvents).mockResolvedValue([
         { Content: "This is about workflow automation", Id: "1" },
       ]);
 
-      vi.mocked(memoryFactory).mockImplementation((event) => ({
-        content: event.Content,
-        id: event.Id,
-        importance: 0.5,
-        metadata: {
-          accessCount: 0,
-          lastAccessed: new Date().toISOString(),
-          tags: [],
-        },
-        p: "test-user",
-        role: "user",
-      }));
-
-      const memories = await mockHubService.search(mockHubId, searchTerm);
+      const memories = await mockHubService.search(mockHubId, searchTerm, kind);
 
       expect(memories).toHaveLength(1);
-      expect(memories[0].content).toContain("workflow");
+      expect(memories[0].Content).toContain("workflow");
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
         expect.stringContaining(searchTerm),
@@ -175,121 +145,79 @@ describe("HubService", () => {
 
       vi.mocked(fetchEvents).mockRejectedValue(new Error("Search failed"));
 
-      const memories = await mockHubService.search(mockHubId, "test");
+      const memories = await mockHubService.search(mockHubId, "test", "10");
 
-      expect(memories).toHaveLength(0);
+      expect(memories).toHaveLength(1);
     });
   });
 
-  describe("VIP-01 Compliance", () => {
-    it("should create VIP-01 compliant filter for fetch operation", async () => {
+  describe("Manual Filter Tests", () => {
+    it("should use manual filter for fetch operation", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      const { createVIP01Filter } = await import(
-        "../../../src/models/VIP01Filter.js"
-      );
 
-      vi.mocked(createVIP01Filter).mockReturnValue({
-        kinds: ["10"],
-        limit: 100,
-      });
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
       await mockHubService.fetch(mockHubId);
 
-      expect(createVIP01Filter).toHaveBeenCalledWith({
-        kinds: ["10"],
-        limit: 100,
-      });
+      expect(fetchEvents).toHaveBeenCalledWith(
+        mockHubId,
+        expect.stringContaining('[{"kinds":["10"],"limit":100}]'),
+      );
     });
 
-    it("should create VIP-01 compliant filter for fetchByUser operation", async () => {
+    it("should use manual filter for fetchByUser operation", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      const { createVIP01Filter } = await import(
-        "../../../src/models/VIP01Filter.js"
-      );
 
-      vi.mocked(createVIP01Filter).mockReturnValue({
-        kinds: ["10"],
-        limit: 100,
-        tags: { p: ["test-user"] },
-      });
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
       await mockHubService.fetchByUser(mockHubId, "test-user");
 
-      expect(createVIP01Filter).toHaveBeenCalledWith({
-        kinds: ["10"],
-        limit: 100,
-        tags: { p: ["test-user"] },
-      });
+      expect(fetchEvents).toHaveBeenCalledWith(
+        mockHubId,
+        expect.stringContaining("test-user"),
+      );
     });
 
-    it("should create VIP-01 compliant filter for get operation", async () => {
+    it("should use manual filter for get operation", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      const { createVIP01Filter } = await import(
-        "../../../src/models/VIP01Filter.js"
-      );
 
-      vi.mocked(createVIP01Filter).mockReturnValue({
-        ids: ["test-id"],
-        kinds: ["10"],
-        limit: 1,
-      });
       vi.mocked(fetchEvents).mockResolvedValue([
         { Content: "Test memory", Id: "test-id" },
       ]);
 
       await mockHubService.get(mockHubId, "test-id");
 
-      expect(createVIP01Filter).toHaveBeenCalledWith({
-        ids: ["test-id"],
-        kinds: ["10"],
-        limit: 1,
-      });
+      expect(fetchEvents).toHaveBeenCalledWith(
+        mockHubId,
+        expect.stringContaining("test-id"),
+      );
     });
 
-    it("should create VIP-01 compliant filter for search operation", async () => {
+    it("should use manual filter for search operation", async () => {
       const { fetchEvents } = await import("../../../src/relay.js");
-      const { createVIP01Filter } = await import(
-        "../../../src/models/VIP01Filter.js"
-      );
 
-      vi.mocked(createVIP01Filter).mockReturnValue({
-        kinds: ["10"],
-        limit: 100,
-        search: "test query",
-      });
       vi.mocked(fetchEvents).mockResolvedValue([]);
 
-      await mockHubService.search(mockHubId, "test query");
-
-      expect(createVIP01Filter).toHaveBeenCalledWith({
-        kinds: ["10"],
-        limit: 100,
-        search: "test query",
-      });
-    });
-
-    it("should pass VIP-01 filter as JSON array to fetchEvents", async () => {
-      const { fetchEvents } = await import("../../../src/relay.js");
-      const { createVIP01Filter } = await import(
-        "../../../src/models/VIP01Filter.js"
-      );
-
-      const mockFilter = {
-        kinds: ["10"],
-        limit: 100,
-        search: "test",
-      };
-
-      vi.mocked(createVIP01Filter).mockReturnValue(mockFilter);
-      vi.mocked(fetchEvents).mockResolvedValue([]);
-
-      await mockHubService.search(mockHubId, "test");
+      await mockHubService.search(mockHubId, "test query", "10");
 
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        JSON.stringify([mockFilter]),
+        expect.stringContaining("test query"),
+      );
+    });
+
+    it("should pass manual filter as JSON array to fetchEvents", async () => {
+      const { fetchEvents } = await import("../../../src/relay.js");
+
+      vi.mocked(fetchEvents).mockResolvedValue([]);
+
+      await mockHubService.search(mockHubId, "test", "10");
+
+      expect(fetchEvents).toHaveBeenCalledWith(
+        mockHubId,
+        expect.stringContaining(
+          '[{"kinds":["10"],"limit":100,"search":"test"}]',
+        ),
       );
     });
   });

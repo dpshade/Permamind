@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { VIP01Filter } from "../../../src/models/VIP01Filter.js";
+// Filter types replaced with manual interface
+interface Filter {
+  authors?: string[];
+  ids?: string[];
+  kinds?: string[];
+  limit?: number;
+  search?: string;
+  since?: number;
+  tags?: Record<string, string[]>;
+  until?: number;
+}
 import {
   applyClientSideFiltering,
   extractTimestamp,
@@ -159,7 +169,7 @@ describe("VIP01Processing", () => {
   });
 
   describe("processVIP01Results", () => {
-    const testFilter: VIP01Filter = {
+    const testFilter: Filter = {
       kinds: ["10"],
       limit: 2,
     };
@@ -206,7 +216,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should handle events count less than limit", () => {
-      const smallFilter: VIP01Filter = { kinds: ["10"], limit: 10 };
+      const smallFilter: Filter = { kinds: ["10"], limit: 10 };
       const result = processVIP01Results(testEventsUnsorted, smallFilter, {
         includeMetadata: true,
       });
@@ -224,7 +234,7 @@ describe("VIP01Processing", () => {
     ];
 
     it("should filter by since timestamp", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         kinds: ["10"],
         since: 1500000000,
       };
@@ -239,7 +249,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should filter by until timestamp", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         kinds: ["10"],
         until: 2500000000,
       };
@@ -254,7 +264,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should filter by search text", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         kinds: ["10"],
         search: "test",
       };
@@ -269,7 +279,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should apply multiple filters", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         kinds: ["10"],
         search: "test",
         since: 1500000000,
@@ -287,7 +297,7 @@ describe("VIP01Processing", () => {
         { Id: "2", SomeOtherField: "test" },
       ];
 
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         kinds: ["10"],
         search: "test",
       };
@@ -299,7 +309,7 @@ describe("VIP01Processing", () => {
 
   describe("generateFilterStats", () => {
     it("should identify direct lookup filter", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         ids: ["id1", "id2"],
         kinds: ["10"],
       };
@@ -313,7 +323,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should identify single author optimization", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         authors: ["author1"],
         kinds: ["10"],
       };
@@ -327,7 +337,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should identify text search filter", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         kinds: ["10"],
         search: "query",
       };
@@ -340,7 +350,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should identify complex filter", () => {
-      const filter: VIP01Filter = {
+      const filter: Filter = {
         authors: ["author1", "author2"],
         kinds: ["10", "11"],
         since: 1000000000,
@@ -358,7 +368,7 @@ describe("VIP01Processing", () => {
     });
 
     it("should handle zero original count", () => {
-      const filter: VIP01Filter = { kinds: ["10"] };
+      const filter: Filter = { kinds: ["10"] };
       const stats = generateFilterStats(filter, 0, 0);
 
       expect(stats.efficiency).toBe(0);

@@ -5,11 +5,31 @@
  * including sorting, limiting, and metadata generation.
  */
 
-import {
-  VIP01Filter,
-  VIP01FilterOptions,
-  VIP01FilterResult,
-} from "../models/VIP01Filter.js";
+// VIP01Filter types replaced with manual interfaces
+interface Filter {
+  authors?: string[];
+  ids?: string[];
+  kinds?: string[];
+  limit?: number;
+  search?: string;
+  since?: number;
+  tags?: Record<string, string[]>;
+  until?: number;
+}
+
+interface FilterOptions {
+  enableClientLimiting?: boolean;
+  enableSorting?: boolean;
+  includeMetadata?: boolean;
+}
+
+interface FilterResult {
+  events: unknown[];
+  hasMore?: boolean;
+  newestTimestamp?: number;
+  oldestTimestamp?: number;
+  totalCount?: number;
+}
 
 /**
  * Interface for events with timestamp (for sorting)
@@ -25,7 +45,7 @@ interface TimestampedEvent {
  */
 export function applyClientSideFiltering(
   events: unknown[],
-  filter: VIP01Filter,
+  filter: Filter,
 ): unknown[] {
   let filtered = [...events];
 
@@ -102,7 +122,7 @@ export function extractTimestamps(events: unknown[]): number[] {
  * Generate VIP-01 filter statistics for debugging/monitoring
  */
 export function generateFilterStats(
-  filter: VIP01Filter,
+  filter: Filter,
   originalCount: number,
   finalCount: number,
 ): {
@@ -184,9 +204,9 @@ export function isProperlysorted(events: unknown[]): boolean {
  */
 export function processVIP01Results(
   events: unknown[],
-  filter: VIP01Filter,
-  options: VIP01FilterOptions = {},
-): VIP01FilterResult {
+  filter: Filter,
+  options: FilterOptions = {},
+): FilterResult {
   const {
     enableClientLimiting = true,
     enableSorting = true,
@@ -212,7 +232,7 @@ export function processVIP01Results(
     hasMore = true;
   }
 
-  const result: VIP01FilterResult = {
+  const result: FilterResult = {
     events: processedEvents,
   };
 

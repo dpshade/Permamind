@@ -12,7 +12,7 @@ import {
 } from "../models/AIMemory.js";
 import { Memory } from "../models/Memory.js";
 import { Tag } from "../models/Tag.js";
-import { createVIP01Filter, VIP01Filter } from "../models/VIP01Filter.js";
+// VIP01Filter removed - using manual filters now
 import { event, fetchEvents, fetchEventsVIP01 } from "../relay.js";
 
 // Constants for memory kinds
@@ -416,18 +416,17 @@ const aiService = (): AIMemoryService => {
       memoryId?: string,
     ): Promise<MemoryLink[]> => {
       try {
-        const vip01FilterParams: Partial<VIP01Filter> = {
+        const filterParams = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
           limit: 500,
-          tags: { ai_type: ["link"] },
+          tags: { ai_type: ["link"] } as Record<string, string[]>,
         };
 
         if (memoryId) {
-          vip01FilterParams.tags!.from_memory_id = [memoryId];
+          filterParams.tags.from_memory_id = [memoryId];
         }
 
-        const vip01Filter = createVIP01Filter(vip01FilterParams);
-        const result = await fetchEventsVIP01(hubId, vip01Filter);
+        const result = await fetchEventsVIP01(hubId, filterParams);
 
         if (!result || !result.events) {
           return [];
@@ -455,12 +454,12 @@ const aiService = (): AIMemoryService => {
       chainId: string,
     ): Promise<null | ReasoningTrace> => {
       try {
-        const vip01Filter = createVIP01Filter({
+        const filter = {
           kinds: [MEMORY_KINDS.REASONING_CHAIN],
           limit: 1, // Only need one reasoning chain
           tags: { chainId: [chainId] },
-        });
-        const result = await fetchEventsVIP01(hubId, vip01Filter);
+        };
+        const result = await fetchEventsVIP01(hubId, filter);
 
         if (!result || !result.events || result.events.length === 0)
           return null;
@@ -590,14 +589,14 @@ const aiService = (): AIMemoryService => {
       filters?: SearchFilters,
     ): Promise<AIMemory[]> => {
       try {
-        // Build VIP-01 compliant filter
-        const vip01FilterParams: Partial<VIP01Filter> = {
+        // Build filter
+        const filterParams = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
-          limit: 100, // Default limit as per VIP-01
-        };
+          limit: 100,
+        } as Record<string, unknown>;
 
         if (query) {
-          vip01FilterParams.search = query;
+          filterParams.search = query;
         }
 
         // Build tags object for AI-specific filtering
@@ -621,23 +620,20 @@ const aiService = (): AIMemoryService => {
         }
 
         if (Object.keys(tags).length > 0) {
-          vip01FilterParams.tags = tags;
+          filterParams.tags = tags;
         }
 
         // Add time range filtering if provided
         if (filters?.timeRange) {
           if (filters.timeRange.start) {
-            vip01FilterParams.since = new Date(
-              filters.timeRange.start,
-            ).getTime();
+            filterParams.since = new Date(filters.timeRange.start).getTime();
           }
           if (filters.timeRange.end) {
-            vip01FilterParams.until = new Date(filters.timeRange.end).getTime();
+            filterParams.until = new Date(filters.timeRange.end).getTime();
           }
         }
 
-        const vip01Filter = createVIP01Filter(vip01FilterParams);
-        const result = await fetchEventsVIP01(hubId, vip01Filter);
+        const result = await fetchEventsVIP01(hubId, filterParams);
 
         if (!result || !result.events) {
           return [];
