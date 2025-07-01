@@ -773,7 +773,13 @@ function eventToAIMemory(event: Record<string, unknown>): AIMemory {
   const memoryType: MemoryType =
     (event.ai_type as MemoryType) || "conversation";
   const context: MemoryContext = event.ai_context
-    ? JSON.parse(event.ai_context as string)
+    ? (() => {
+        try {
+          return JSON.parse(event.ai_context as string);
+        } catch {
+          return {};
+        }
+      })()
     : {};
 
   // Add domain from event tags if available

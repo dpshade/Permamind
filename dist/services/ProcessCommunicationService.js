@@ -120,7 +120,7 @@ const service = () => {
             return bestMatch;
         },
         parseMarkdown: (markdown) => {
-            const lines = markdown.split("\n");
+            const lines = markdown.split(", "););
             const handlers = [];
             let currentHandler = null;
             let processName = "Unknown Process";

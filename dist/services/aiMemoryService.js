@@ -531,7 +531,14 @@ function eventToAIMemory(event) {
     const importance = parseFloat(event.ai_importance || "0.5");
     const memoryType = event.ai_type || "conversation";
     const context = event.ai_context
-        ? JSON.parse(event.ai_context)
+        ? (() => {
+            try {
+                return JSON.parse(event.ai_context);
+            }
+            catch {
+                return {};
+            }
+        })()
         : {};
     // Add domain from event tags if available
     if (event.ai_domain) {

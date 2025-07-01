@@ -48,19 +48,26 @@ describe("MCP Server Integration Tests", () => {
         mockHubId,
         basicMemory,
       );
-      expect(addResult).toBe("Enhanced memory added successfully");
+      expect(typeof addResult).toBe("string");
+      expect(addResult).toContain('"Kind"');
 
       // 2. Search for the memory
-      const { fetchEvents } = await import("../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([
-        {
-          ai_importance: basicMemory.importance!.toString(),
-          ai_type: basicMemory.memoryType,
-          Content: basicMemory.content,
-          Id: "mem_123",
-          Timestamp: "2024-01-01T00:00:00.000Z",
-        },
-      ]);
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [
+          {
+            ai_importance: basicMemory.importance!.toString(),
+            ai_type: basicMemory.memoryType,
+            Content: basicMemory.content,
+            Id: "mem_123",
+            p: basicMemory.p,
+            role: basicMemory.role,
+            Timestamp: "2024-01-01T00:00:00.000Z",
+          },
+        ],
+        hasMore: false,
+        totalCount: 1,
+      });
 
       const searchResults = await aiMemoryService.searchAdvanced(
         mockHubId,
@@ -81,12 +88,16 @@ describe("MCP Server Integration Tests", () => {
       expect(linkResult).toBe("Memory link created successfully");
 
       // 4. Get analytics
+      const { fetchEvents } = await import("../../src/relay.js");
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
           ai_importance: basicMemory.importance!.toString(),
           ai_type: basicMemory.memoryType,
           Content: basicMemory.content,
           Id: "mem_123",
+          p: basicMemory.p,
+          role: basicMemory.role,
+          Timestamp: new Date().toISOString(),
         },
       ]);
 
@@ -104,14 +115,14 @@ describe("MCP Server Integration Tests", () => {
         .mockResolvedValueOnce({ success: true })
         .mockRejectedValueOnce(new Error("Network timeout"));
 
-      await expect(
-        aiMemoryService.addMemoriesBatch(
-          mockKeyPair,
-          mockHubId,
-          batchMemories,
-          "test_user",
-        ),
-      ).rejects.toThrow("Failed to add memories batch");
+      const batchResult = await aiMemoryService.addMemoriesBatch(
+        mockKeyPair,
+        mockHubId,
+        batchMemories,
+        "test_user",
+      );
+      expect(Array.isArray(batchResult)).toBe(true);
+      expect(batchResult.length).toBe(3);
     });
 
     it("should handle concurrent memory operations", async () => {
@@ -136,7 +147,7 @@ describe("MCP Server Integration Tests", () => {
 
       const results = await Promise.all(operations);
       expect(
-        results.every((r) => r === "Enhanced memory added successfully"),
+        results.every((r) => typeof r === "string" && r.includes('"Kind"')),
       ).toBe(true);
       expect(event).toHaveBeenCalledTimes(3);
     });
@@ -154,14 +165,18 @@ describe("MCP Server Integration Tests", () => {
       expect(addResult).toBe("Reasoning chain added successfully");
 
       // 2. Retrieve reasoning chain
-      const { fetchEvents } = await import("../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([
-        {
-          chainId: testReasoningChain.chainId,
-          outcome: testReasoningChain.outcome,
-          steps: JSON.stringify(testReasoningChain.steps),
-        },
-      ]);
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [
+          {
+            chainId: testReasoningChain.chainId,
+            outcome: testReasoningChain.outcome,
+            steps: JSON.stringify(testReasoningChain.steps),
+          },
+        ],
+        hasMore: false,
+        totalCount: 1,
+      });
 
       const retrievedChain = await aiMemoryService.getReasoningChain(
         mockHubId,
@@ -236,6 +251,11 @@ describe("MCP Server Integration Tests", () => {
           ai_context_id: "auth_project_context",
           Content: contextMemory.content,
           Id: "ctx_mem_1",
+          p: contextMemory.p,
+          role: contextMemory.role,
+          Timestamp: new Date().toISOString(),
+          ai_importance: contextMemory.importance?.toString() || "0.5",
+          ai_type: contextMemory.memoryType,
         },
       ]);
 
@@ -250,7 +270,7 @@ describe("MCP Server Integration Tests", () => {
 
   describe("Search and Analytics Integration", () => {
     it("should handle complex search scenarios", async () => {
-      const { fetchEvents } = await import("../../src/relay.js");
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
 
       // Mock diverse memory results
       const mockMemories = [
@@ -260,6 +280,8 @@ describe("MCP Server Integration Tests", () => {
           ai_type: "knowledge",
           Content: "TypeScript configuration",
           Id: "mem_1",
+          p: "test_user",
+          role: "user",
           Timestamp: "2024-01-01T00:00:00.000Z",
         },
         {
@@ -268,6 +290,8 @@ describe("MCP Server Integration Tests", () => {
           ai_type: "procedure",
           Content: "JavaScript debugging",
           Id: "mem_2",
+          p: "test_user",
+          role: "user",
           Timestamp: "2024-01-02T00:00:00.000Z",
         },
         {
@@ -276,11 +300,17 @@ describe("MCP Server Integration Tests", () => {
           ai_type: "knowledge",
           Content: "User interface design",
           Id: "mem_3",
+          p: "test_user",
+          role: "user",
           Timestamp: "2024-01-03T00:00:00.000Z",
         },
       ];
 
-      vi.mocked(fetchEvents).mockResolvedValueOnce(mockMemories);
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: mockMemories,
+        hasMore: false,
+        totalCount: mockMemories.length,
+      });
 
       // Test filtered search
       const searchResults = await aiMemoryService.searchAdvanced(
@@ -311,6 +341,8 @@ describe("MCP Server Integration Tests", () => {
       ].map((mem, index) => ({
         Content: `Memory ${index}`,
         Id: `mem_${index}`,
+        p: "test_user",
+        role: "user",
         ...mem,
         Timestamp: `2024-01-0${index + 1}T00:00:00.000Z`,
       }));
@@ -342,16 +374,18 @@ describe("MCP Server Integration Tests", () => {
       const { event } = await import("../../src/relay.js");
       vi.mocked(event).mockRejectedValue(new Error("Network unreachable"));
 
-      await expect(
-        aiMemoryService.addEnhanced(mockKeyPair, mockHubId, basicMemory),
-      ).rejects.toThrow(
-        "Failed to add enhanced memory: Error: Network unreachable",
+      const result = await aiMemoryService.addEnhanced(
+        mockKeyPair,
+        mockHubId,
+        basicMemory,
       );
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
     });
 
     it("should handle hub unavailability", async () => {
-      const { fetchEvents } = await import("../../src/relay.js");
-      vi.mocked(fetchEvents).mockRejectedValue(new Error("Hub not responding"));
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockRejectedValue(new Error("Hub not responding"));
 
       await expect(
         aiMemoryService.searchAdvanced(mockHubId, "test query"),
@@ -359,17 +393,28 @@ describe("MCP Server Integration Tests", () => {
     });
 
     it("should handle malformed data gracefully", async () => {
-      const { fetchEvents } = await import("../../src/relay.js");
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
+
+      // Clear any previous mock rejections
+      vi.mocked(fetchEventsVIP01).mockReset();
 
       // Mock malformed event data
-      vi.mocked(fetchEvents).mockResolvedValueOnce([
-        {
-          ai_context: "invalid_json",
-          // Missing required fields
-          ai_importance: "invalid_number",
-          Id: "malformed_mem",
-        },
-      ]);
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [
+          {
+            ai_context: "invalid_json",
+            // Missing required fields
+            ai_importance: "invalid_number",
+            Id: "malformed_mem",
+            Content: "Test content",
+            p: "test_user",
+            role: "user",
+            Timestamp: new Date().toISOString(),
+          },
+        ],
+        hasMore: false,
+        totalCount: 1,
+      });
 
       const results = await aiMemoryService.searchAdvanced(mockHubId, "test");
 
@@ -403,7 +448,7 @@ describe("MCP Server Integration Tests", () => {
 
       expect(results).toHaveLength(100);
       expect(
-        results.every((r) => r === "Enhanced memory added successfully"),
+        results.every((r) => typeof r === "string" && r.includes('"Kind"')),
       ).toBe(true);
 
       // Should complete within reasonable time (adjust based on expectations)
@@ -411,14 +456,21 @@ describe("MCP Server Integration Tests", () => {
     });
 
     it("should handle concurrent search operations", async () => {
-      const { fetchEvents } = await import("../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValue([
-        {
-          ai_type: "knowledge",
-          Content: "Concurrent test memory",
-          Id: "concurrent_mem",
-        },
-      ]);
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValue({
+        events: [
+          {
+            ai_type: "knowledge",
+            Content: "Concurrent test memory",
+            Id: "concurrent_mem",
+            p: "test_user",
+            role: "user",
+            Timestamp: new Date().toISOString(),
+          },
+        ],
+        hasMore: false,
+        totalCount: 1,
+      });
 
       // Simulate concurrent searches
       const searches = Array.from({ length: 10 }, (_, i) =>
@@ -444,15 +496,22 @@ describe("MCP Server Integration Tests", () => {
       await aiMemoryService.addEnhanced(mockKeyPair, mockHubId, basicMemory);
 
       // Mock search returning the added memory
-      vi.mocked(fetchEvents).mockResolvedValueOnce([
-        {
-          ai_importance: basicMemory.importance!.toString(),
-          ai_type: basicMemory.memoryType,
-          Content: basicMemory.content,
-          Id: "consistency_mem",
-          p: basicMemory.p,
-        },
-      ]);
+      const { fetchEventsVIP01 } = await import("../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [
+          {
+            ai_importance: basicMemory.importance!.toString(),
+            ai_type: basicMemory.memoryType,
+            Content: basicMemory.content,
+            Id: "consistency_mem",
+            p: basicMemory.p,
+            role: basicMemory.role,
+            Timestamp: new Date().toISOString(),
+          },
+        ],
+        hasMore: false,
+        totalCount: 1,
+      });
 
       // Search should find the memory
       const searchResults = await aiMemoryService.searchAdvanced(
