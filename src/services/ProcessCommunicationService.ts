@@ -363,11 +363,11 @@ const extractParameterValue = (
   paramType: ParameterInfo["type"],
 ): unknown => {
   const patterns = [
-    new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
-    new RegExp(`${paramName}\s+([^\s]+)`, "i"),
-    new RegExp(`to\s+([^\s]+)`, "i"),
-    new RegExp(`send\s+([0-9.]+)`, "i"),
-    new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+    new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
+    new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
+    new RegExp(`to\\s+([^\\s]+)`, "i"),
+    new RegExp(`send\\s+([0-9.]+)`, "i"),
+    new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
   ];
 
   for (const pattern of patterns) {

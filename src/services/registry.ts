@@ -51,7 +51,7 @@ const service = (): HubRegistryService => {
       processId: string,
       spec: unknown,
     ): Promise<void> => {
-      register(signer, processId, spec);
+      register(signer, processId, spec as Record<string, unknown>);
     },
   };
 };

@@ -54,7 +54,9 @@ export const event = async (
   }
 };
 
-export const info = async (processId: string): Promise<any> => {
+export const info = async (
+  processId: string,
+): Promise<Record<string, unknown>> => {
   const message = Info();
   const result = await read(processId, message);
   if (result) {
@@ -68,8 +70,8 @@ export const info = async (processId: string): Promise<any> => {
 export const fetchEvents = async (
   processId: string,
   filters: string,
-): Promise<any[]> => {
-  let events: any[] = [];
+): Promise<Record<string, unknown>[]> => {
+  let events: Record<string, unknown>[] = [];
   try {
     const message = FetchEvents(filters);
     const result = await read(processId, message);
@@ -97,7 +99,7 @@ export const fetchEventsVIP01 = async (
     const message = FetchEvents(filtersJson);
     const result = await read(processId, message);
 
-    let events: any[] = [];
+    let events: Record<string, unknown>[] = [];
     if (result) {
       const json = JSON.parse(result.Data);
       events = Array.isArray(json) ? json : [];
@@ -123,7 +125,7 @@ export const fetchEventsVIP01 = async (
 export const register = async (
   signer: JWKInterface,
   processId: string,
-  spec: any,
+  spec: Record<string, unknown>,
 ): Promise<void> => {
   try {
     const message = Register();
@@ -138,8 +140,8 @@ export const getZones = async (
   filters: string,
   page: number,
   limit: number,
-): Promise<any[]> => {
-  let events: any[] = [];
+): Promise<Record<string, unknown>[]> => {
+  let events: Record<string, unknown>[] = [];
   try {
     const message = GetZones(filters, page.toString(), limit.toString());
     const result = await read(processId, message);
@@ -156,17 +158,16 @@ export const getZones = async (
 export const getZone = async (
   processId: string,
   zoneId: string,
-): Promise<any> => {
-  let events: any[] = [];
+): Promise<Record<string, unknown>> => {
   try {
     const message = GetZoneById(zoneId);
     const result = await read(processId, message);
     if (result) {
       const json = JSON.parse(result.Data);
-      events = json;
+      return json;
     }
   } catch {
     // Silent error handling for get zone
   }
-  return events;
+  return {};
 };

@@ -78,11 +78,10 @@ server.addTool({
         };
         const tags = [kind, content, role, p];
         try {
-            await hubService.createEvent(keyPair, hubId, tags);
-            return "Added Memory";
+            return JSON.stringify(await hubService.createEvent(keyPair, hubId, tags));
         }
         catch (error) {
-            return String(error);
+            return JSON.stringify(error);
         }
     },
     name: "addMemory",

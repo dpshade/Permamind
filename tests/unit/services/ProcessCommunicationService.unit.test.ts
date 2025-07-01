@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   HandlerInfo,
   processCommunicationService,
-  ProcessDefinition,
 } from "../../../src/services/ProcessCommunicationService.js";
 
 // Mock AOMessageService

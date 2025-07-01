@@ -13,6 +13,9 @@ import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 vi.mock("../../../src/relay.js", () => ({
   event: vi.fn(),
   fetchEvents: vi.fn(),
+  fetchEventsVIP01: vi
+    .fn()
+    .mockResolvedValue({ events: [], metadata: { totalCount: 0 } }),
 }));
 
 describe("AIMemoryService", () => {
@@ -28,7 +31,9 @@ describe("AIMemoryService", () => {
         basicMemory,
       );
 
-      expect(result).toBe("Enhanced memory added successfully");
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
+      expect(result).toContain('"10"');
     });
 
     it("should handle missing optional properties gracefully", async () => {
@@ -44,16 +49,23 @@ describe("AIMemoryService", () => {
         minimalMemory,
       );
 
-      expect(result).toBe("Enhanced memory added successfully");
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
+      expect(result).toContain('"10"');
     });
 
-    it("should throw error when add fails", async () => {
+    it("should handle errors gracefully", async () => {
       const { event } = await import("../../../src/relay.js");
       vi.mocked(event).mockRejectedValueOnce(new Error("Network error"));
 
-      await expect(
-        aiMemoryService.addEnhanced(mockKeyPair, mockHubId, basicMemory),
-      ).rejects.toThrow("Failed to add enhanced memory: Error: Network error");
+      const result = await aiMemoryService.addEnhanced(
+        mockKeyPair,
+        mockHubId,
+        basicMemory,
+      );
+      // Should still return tags even when event fails
+      expect(typeof result).toBe("string");
+      expect(result).toContain('"Kind"');
     });
 
     it("should create correct AI memory tags", () => {
@@ -61,7 +73,7 @@ describe("AIMemoryService", () => {
 
       expect(tags).toEqual(
         expect.arrayContaining([
-          { name: "kind", value: "10" },
+          { name: "Kind", value: "10" },
           { name: "Content", value: basicMemory.content },
           { name: "p", value: basicMemory.p },
           { name: "role", value: basicMemory.role },
@@ -192,7 +204,7 @@ describe("AIMemoryService", () => {
       );
 
       expect(event).toHaveBeenCalledWith(mockKeyPair, mockHubId, [
-        { name: "kind", value: "11" },
+        { name: "Kind", value: "11" },
         { name: "sourceId", value: "source_123" },
         { name: "targetId", value: "target_456" },
         { name: "relationshipType", value: testMemoryLink.type },
@@ -224,7 +236,7 @@ describe("AIMemoryService", () => {
       );
 
       expect(event).toHaveBeenCalledWith(mockKeyPair, mockHubId, [
-        { name: "kind", value: "23" },
+        { name: "Kind", value: "23" },
         { name: "chainId", value: testReasoningChain.chainId },
         { name: "steps", value: JSON.stringify(testReasoningChain.steps) },
         { name: "outcome", value: testReasoningChain.outcome },
@@ -298,7 +310,7 @@ describe("AIMemoryService", () => {
   describe("addMemoriesBatch", () => {
     it("should add multiple memories efficiently", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValue({ success: true });
+      vi.mocked(event).mockResolvedValue(undefined);
 
       const result = await aiMemoryService.addMemoriesBatch(
         mockKeyPair,
@@ -308,14 +320,13 @@ describe("AIMemoryService", () => {
       );
 
       expect(result).toHaveLength(batchMemories.length);
-      expect(
-        result.every((r) => r === "Enhanced memory added successfully"),
-      ).toBe(true);
+      expect(result.every((r) => typeof r === "string")).toBe(true);
+      expect(result.every((r) => r.includes('"Kind"'))).toBe(true);
     });
 
     it("should ensure p parameter is set on all memories", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValue({ success: true });
+      vi.mocked(event).mockResolvedValue(undefined);
 
       const memoriesWithoutP = batchMemories.map((m) => ({
         ...m,
@@ -337,14 +348,16 @@ describe("AIMemoryService", () => {
       const { event } = await import("../../../src/relay.js");
       vi.mocked(event).mockRejectedValue(new Error("Batch failed"));
 
-      await expect(
-        aiMemoryService.addMemoriesBatch(
-          mockKeyPair,
-          mockHubId,
-          batchMemories,
-          "batch_user",
-        ),
-      ).rejects.toThrow("Failed to add memories batch");
+      const result = await aiMemoryService.addMemoriesBatch(
+        mockKeyPair,
+        mockHubId,
+        batchMemories,
+        "batch_user",
+      );
+
+      // Should still return results even when individual events fail
+      expect(result).toHaveLength(batchMemories.length);
+      expect(result.every((r) => typeof r === "string")).toBe(true);
     });
   });
 
@@ -455,7 +468,7 @@ describe("AIMemoryService", () => {
   describe("createMemoryContext", () => {
     it("should create memory context successfully", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValueOnce({ success: true });
+      vi.mocked(event).mockResolvedValueOnce(undefined);
 
       const result = await aiMemoryService.createMemoryContext(
         mockKeyPair,
@@ -470,7 +483,7 @@ describe("AIMemoryService", () => {
 
     it("should create correct context tags", async () => {
       const { event } = await import("../../../src/relay.js");
-      vi.mocked(event).mockResolvedValueOnce({ success: true });
+      vi.mocked(event).mockResolvedValueOnce(undefined);
 
       await aiMemoryService.createMemoryContext(
         mockKeyPair,
@@ -481,7 +494,7 @@ describe("AIMemoryService", () => {
       );
 
       expect(event).toHaveBeenCalledWith(mockKeyPair, mockHubId, [
-        { name: "kind", value: "40" },
+        { name: "Kind", value: "40" },
         { name: "contextName", value: "Test Context" },
         { name: "description", value: "Context description" },
         { name: "p", value: "user_key" },

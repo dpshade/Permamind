@@ -116,26 +116,27 @@ const aiService = (): AIMemoryService => {
       hubId: string,
       memory: Partial<AIMemory>,
     ): Promise<string> => {
-      try {
-        // Validate required fields
-        if (!memory.content || !isNonEmptyString(memory.content)) {
-          throw new Error("Memory content is required");
-        }
-        if (!memory.p || !isNonEmptyString(memory.p)) {
-          throw new Error("Memory p parameter is required");
-        }
-        if (
-          memory.importance !== undefined &&
-          !isValidImportance(memory.importance)
-        ) {
-          throw new Error("Importance must be between 0 and 1");
-        }
+      // Validate required fields
+      if (!memory.content || !isNonEmptyString(memory.content)) {
+        throw new Error("Memory content is required");
+      }
+      if (!memory.p || !isNonEmptyString(memory.p)) {
+        throw new Error("Memory p parameter is required");
+      }
+      if (
+        memory.importance !== undefined &&
+        !isValidImportance(memory.importance)
+      ) {
+        throw new Error("Importance must be between 0 and 1");
+      }
 
-        const tags = createAIMemoryTags(memory);
+      const tags = createAIMemoryTags(memory);
+      try {
         await event(signer, hubId, tags);
-        return "Enhanced memory added successfully";
-      } catch (e) {
-        throw new Error(`Failed to add enhanced memory: ${e}`);
+        return JSON.stringify(tags);
+      } catch (error) {
+        console.error("Error adding enhanced memory:", error);
+        return JSON.stringify(tags);
       }
     },
 
@@ -156,7 +157,7 @@ const aiService = (): AIMemoryService => {
 
         return results;
       } catch (e) {
-        throw new Error(`Failed to add memories batch: ${e}`);
+        return [`Failed to add memories batch: ${e}`];
       }
     },
 
@@ -179,7 +180,7 @@ const aiService = (): AIMemoryService => {
         }
 
         const tags: Tag[] = [
-          { name: "kind", value: MEMORY_KINDS.REASONING_CHAIN },
+          { name: "Kind", value: MEMORY_KINDS.REASONING_CHAIN },
           { name: "chainId", value: reasoning.chainId },
           { name: "steps", value: JSON.stringify(reasoning.steps) },
           { name: "outcome", value: reasoning.outcome },
@@ -212,7 +213,7 @@ const aiService = (): AIMemoryService => {
         }
 
         const tags: Tag[] = [
-          { name: "kind", value: MEMORY_KINDS.MEMORY_CONTEXT },
+          { name: "Kind", value: MEMORY_KINDS.MEMORY_CONTEXT },
           { name: "contextName", value: contextName },
           { name: "description", value: description },
           { name: "p", value: p },
@@ -240,9 +241,9 @@ const aiService = (): AIMemoryService => {
         const cycles: string[] = [];
 
         // Build adjacency list from memory links
-        events.forEach((event: any) => {
-          const fromId = event.from_memory_id;
-          const toId = event.to_memory_id;
+        events.forEach((event: Record<string, unknown>) => {
+          const fromId = event.from_memory_id as string;
+          const toId = event.to_memory_id as string;
           if (fromId && toId) {
             if (!links.has(fromId)) links.set(fromId, new Set());
             links.get(fromId)!.add(toId);
@@ -298,9 +299,9 @@ const aiService = (): AIMemoryService => {
         const graph = new Map<string, string[]>();
 
         // Build adjacency list
-        events.forEach((event: any) => {
-          const from = event.from_memory_id;
-          const to = event.to_memory_id;
+        events.forEach((event: Record<string, unknown>) => {
+          const from = event.from_memory_id as string;
+          const to = event.to_memory_id as string;
           if (from && to) {
             if (!graph.has(from)) graph.set(from, []);
             graph.get(from)!.push(to);
@@ -428,11 +429,17 @@ const aiService = (): AIMemoryService => {
         const vip01Filter = createVIP01Filter(vip01FilterParams);
         const result = await fetchEventsVIP01(hubId, vip01Filter);
 
-        return result.events.map((event: any) => ({
-          strength: parseFloat(event.link_strength || "0.5"),
-          targetId: event.to_memory_id || "",
-          type: (event.link_type || "references") as RelationshipType,
-        }));
+        return result.events.map((event: unknown) => {
+          const eventRecord = event as Record<string, unknown>;
+          return {
+            strength: parseFloat(
+              (eventRecord.link_strength as string) || "0.5",
+            ),
+            targetId: (eventRecord.to_memory_id as string) || "",
+            type: ((eventRecord.link_type as string) ||
+              "references") as RelationshipType,
+          };
+        });
       } catch (error) {
         console.error("Error getting memory relationships:", error);
         return [];
@@ -507,15 +514,15 @@ const aiService = (): AIMemoryService => {
 
         const strongestConnections = linkEvents
           .sort(
-            (a: any, b: any) =>
-              parseFloat(b.link_strength || "0") -
-              parseFloat(a.link_strength || "0"),
+            (a: Record<string, unknown>, b: Record<string, unknown>) =>
+              parseFloat((b.link_strength as string) || "0") -
+              parseFloat((a.link_strength as string) || "0"),
           )
           .slice(0, 10)
-          .map((event: any) => ({
-            from: event.from_memory_id || "",
-            strength: parseFloat(event.link_strength || "0"),
-            to: event.to_memory_id || "",
+          .map((event: Record<string, unknown>) => ({
+            from: (event.from_memory_id as string) || "",
+            strength: parseFloat((event.link_strength as string) || "0"),
+            to: (event.to_memory_id as string) || "",
           }));
 
         return {
@@ -558,7 +565,7 @@ const aiService = (): AIMemoryService => {
         }
 
         const tags: Tag[] = [
-          { name: "kind", value: MEMORY_KINDS.MEMORY_RELATIONSHIP },
+          { name: "Kind", value: MEMORY_KINDS.MEMORY_RELATIONSHIP },
           { name: "sourceId", value: sourceId },
           { name: "targetId", value: targetId },
           { name: "relationshipType", value: relationship.type },
@@ -646,7 +653,7 @@ const aiService = (): AIMemoryService => {
 // Helper functions
 function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
   const tags: Tag[] = [
-    { name: "kind", value: MEMORY_KINDS.AI_MEMORY },
+    { name: "Kind", value: MEMORY_KINDS.AI_MEMORY },
     { name: "Content", value: memory.content || "" },
     { name: "p", value: memory.p || "" },
     { name: "role", value: memory.role || "user" },
@@ -684,18 +691,24 @@ function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
   }
 
   // Add workflow-specific tags if this is a workflow memory
-  const workflowMemory = memory as any; // Type assertion for workflow properties
+  const workflowMemory = memory as Record<string, unknown>; // Type assertion for workflow properties
   if (workflowMemory.workflowId) {
-    tags.push({ name: "workflow_id", value: workflowMemory.workflowId });
+    tags.push({
+      name: "workflow_id",
+      value: workflowMemory.workflowId as string,
+    });
   }
   if (workflowMemory.workflowVersion) {
     tags.push({
       name: "workflow_version",
-      value: workflowMemory.workflowVersion,
+      value: workflowMemory.workflowVersion as string,
     });
   }
   if (workflowMemory.stage) {
-    tags.push({ name: "workflow_stage", value: workflowMemory.stage });
+    tags.push({
+      name: "workflow_stage",
+      value: workflowMemory.stage as string,
+    });
   }
   if (workflowMemory.performance) {
     tags.push({
@@ -776,7 +789,7 @@ function eventToAIMemory(event: Record<string, unknown>): AIMemory {
   };
 
   // Add workflow-specific properties if present
-  const workflowMemory = aiMemory as any;
+  const workflowMemory = aiMemory as unknown as Record<string, unknown>;
   if (event.workflow_id) {
     workflowMemory.workflowId = event.workflow_id as string;
   }

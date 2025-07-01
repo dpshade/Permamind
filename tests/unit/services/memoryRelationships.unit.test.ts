@@ -6,7 +6,10 @@ import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 
 vi.mock("../../../src/relay.js", () => ({
   event: vi.fn(),
-  fetchEvents: vi.fn(),
+  fetchEvents: vi.fn().mockResolvedValue([]),
+  fetchEventsVIP01: vi
+    .fn()
+    .mockResolvedValue({ events: [], metadata: { totalCount: 0 } }),
 }));
 
 describe("Memory Relationships", () => {

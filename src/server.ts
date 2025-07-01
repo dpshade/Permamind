@@ -11,8 +11,7 @@ import { getKeyFromMnemonic } from "./mnemonic.js";
 import { MemoryType } from "./models/AIMemory.js";
 import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
-import { createVIP01Filter } from "./models/VIP01Filter.js";
-import { event, fetchEvents, fetchEventsVIP01 } from "./relay.js";
+import { event } from "./relay.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
 import { hubService } from "./services/hub.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
@@ -93,10 +92,9 @@ server.addTool({
     };
     const tags: Tag[] = [kind, content, role, p];
     try {
-      await hubService.createEvent(keyPair, hubId, tags);
-      return "Added Memory";
+      return JSON.stringify(await hubService.createEvent(keyPair, hubId, tags));
     } catch (error) {
-      return String(error);
+      return JSON.stringify(error);
     }
   },
   name: "addMemory",
@@ -175,7 +173,7 @@ server.addTool({
   description:
     "Retrieve all stored Memories for the hubId by keywords or content. Call this tool when you need to search for memories based on a keyword or content",
   execute: async (args) => {
-    const memories = await hubService.search(hubId, args.search,"10");
+    const memories = await hubService.search(hubId, args.search, "10");
     return JSON.stringify(memories);
   },
   name: "searchMemories",
@@ -585,7 +583,10 @@ server.addTool({
       // Parse query for specific filters
       const query = args.query?.toLowerCase() || "";
 
-      const result = await hubService.loadProcessIntegrations(ProcessHub(),query)
+      const result = await hubService.loadProcessIntegrations(
+        ProcessHub(),
+        query,
+      );
 
       return JSON.stringify(result);
     } catch (error) {

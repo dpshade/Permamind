@@ -1,29 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  addMemoryMessage,
-  addToReasoningChainMessage,
-  broadcastMessage,
-  createHubMessage,
-  deleteMemoryMessage,
-  evaluateHubMessage,
-  followMessage,
-  getAllMemoriesMessage,
-  getFollowersMessage,
-  getFollowingMessage,
-  getMemoryLinksMessage,
-  getMemoryMessage,
-  getReasoningChainMessage,
-  getWorkflowMessage,
-  getZoneMessage,
-  linkMemoriesMessage,
-  registerHubMessage,
-  registerWorkflowMessage,
-  searchMemoriesMessage,
-  unfollowMessage,
-  updateMemoryMessage,
-} from "../../../src/messageFactory.js";
-
 describe("MessageFactory", () => {
   beforeEach(() => {
     vi.clearAllMocks();

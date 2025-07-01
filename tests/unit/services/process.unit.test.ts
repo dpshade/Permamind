@@ -1,12 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  createProcess,
-  read,
-  readMessage,
-  send,
-} from "../../../src/process.js";
-
 // Mock external dependencies
 vi.mock("@permaweb/aoconnect", () => ({
   connect: vi.fn(() => ({

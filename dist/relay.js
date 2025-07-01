@@ -109,17 +109,16 @@ export const getZones = async (processId, filters, page, limit) => {
     return events;
 };
 export const getZone = async (processId, zoneId) => {
-    let events = [];
     try {
         const message = GetZoneById(zoneId);
         const result = await read(processId, message);
         if (result) {
             const json = JSON.parse(result.Data);
-            events = json;
+            return json;
         }
     }
     catch {
         // Silent error handling for get zone
     }
-    return events;
+    return {};
 };

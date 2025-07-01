@@ -1,15 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  evalProcess,
-  event,
-  fetchEvents,
-  getZone,
-  getZones,
-  info,
-  register,
-} from "../../../src/relay.js";
-
 // Mock external dependencies
 vi.mock("../../../src/process.js", () => ({
   createProcess: vi.fn(),
