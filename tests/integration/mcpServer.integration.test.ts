@@ -249,13 +249,13 @@ describe("MCP Server Integration Tests", () => {
       vi.mocked(fetchEvents).mockResolvedValueOnce([
         {
           ai_context_id: "auth_project_context",
+          ai_importance: contextMemory.importance?.toString() || "0.5",
+          ai_type: contextMemory.memoryType,
           Content: contextMemory.content,
           Id: "ctx_mem_1",
           p: contextMemory.p,
           role: contextMemory.role,
           Timestamp: new Date().toISOString(),
-          ai_importance: contextMemory.importance?.toString() || "0.5",
-          ai_type: contextMemory.memoryType,
         },
       ]);
 
@@ -385,7 +385,9 @@ describe("MCP Server Integration Tests", () => {
 
     it("should handle hub unavailability", async () => {
       const { fetchEventsVIP01 } = await import("../../src/relay.js");
-      vi.mocked(fetchEventsVIP01).mockRejectedValue(new Error("Hub not responding"));
+      vi.mocked(fetchEventsVIP01).mockRejectedValue(
+        new Error("Hub not responding"),
+      );
 
       await expect(
         aiMemoryService.searchAdvanced(mockHubId, "test query"),
@@ -405,8 +407,8 @@ describe("MCP Server Integration Tests", () => {
             ai_context: "invalid_json",
             // Missing required fields
             ai_importance: "invalid_number",
-            Id: "malformed_mem",
             Content: "Test content",
+            Id: "malformed_mem",
             p: "test_user",
             role: "user",
             Timestamp: new Date().toISOString(),
@@ -489,7 +491,7 @@ describe("MCP Server Integration Tests", () => {
       // This test would verify that related operations maintain consistency
       // For example, if we add a memory, then search for it, it should be found
 
-      const { event, fetchEvents } = await import("../../src/relay.js");
+      const { event } = await import("../../src/relay.js");
       vi.mocked(event).mockResolvedValue({ success: true });
 
       // Add memory

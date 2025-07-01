@@ -120,7 +120,7 @@ const service = () => {
             return bestMatch;
         },
         parseMarkdown: (markdown) => {
-            const lines = markdown.split(", "););
+            const lines = markdown.split("\n");
             const handlers = [];
             let currentHandler = null;
             let processName = "Unknown Process";
@@ -197,8 +197,21 @@ const parseParameter = (paramLine) => {
 };
 const calculateMatchScore = (request, handler) => {
     let score = 0;
+    // Check if action name is in request
     if (request.includes(handler.action.toLowerCase())) {
         score += 0.5;
+    }
+    // Check for action synonyms
+    const actionSynonyms = {
+        balance: ["check", "get", "show"],
+        transfer: ["send", "give", "pay"],
+    };
+    const synonyms = actionSynonyms[handler.action.toLowerCase()] || [];
+    for (const synonym of synonyms) {
+        if (request.includes(synonym)) {
+            score += 0.4; // Slightly less than exact match
+            break;
+        }
     }
     const descriptionWords = handler.description.toLowerCase().split(" ");
     const requestWords = request.split(" ");
@@ -226,14 +239,13 @@ const extractParameters = (request, handler) => {
     return parameters;
 };
 const extractParameterValue = (request, paramName, paramType) => {
-    const patterns = [
-        new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
-        new RegExp(`${paramName}\s+([^\s]+)`, "i"),
-        new RegExp(`to\s+([^\s]+)`, "i"),
-        new RegExp(`send\s+([0-9.]+)`, "i"),
-        new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+    // Parameter-specific patterns first
+    const specificPatterns = [
+        new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
+        new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
     ];
-    for (const pattern of patterns) {
+    // Check parameter-specific patterns first
+    for (const pattern of specificPatterns) {
         const match = request.match(pattern);
         if (match && match[1]) {
             const value = match[1];
@@ -242,6 +254,37 @@ const extractParameterValue = (request, paramName, paramType) => {
                 return isNaN(num) ? null : num;
             }
             return value;
+        }
+    }
+    // Type-specific fallback patterns
+    if (paramType === "number") {
+        const numberPatterns = [
+            new RegExp(`send\\s+([0-9.]+)`, "i"),
+            new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
+            new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
+            new RegExp(`([0-9.]+)`, "g"), // Last resort: any number
+        ];
+        for (const pattern of numberPatterns) {
+            const match = request.match(pattern);
+            if (match && match[1]) {
+                const num = parseFloat(match[1]);
+                if (!isNaN(num))
+                    return num;
+            }
+        }
+    }
+    else if (paramType === "string" &&
+        (paramName === "recipient" || paramName === "to")) {
+        // Address/recipient patterns
+        const addressPatterns = [
+            new RegExp(`to\\s+([^\\s]+)`, "i"),
+            new RegExp(`recipient\\s+([^\\s]+)`, "i"),
+        ];
+        for (const pattern of addressPatterns) {
+            const match = request.match(pattern);
+            if (match && match[1]) {
+                return match[1];
+            }
         }
     }
     return null;

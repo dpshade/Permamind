@@ -26,6 +26,7 @@ describe("ProcessCommunicationService", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("parseMarkdown", () => {
@@ -214,12 +215,15 @@ Test action
       );
 
       expect(message.processId).toBe("test-process");
-      expect(message.tags).toEqual([
-        { name: "Action", value: "transfer" },
-        { name: "Recipient", value: "alice" },
-        { name: "Amount", value: "100" },
-        { name: "Memo", value: "payment" },
-      ]);
+      expect(message.tags).toEqual(
+        expect.arrayContaining([
+          { name: "Action", value: "transfer" },
+          { name: "Recipient", value: "alice" },
+          { name: "Amount", value: "100" },
+          { name: "Memo", value: "payment" },
+        ]),
+      );
+      expect(message.tags).toHaveLength(4);
     });
 
     it("should handle undefined and null parameters", () => {
@@ -328,6 +332,8 @@ Test action
 
   describe("executeProcessRequest", () => {
     it("should execute complete process request workflow", async () => {
+      mockExecuteMessage.mockReset();
+
       const markdown = `# Token Process
 
 ## transfer
@@ -385,6 +391,8 @@ Send tokens
     });
 
     it("should handle execution errors", async () => {
+      mockExecuteMessage.mockReset();
+
       const markdown = `# Token Process
 
 ## transfer

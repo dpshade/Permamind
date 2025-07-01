@@ -314,8 +314,23 @@ const parseParameter = (paramLine: string): null | ParameterInfo => {
 const calculateMatchScore = (request: string, handler: HandlerInfo): number => {
   let score = 0;
 
+  // Check if action name is in request
   if (request.includes(handler.action.toLowerCase())) {
     score += 0.5;
+  }
+
+  // Check for action synonyms
+  const actionSynonyms: Record<string, string[]> = {
+    balance: ["check", "get", "show"],
+    transfer: ["send", "give", "pay"],
+  };
+
+  const synonyms = actionSynonyms[handler.action.toLowerCase()] || [];
+  for (const synonym of synonyms) {
+    if (request.includes(synonym)) {
+      score += 0.4; // Slightly less than exact match
+      break;
+    }
   }
 
   const descriptionWords = handler.description.toLowerCase().split(" ");
@@ -362,25 +377,56 @@ const extractParameterValue = (
   paramName: string,
   paramType: ParameterInfo["type"],
 ): unknown => {
-  const patterns = [
-    new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
-    new RegExp(`${paramName}\s+([^\s]+)`, "i"),
-    new RegExp(`to\s+([^\s]+)`, "i"),
-    new RegExp(`send\s+([0-9.]+)`, "i"),
-    new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+  // Parameter-specific patterns first
+  const specificPatterns = [
+    new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
+    new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
   ];
 
-  for (const pattern of patterns) {
+  // Check parameter-specific patterns first
+  for (const pattern of specificPatterns) {
     const match = request.match(pattern);
     if (match && match[1]) {
       const value = match[1];
-
       if (paramType === "number") {
         const num = parseFloat(value);
         return isNaN(num) ? null : num;
       }
-
       return value;
+    }
+  }
+
+  // Type-specific fallback patterns
+  if (paramType === "number") {
+    const numberPatterns = [
+      new RegExp(`send\\s+([0-9.]+)`, "i"),
+      new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
+      new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
+      new RegExp(`([0-9.]+)`, "g"), // Last resort: any number
+    ];
+
+    for (const pattern of numberPatterns) {
+      const match = request.match(pattern);
+      if (match && match[1]) {
+        const num = parseFloat(match[1]);
+        if (!isNaN(num)) return num;
+      }
+    }
+  } else if (
+    paramType === "string" &&
+    (paramName === "recipient" || paramName === "to")
+  ) {
+    // Address/recipient patterns
+    const addressPatterns = [
+      new RegExp(`to\\s+([^\\s]+)`, "i"),
+      new RegExp(`recipient\\s+([^\\s]+)`, "i"),
+    ];
+
+    for (const pattern of addressPatterns) {
+      const match = request.match(pattern);
+      if (match && match[1]) {
+        return match[1];
+      }
     }
   }
 
