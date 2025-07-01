@@ -8,6 +8,7 @@ import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 vi.mock("../../../src/relay.js", () => ({
   event: vi.fn(),
   fetchEvents: vi.fn(),
+  fetchEventsVIP01: vi.fn(),
 }));
 
 describe("Reasoning Chains", () => {
@@ -328,8 +329,10 @@ describe("Reasoning Chains", () => {
         steps: JSON.stringify(testReasoningChain.steps),
       };
 
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([mockChainEvent]);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [mockChainEvent],
+      });
 
       const result = await aiMemoryService.getReasoningChain(
         mockHubId,
@@ -343,8 +346,8 @@ describe("Reasoning Chains", () => {
     });
 
     it("should return null for non-existent reasoning chain", async () => {
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([]);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({ events: [] });
 
       const result = await aiMemoryService.getReasoningChain(
         mockHubId,
@@ -361,8 +364,10 @@ describe("Reasoning Chains", () => {
         steps: "invalid_json",
       };
 
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([malformedEvent]);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [malformedEvent],
+      });
 
       // Should handle JSON parse error gracefully
       const result = await aiMemoryService.getReasoningChain(
@@ -649,8 +654,8 @@ describe("Reasoning Chains", () => {
     });
 
     it("should handle reasoning chain retrieval failures", async () => {
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockRejectedValueOnce(
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockRejectedValueOnce(
         new Error("Retrieval failure"),
       );
 
@@ -669,8 +674,10 @@ describe("Reasoning Chains", () => {
         steps: "{invalid json}",
       };
 
-      const { fetchEvents } = await import("../../../src/relay.js");
-      vi.mocked(fetchEvents).mockResolvedValueOnce([invalidStepsEvent]);
+      const { fetchEventsVIP01 } = await import("../../../src/relay.js");
+      vi.mocked(fetchEventsVIP01).mockResolvedValueOnce({
+        events: [invalidStepsEvent],
+      });
 
       const result = await aiMemoryService.getReasoningChain(
         mockHubId,
