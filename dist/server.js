@@ -3,10 +3,11 @@ import Arweave from "arweave";
 import dotenv from "dotenv";
 import { FastMCP } from "fastmcp";
 import { z } from "zod";
-import { HUB_REGISTRY_ID } from "./constants.js";
+import { HUB_REGISTRY_ID, ProcessHub } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
+import { event } from "./relay.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
-import { memoryService } from "./services/memory.js";
+import { hubService } from "./services/hub.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
 import { hubRegistryService } from "./services/registry.js";
 let keyPair;
@@ -77,7 +78,7 @@ server.addTool({
         };
         const tags = [kind, content, role, p];
         try {
-            await memoryService.createEvent(keyPair, hubId, tags);
+            await hubService.createEvent(keyPair, hubId, tags);
             return "Added Memory";
         }
         catch (error) {
@@ -102,7 +103,7 @@ server.addTool({
     complete context of all previously stored Memories for the given p arg.
     Results are returned in JSON format with metadata.`,
     execute: async (args) => {
-        const memories = await memoryService.fetchByUser(hubId, args.user);
+        const memories = await hubService.fetchByUser(hubId, args.user);
         return JSON.stringify(memories);
     },
     name: "getAllMemoriesForConversation",
@@ -122,7 +123,7 @@ server.addTool({
     complete context of all previously stored Memories.
     Results are returned in JSON format with metadata.`,
     execute: async () => {
-        const memories = await memoryService.fetch(hubId);
+        const memories = await hubService.fetch(hubId);
         return JSON.stringify(memories);
     },
     name: "getAllMemories",
@@ -155,7 +156,7 @@ server.addTool({
     },
     description: "Retrieve all stored Memories for the hubId by keywords or content. Call this tool when you need to search for memories based on a keyword or content",
     execute: async (args) => {
-        const memories = await memoryService.search(hubId, args.search);
+        const memories = await hubService.search(hubId, args.search, "10");
         return JSON.stringify(memories);
     },
     name: "searchMemories",
@@ -437,6 +438,108 @@ server.addTool({
         request: z
             .string()
             .describe("Natural language request describing what action to perform"),
+    }),
+});
+// Tool to publish process integrations (Kind 11) to ProcessHub
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: false,
+        title: "Publish Process Integration",
+    },
+    description: `Publish a Natural Language Process Integration (Kind 11) to the ProcessHub. This makes your AO process discoverable 
+    and usable by AI agents through natural language. Provide the process documentation in markdown format following the VIP-11 specification.`,
+    execute: async (args) => {
+        try {
+            const tags = [
+                { name: "Kind", value: "11" },
+                { name: "title", value: args.title },
+                { name: "description", value: args.description },
+            ];
+            // Add optional tags
+            if (args.version) {
+                tags.push({ name: "version", value: args.version });
+            }
+            if (args.category) {
+                tags.push({ name: "category", value: args.category });
+            }
+            if (args.processId) {
+                tags.push({ name: "process_id", value: args.processId });
+            }
+            await event(keyPair, ProcessHub(), tags, args.processMarkdown);
+            return JSON.stringify({
+                description: args.description,
+                message: "Process integration published successfully",
+                processHub: ProcessHub(),
+                success: true,
+                title: args.title,
+            });
+        }
+        catch (error) {
+            return JSON.stringify({
+                error: `Failed to publish process integration: ${error}`,
+                success: false,
+            });
+        }
+    },
+    name: "publish",
+    parameters: z.object({
+        category: z
+            .string()
+            .optional()
+            .describe("Process category (e.g., 'defi', 'nft', 'governance')"),
+        description: z
+            .string()
+            .describe("Brief description of process functionality"),
+        processId: z
+            .string()
+            .optional()
+            .describe("Associated AO process identifier"),
+        processMarkdown: z
+            .string()
+            .describe("Markdown documentation describing the process handlers and parameters following VIP-11 format"),
+        title: z
+            .string()
+            .describe("Human-readable process name (e.g., 'Token Transfer Process')"),
+        version: z
+            .string()
+            .optional()
+            .describe("Documentation version string (e.g., '1.0.0')"),
+    }),
+});
+// Tool to load/search process integrations (Kind 11) from ProcessHub
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Load Process Integrations",
+    },
+    description: `Search and load Natural Language Process Integrations (Kind 11) from the ProcessHub. Use natural language to find 
+    process integrations by title, category, process ID, or general keywords. Returns process documentation that can be used with executeProcessAction.`,
+    execute: async (args) => {
+        try {
+            // Parse query for specific filters
+            const query = args.query?.toLowerCase() || "";
+            const result = await hubService.loadProcessIntegrations(ProcessHub(), query);
+            return JSON.stringify(result);
+        }
+        catch (error) {
+            return JSON.stringify({
+                error: `Failed to load process integrations: ${error}`,
+                success: false,
+            });
+        }
+    },
+    name: "load",
+    parameters: z.object({
+        limit: z
+            .number()
+            .optional()
+            .describe("Maximum number of results to return (default: 50, max: 500)"),
+        query: z
+            .string()
+            .optional()
+            .describe("Natural language search query (title, category like 'defi', 'nft', 'governance', process ID, or keywords)"),
     }),
 });
 // Start server with stdio transport (matches Claude Desktop expectation)

@@ -1,5 +1,6 @@
 import { Eval, FetchEvents, GetZoneById, GetZones, Info, Register, } from "./messageFactory.js";
 import { read, send } from "./process.js";
+import { processVIP01Results } from "./utils/vip01Processing.js";
 export const evalProcess = async (signer, data, processId) => {
     try {
         const tags = Eval();
@@ -9,7 +10,7 @@ export const evalProcess = async (signer, data, processId) => {
         // Silent error handling for evaluation process
     }
 };
-export const event = async (signer, hub, tags) => {
+export const event = async (signer, hub, tags, data) => {
     const actionTag = {
         name: "Action",
         value: "Event",
@@ -21,7 +22,7 @@ export const event = async (signer, hub, tags) => {
     tags.push(actionTag);
     tags.push(idTag);
     try {
-        await send(signer, hub, tags, null);
+        await send(signer, hub, tags, data || null);
     }
     catch {
         // Silent error handling for events
@@ -52,6 +53,36 @@ export const fetchEvents = async (processId, filters) => {
         // Silent error handling for fetch events
     }
     return events;
+};
+/**
+ * Enhanced fetchEvents with VIP-01 compliant result processing
+ */
+export const fetchEventsVIP01 = async (processId, filter, options = {}) => {
+    try {
+        const filtersJson = JSON.stringify([filter]);
+        const message = FetchEvents(filtersJson);
+        const result = await read(processId, message);
+        let events = [];
+        if (result) {
+            const json = JSON.parse(result.Data);
+            events = Array.isArray(json) ? json : [];
+        }
+        // Apply VIP-01 compliant result processing
+        return processVIP01Results(events, filter, {
+            enableClientLimiting: true,
+            enableSorting: true,
+            includeMetadata: true,
+            ...options,
+        });
+    }
+    catch {
+        // Return empty result with error metadata
+        return {
+            events: [],
+            hasMore: false,
+            totalCount: 0,
+        };
+    }
 };
 export const register = async (signer, processId, spec) => {
     try {

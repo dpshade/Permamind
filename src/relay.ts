@@ -10,7 +10,13 @@ import {
   Info,
   Register,
 } from "./messageFactory.js";
+import {
+  VIP01Filter,
+  VIP01FilterOptions,
+  VIP01FilterResult,
+} from "./models/VIP01Filter.js";
 import { read, send } from "./process.js";
+import { processVIP01Results } from "./utils/vip01Processing.js";
 
 export const evalProcess = async (
   signer: JWKInterface,
@@ -29,6 +35,7 @@ export const event = async (
   signer: JWKInterface,
   hub: string,
   tags: Array<Tag>,
+  data?: string,
 ) => {
   const actionTag: Tag = {
     name: "Action",
@@ -41,13 +48,13 @@ export const event = async (
   tags.push(actionTag);
   tags.push(idTag);
   try {
-    await send(signer, hub, tags, null);
+    await send(signer, hub, tags, data || null);
   } catch {
     // Silent error handling for events
   }
 };
 
-export const info = async (processId: string): Promise<unknown> => {
+export const info = async (processId: string): Promise<any> => {
   const message = Info();
   const result = await read(processId, message);
   if (result) {
@@ -61,8 +68,8 @@ export const info = async (processId: string): Promise<unknown> => {
 export const fetchEvents = async (
   processId: string,
   filters: string,
-): Promise<unknown[]> => {
-  let events: unknown[] = [];
+): Promise<any[]> => {
+  let events: any[] = [];
   try {
     const message = FetchEvents(filters);
     const result = await read(processId, message);
@@ -77,10 +84,46 @@ export const fetchEvents = async (
   return events;
 };
 
+/**
+ * Enhanced fetchEvents with VIP-01 compliant result processing
+ */
+export const fetchEventsVIP01 = async (
+  processId: string,
+  filter: VIP01Filter,
+  options: VIP01FilterOptions = {},
+): Promise<VIP01FilterResult> => {
+  try {
+    const filtersJson = JSON.stringify([filter]);
+    const message = FetchEvents(filtersJson);
+    const result = await read(processId, message);
+
+    let events: any[] = [];
+    if (result) {
+      const json = JSON.parse(result.Data);
+      events = Array.isArray(json) ? json : [];
+    }
+
+    // Apply VIP-01 compliant result processing
+    return processVIP01Results(events, filter, {
+      enableClientLimiting: true,
+      enableSorting: true,
+      includeMetadata: true,
+      ...options,
+    });
+  } catch {
+    // Return empty result with error metadata
+    return {
+      events: [],
+      hasMore: false,
+      totalCount: 0,
+    };
+  }
+};
+
 export const register = async (
   signer: JWKInterface,
   processId: string,
-  spec: unknown,
+  spec: any,
 ): Promise<void> => {
   try {
     const message = Register();
@@ -95,8 +138,8 @@ export const getZones = async (
   filters: string,
   page: number,
   limit: number,
-): Promise<unknown[]> => {
-  let events: unknown[] = [];
+): Promise<any[]> => {
+  let events: any[] = [];
   try {
     const message = GetZones(filters, page.toString(), limit.toString());
     const result = await read(processId, message);
@@ -113,8 +156,8 @@ export const getZones = async (
 export const getZone = async (
   processId: string,
   zoneId: string,
-): Promise<unknown> => {
-  let events: unknown[] = [];
+): Promise<any> => {
+  let events: any[] = [];
   try {
     const message = GetZoneById(zoneId);
     const result = await read(processId, message);
