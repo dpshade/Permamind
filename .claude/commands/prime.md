@@ -54,13 +54,13 @@ Load the following documentation into context for development:
    - Include features, capabilities, and usage instructions
 
 9. **Claude Code Best Practices** - https://www.anthropic.com/engineering/claude-code-best-practices
-   - Load all best practices and  recommendations
+   - Load all best practices and recommendations
    - Include MCP integration patterns and slash command creation guides
-   - Load thinking budget keywords and structured  patterns
+   - Load thinking budget keywords and structured patterns
 
 10. **Building Effective Agents** - https://www.anthropic.com/engineering/building-effective-agents
     - Load complete agent building methodology from Anthropic
-    - Include  vs agent distinctions and patterns
+    - Include vs agent distinctions and patterns
     - Load tool development best practices and prompt engineering guides
     - Include evaluation methods and multi-agent coordination patterns
 

@@ -49,13 +49,13 @@ describe("Zone Model", () => {
       const zones: Zone[] = [
         { id: "social-zone", owner: "user1", processId: "social-proc" },
         { id: "memory-zone", owner: "user2", processId: "memory-proc" },
-        { id: "workflow-zone", owner: "user3", processId: "workflow-proc" },
+        { id: "compute-zone", owner: "user3", processId: "compute-proc" },
       ];
 
       expect(zones).toHaveLength(3);
       expect(zones[0].id).toBe("social-zone");
       expect(zones[1].id).toBe("memory-zone");
-      expect(zones[2].id).toBe("workflow-zone");
+      expect(zones[2].id).toBe("compute-zone");
     });
 
     it("should handle unique identifiers", () => {

@@ -140,7 +140,6 @@ const aiService = () => {
                 return cycles;
             }
             catch (error) {
-                console.error("Error detecting circular references:", error);
                 return [];
             }
         },
@@ -188,7 +187,6 @@ const aiService = () => {
                 return []; // No path found
             }
             catch (error) {
-                console.error("Error finding shortest path:", error);
                 return [];
             }
         },
@@ -267,7 +265,6 @@ const aiService = () => {
                 }));
             }
             catch (error) {
-                console.error("Error getting memory relationships:", error);
                 return [];
             }
         },
@@ -333,7 +330,6 @@ const aiService = () => {
                 };
             }
             catch (error) {
-                console.error("Error getting relationship analytics:", error);
                 return {
                     averageStrength: 0,
                     strongestConnections: [],

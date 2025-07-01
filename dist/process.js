@@ -46,28 +46,37 @@ export const createProcess = async (signer) => {
     return processId;
 };
 export const createTokenProcess = async (signer, config) => {
-    const tags = [
-        { name: "Name", value: config.name },
-        { name: "Ticker", value: config.ticker },
-        { name: "Denomination", value: (config.denomination || 12).toString() },
-    ];
-    if (config.totalSupply) {
-        tags.push({ name: "Total-Supply", value: config.totalSupply });
+    try {
+        // Step 1: Create basic AO process (same as hub creation)
+        const processId = await spawn({
+            module: AOS_MODULE(),
+            scheduler: SCHEDULER(),
+            signer: createDataItemSigner(signer),
+        });
+        // Validate processId
+        if (!processId || typeof processId !== "string" || processId.length < 20) {
+            throw new Error(`Invalid processId returned from spawn: ${processId}`);
+        }
+        // Step 2: Wait for process initialization (same as hub creation)
+        await sleep(3000);
+        // Step 3: Send complete token module in one go (hub pattern)
+        const { createTokenLuaModule } = await import("./services/token_lua.js");
+        const tokenModule = createTokenLuaModule(config);
+        try {
+            await send(signer, processId, [{ name: "Action", value: "Eval" }], tokenModule);
+        }
+        catch (moduleError) {
+            throw new Error(`Token module installation failed: ${moduleError instanceof Error ? moduleError.message : String(moduleError)}`);
+        }
+        // Step 4: Brief wait for handlers to register (minimal, like hub)
+        await sleep(1000);
+        return processId;
     }
-    if (config.logo) {
-        tags.push({ name: "Logo", value: config.logo });
+    catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        throw new Error(`createTokenProcess failed: ${errorMessage}${errorStack ? "\nStack: " + errorStack : ""}`);
     }
-    if (config.description) {
-        tags.push({ name: "Description", value: config.description });
-    }
-    const processId = await spawn({
-        module: AOS_MODULE(),
-        scheduler: SCHEDULER(),
-        signer: createDataItemSigner(signer),
-        tags: tags,
-    });
-    await sleep(3000);
-    return processId;
 };
 const readMessage = async (messageId, processId) => {
     const { Error } = await result({

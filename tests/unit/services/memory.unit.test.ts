@@ -126,10 +126,10 @@ describe("MemoryService", () => {
       const { fetchEvents } = await import("../../../src/relay.js");
       const { memoryFactory } = await import("../../../src/messageFactory.js");
 
-      const searchTerm = "workflow";
+      const searchTerm = "automation";
 
       vi.mocked(fetchEvents).mockResolvedValue([
-        { Content: "This is about workflow automation", Id: "1" },
+        { Content: "This is about automation processing", Id: "1" },
       ]);
 
       vi.mocked(memoryFactory).mockImplementation((event) => ({
@@ -148,7 +148,7 @@ describe("MemoryService", () => {
       const memories = await mockMemoryService.search(mockHubId, searchTerm);
 
       expect(memories).toHaveLength(1);
-      expect(memories[0].content).toContain("workflow");
+      expect(memories[0].content).toContain("automation");
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
         expect.stringContaining(searchTerm),

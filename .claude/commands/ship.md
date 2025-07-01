@@ -1,8 +1,8 @@
-# Ship - Complete Pre-GitHub Push 
+# Ship - Complete Pre-GitHub Push
 
-Orchestrates the complete development  before pushing to GitHub by running cleanup → tdd → prepush in sequence. This command ensures maximum code quality and prevents CI/CD failures.
+Orchestrates the complete development before pushing to GitHub by running cleanup → tdd → prepush in sequence. This command ensures maximum code quality and prevents CI/CD failures.
 
-##  Overview
+## Overview
 
 Executes a comprehensive 3-phase approach to prepare code for GitHub push:
 
@@ -62,7 +62,7 @@ Executes `/prepush` command to:
 
 - `mode` (optional):
   - `quick` - Essential checks only (prepush phases 1-3)
-  - `full` - Complete  (default: all three phases)
+  - `full` - Complete (default: all three phases)
   - `analysis` - Cleanup and TDD analysis only (no build/push validation)
 - `target` (optional): Focus area (e.g., "services", "tests", "docs")
 
@@ -192,7 +192,7 @@ Running pre-push validation and CI simulation...
 
 - **Action**: Stop , provide specific fixes
 - **Impact**: Not ready for GitHub push
-- **Recovery**: Fix critical issues, re-run 
+- **Recovery**: Fix critical issues, re-run
 
 ## Performance Optimization
 
@@ -242,11 +242,11 @@ Running pre-push validation and CI simulation...
 - `/prepush` - For pre-push validation only
 - `/epcc` - For structured feature development
 
-### Combined 
+### Combined
 
 - `/prime` + `/ship` - Full context + complete validation
 - `/visual` + `/ship` - UI development + validation
-- `/ship` + git push - Complete deployment 
+- `/ship` + git push - Complete deployment
 
 ## Success Criteria
 
@@ -266,6 +266,6 @@ Running pre-push validation and CI simulation...
 - ✅ No debug logging in production code
 - ✅ Git state ready for push
 
-This comprehensive  ensures maximum code quality and confidence before pushing to GitHub, preventing CI failures and maintaining high development standards.
+This comprehensive ensures maximum code quality and confidence before pushing to GitHub, preventing CI failures and maintaining high development standards.
 
 $ARGUMENTS

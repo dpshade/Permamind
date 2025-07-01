@@ -7,17 +7,25 @@ import { FastMCP } from "fastmcp";
 import { z } from "zod";
 
 import { HUB_REGISTRY_ID } from "./constants.js";
+import * as messageFactory from "./messageFactory.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { MemoryType } from "./models/AIMemory.js";
 import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
+import { createProcess, createTokenProcess, read, send } from "./process.js";
 import { aiMemoryService } from "./services/aiMemoryService.js";
+import { handlerDocService } from "./services/HandlerDocService.js";
 import { memoryService } from "./services/memory.js";
+import { nlProcessorService } from "./services/NLProcessorService.js";
 import { hubRegistryService } from "./services/registry.js";
+import { createTokenLuaModule } from "./services/token_lua.js";
+import { evalProcess } from "./relay.js";
 
 let keyPair: JWKInterface;
 let publicKey: string;
 let hubId: string = "";
+let serverInitialized = false;
+let initializationError: string | null = null;
 
 // Configure environment variables silently for MCP protocol compatibility
 dotenv.config();
@@ -44,7 +52,6 @@ async function init() {
     };
     hubId = zone?.spec?.processId || "";
   } catch {
-    console.log("Hub lookup failed, creating new hub...");
     try {
       const profile: ProfileCreateData = {
         bot: true,
@@ -66,11 +73,39 @@ async function init() {
 
       hubId = (await createHubWithTimeout) as string;
     } catch {
-      console.log("Hub creation failed, using fallback...");
       // Use a fallback hub ID or continue without hub
       hubId = "fallback-hub-local";
     }
   }
+}
+
+// Helper function to determine if an operation is read-only
+function isReadOnlyIntent(intentType: string, tags: { name: string; value: string }[]): boolean {
+  // Read-only intent types
+  const readOnlyIntents = ["balance", "query_state"];
+  if (readOnlyIntents.includes(intentType)) {
+    return true;
+  }
+
+  // Check if Action tag indicates a read-only operation
+  const actionTag = tags.find(tag => tag.name === "Action");
+  if (actionTag) {
+    const readOnlyActions = [
+      "Balance",
+      "Balances", 
+      "Info",
+      "Name",
+      "Ticker",
+      "Denomination",
+      "Total-Supply",
+      "Allowance",
+      "Logo",
+      "Status"
+    ];
+    return readOnlyActions.includes(actionTag.value);
+  }
+
+  return false;
 }
 
 const server = new FastMCP({
@@ -107,12 +142,23 @@ server.addTool({
         keyPair: !!keyPair,
         publicKey: !!publicKey,
         seedPhrase: !!process.env.SEED_PHRASE,
+        serverInitialized: serverInitialized,
+        initializationError: initializationError,
         services: {
           aiMemoryService: !!aiMemoryService,
         },
       };
 
       statusMessage += "## 📋 Current Status\n\n";
+
+      // Report server initialization status
+      if (serverInitialized) {
+        statusMessage += "✅ **Server**: Fully initialized and ready\n";
+      } else if (initializationError) {
+        statusMessage += `❌ **Server**: Initialization failed - ${initializationError}\n`;
+      } else {
+        statusMessage += "⏳ **Server**: Still initializing in background\n";
+      }
 
       // Step 2: Handle keypair generation/setup
       if (!initialStatus.seedPhrase && !initialStatus.keyPair) {
@@ -266,7 +312,24 @@ server.addTool({
 
       statusMessage += "\n---\n\n";
 
-      if (setupComplete && keyPair && hubId && hubId !== "fallback-hub-local") {
+      // Force re-initialization if requested and there was an error
+      if (args?.forceInit && (initializationError || !serverInitialized)) {
+        statusMessage += "\n🔄 **Force Re-initialization Requested**\n";
+        try {
+          // Reset initialization state
+          serverInitialized = false;
+          initializationError = null;
+          
+          // Run initialization again
+          await init();
+          statusMessage += "✅ **Force Re-initialization**: Completed successfully\n";
+        } catch (error) {
+          initializationError = error instanceof Error ? error.message : String(error);
+          statusMessage += `❌ **Force Re-initialization**: Failed - ${initializationError}\n`;
+        }
+      }
+
+      if (setupComplete && keyPair && hubId && hubId !== "fallback-hub-local" && serverInitialized) {
         statusMessage +=
           "🎉 **Setup Complete!** Permamind is fully configured and ready!\n\n";
         statusMessage += "**You can now:**\n";
@@ -351,6 +414,10 @@ server.addTool({
       .boolean()
       .optional()
       .describe("Create a new memory hub for storage"),
+    forceInit: z
+      .boolean()
+      .optional()
+      .describe("Force re-initialization if server initialization failed"),
     generateKeypair: z
       .boolean()
       .optional()
@@ -368,12 +435,29 @@ server.addTool({
   description: `Quick health check - always responds immediately to verify the server is running.
     Use this to test if Permamind is responsive.`,
   execute: async () => {
+    const status = serverInitialized 
+      ? "ready" 
+      : initializationError 
+        ? "failed" 
+        : "initializing";
+        
     return JSON.stringify(
       {
-        message: "Permamind server is running and responsive",
-        status: "healthy",
+        message: serverInitialized 
+          ? "Permamind server is fully initialized and ready"
+          : initializationError
+            ? `Permamind server initialization failed: ${initializationError}`
+            : "Permamind server is running but still initializing",
+        status: status,
+        serverInitialized: serverInitialized,
+        initializationError: initializationError,
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
+        recommendation: serverInitialized 
+          ? "Ready for token creation and all operations"
+          : initializationError
+            ? "Use setupPermamind with forceInit=true to retry initialization"
+            : "Wait 10-15 seconds and check again, or use setupPermamind tool",
       },
       null,
       2,
@@ -782,6 +866,654 @@ server.addTool({
   }),
 });
 
+// Separate Process Creation Tool - For debugging
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Create AO Process",
+  },
+  description: `🔧 DEBUG TOOL: Create a basic AO process without any token code.
+    
+    This tool only creates the base AO process and returns the process ID.
+    Use this to test if process creation is working properly.`,
+  execute: async () => {
+    try {
+      // Check server initialization
+      if (!serverInitialized) {
+        return JSON.stringify({
+          error: {
+            code: "SERVER_INITIALIZING",
+            message: "Server is still initializing. Please wait and try again.",
+          },
+          success: false,
+        }, null, 2);
+      }
+
+      if (!keyPair) {
+        return JSON.stringify({
+          error: {
+            code: "WALLET_NOT_READY",
+            message: "Wallet not initialized. Please run setupPermamind first.",
+          },
+          success: false,
+        }, null, 2);
+      }
+
+      // Create basic process
+      const processId = await createProcess(keyPair);
+      
+      return JSON.stringify({
+        result: {
+          processId: processId,
+          message: "Basic AO process created successfully",
+          nextStep: "Use deployTokenToProcess to add token functionality",
+        },
+        success: true,
+      }, null, 2);
+
+    } catch (error) {
+      return JSON.stringify({
+        error: {
+          code: "PROCESS_CREATION_FAILED",
+          message: error instanceof Error ? error.message : String(error),
+        },
+        success: false,
+      }, null, 2);
+    }
+  },
+  name: "createAOProcess",
+  parameters: z.object({
+    description: z.string().optional().describe("Optional description for the process"),
+  }),
+});
+
+// Separate Token Deployment Tool - For debugging  
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Deploy Token to Process",
+  },
+  description: `🪙 DEBUG TOOL: Deploy token code to an existing AO process.
+    
+    This tool takes a process ID and deploys the token Lua module to it.
+    Use this after createAOProcess to test token deployment separately.`,
+  execute: async (args) => {
+    try {
+      // Check server initialization
+      if (!serverInitialized) {
+        return JSON.stringify({
+          error: {
+            code: "SERVER_INITIALIZING", 
+            message: "Server is still initializing. Please wait and try again.",
+          },
+          success: false,
+        }, null, 2);
+      }
+
+      if (!keyPair) {
+        return JSON.stringify({
+          error: {
+            code: "WALLET_NOT_READY",
+            message: "Wallet not initialized. Please run setupPermamind first.",
+          },
+          success: false,
+        }, null, 2);
+      }
+
+      if (!args.processId) {
+        return JSON.stringify({
+          error: {
+            code: "MISSING_PROCESS_ID",
+            message: "Process ID is required. Create a process first with createAOProcess.",
+          },
+          success: false,
+        }, null, 2);
+      }
+
+      // Create token configuration
+      const tokenConfig = {
+        name: args.name || "DebugToken",
+        ticker: args.ticker || "DBG",
+        denomination: args.denomination || 12,
+        initialSupply: args.initialSupply || 10000,
+      };
+
+      // Generate token module
+      const tokenModule = createTokenLuaModule(tokenConfig);
+
+      // Deploy to process
+      await evalProcess(keyPair, tokenModule, args.processId);
+
+      return JSON.stringify({
+        result: {
+          processId: args.processId,
+          tokenConfig: tokenConfig,
+          message: "Token deployed successfully to process",
+          moduleSize: tokenModule.length,
+        },
+        success: true,
+      }, null, 2);
+
+    } catch (error) {
+      return JSON.stringify({
+        error: {
+          code: "TOKEN_DEPLOYMENT_FAILED",
+          message: error instanceof Error ? error.message : String(error),
+        },
+        success: false,
+      }, null, 2);
+    }
+  },
+  name: "deployTokenToProcess",
+  parameters: z.object({
+    processId: z.string().describe("The AO process ID to deploy token code to"),
+    name: z.string().optional().describe("Token name (default: DebugToken)"),
+    ticker: z.string().optional().describe("Token ticker (default: DBG)"),
+    denomination: z.number().optional().describe("Token denomination (default: 12)"),
+    initialSupply: z.number().optional().describe("Initial supply (default: 10000)"),
+  }),
+});
+
+// Universal AO Message Tool - Natural Language Interface for AO Process Communication
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Universal AO Message",
+  },
+  description: `🚀 UNIVERSAL AO MESSAGING: Send messages to any AO process using natural language commands.
+    
+    This tool intelligently parses your natural language requests and constructs appropriate AO messages:
+    
+    📤 **Supported Commands:**
+    - "send alice 10 AO" → Token transfer
+    - "launch token called Flow" → Create new token process
+    - "get my token balance" → Balance query  
+    - "create a voting contract" → Spawn governance process
+    - "send message to process ABC123 with action Vote" → Custom message
+    - "evaluate this lua code: return 'hello'" → Code execution
+    
+    🧠 **Smart Features:**
+    - Automatically creates processes when needed (e.g., for new tokens)
+    - Parses handler documentation to understand message formats
+    - Suggests corrections for unclear requests
+    - Integrates with memory system to store interactions
+    - Handles errors gracefully with helpful suggestions
+    
+    📋 **Optional Parameters:**
+    - processId: Target specific process (auto-detected if not provided)
+    - handlerDocs: Markdown documentation for custom process handlers
+    - createNewProcess: Force creation of new process
+    - storeInMemory: Whether to save interaction to memory (default: true)`,
+  execute: async (args) => {
+    // Add timeout protection for the entire aoMessage operation (60 seconds)
+    const executeWithTimeout = async (): Promise<string> => {
+      try {
+        // Step 0: Check if server is fully initialized
+        if (!serverInitialized) {
+          return JSON.stringify(
+            {
+              error: {
+                code: "SERVER_INITIALIZING",
+                message: "Server is still initializing. Please wait a moment and try again.",
+                suggestions: [
+                  "Wait 10-15 seconds and retry your request",
+                  "Use the setupPermamind tool first to ensure proper initialization",
+                  "Check server status with healthCheck tool",
+                ],
+                status: "initializing",
+                estimatedWaitTime: "10-30 seconds",
+              },
+              success: false,
+            },
+            null,
+            2,
+          );
+        }
+
+        if (initializationError) {
+          return JSON.stringify(
+            {
+              error: {
+                code: "SERVER_INITIALIZATION_FAILED",
+                message: `Server initialization failed: ${initializationError}`,
+                suggestions: [
+                  "Try restarting Claude Desktop",
+                  "Check your network connection to AO testnet",
+                  "Use setupPermamind tool to manually initialize",
+                ],
+                status: "failed",
+              },
+              success: false,
+            },
+            null,
+            2,
+          );
+        }
+
+        // Step 1: Parse natural language intent
+        const processingResult = await nlProcessorService.processRequest(
+          args.prompt,
+          {
+            sessionId: args.sessionId,
+            userId: args.userId,
+          },
+        );
+
+        if (processingResult.errors.length > 0) {
+          return JSON.stringify(
+            {
+              error: {
+                alternativeIntents: processingResult.alternativeIntents,
+                code: "INTENT_PARSING_FAILED",
+                details: processingResult.errors,
+                message: "Could not understand your request",
+                suggestions: processingResult.suggestions,
+              },
+              success: false,
+            },
+            null,
+            2,
+          );
+        }
+
+        const intent = processingResult.intent;
+        let targetProcessId = args.processId;
+
+        // Step 2: Validate keyPair is available
+        if (!keyPair) {
+          return JSON.stringify(
+            {
+              error: {
+                code: "WALLET_NOT_INITIALIZED",
+                message:
+                  "Wallet not initialized. Please wait for server startup or run setupPermamind.",
+                suggestions: [
+                  "Wait a moment and try again",
+                  "Run setupPermamind tool first",
+                  "Check if SEED_PHRASE environment variable is set",
+                ],
+              },
+              success: false,
+            },
+            null,
+            2,
+          );
+        }
+
+        // Step 3: Handle process creation if needed
+        if (intent.requiresProcessCreation && !args.processId) {
+          try {
+            if (
+              intent.processType === "token" ||
+              intent.type === "create_process"
+            ) {
+              const tokenConfig = {
+                denomination: intent.extractedParams.tokenDenomination || 12,
+                name:
+                  intent.extractedParams.tokenName ||
+                  intent.extractedParams.processName ||
+                  "Unknown Token",
+                ticker:
+                  intent.extractedParams.tokenSymbol ||
+                  (
+                    intent.extractedParams.tokenName ||
+                    intent.extractedParams.processName ||
+                    "UNK"
+                  )
+                    .substring(0, 4)
+                    .toUpperCase(),
+              };
+              targetProcessId = await createProcess(keyPair);
+              const tokenModule = createTokenLuaModule(tokenConfig);
+              await evalProcess(keyPair,tokenModule,targetProcessId)
+            } else {
+              targetProcessId = await createProcess(keyPair);
+            }
+          } catch (error) {
+            return JSON.stringify(
+              {
+                error: {
+                  code: "PROCESS_CREATION_FAILED",
+                  details:
+                    error instanceof Error ? error.message : String(error),
+                  message: "Failed to create new process",
+                  suggestions: [
+                    "Check if AOS_MODULE is correct for your testnet",
+                    "Verify your testnet is running and accessible",
+                    "Try again in a few moments",
+                  ],
+                },
+                success: false,
+              },
+              null,
+              2,
+            );
+          }
+        }
+
+        // Step 4: Parse handler documentation if provided
+        if (args.handlerDocs) {
+          try {
+            await handlerDocService.parseHandlerDocumentation(args.handlerDocs);
+          } catch (error) {
+            return JSON.stringify(
+              {
+                error: {
+                  code: "HANDLER_DOC_PARSING_FAILED",
+                  details: error,
+                  message: "Could not parse handler documentation",
+                  suggestions: [
+                    "Check documentation format",
+                    "Ensure proper markdown structure",
+                  ],
+                },
+                success: false,
+              },
+              null,
+              2,
+            );
+          }
+        }
+
+        // Step 5: Construct message tags based on intent
+        let tags: Tag[] = [];
+        let data: null | string = null;
+
+        switch (intent.type) {
+          case "balance":
+            tags = messageFactory.BalanceQuery(intent.extractedParams.token);
+            break;
+
+          case "create_process":
+          case "create_token":
+            tags = messageFactory.TokenInfo();
+            break;
+
+          case "custom_message":
+            if (!intent.extractedParams.action) {
+              return JSON.stringify(
+                {
+                  error: {
+                    code: "MISSING_ACTION",
+                    message: "Custom message requires an action",
+                    suggestions: [
+                      'Try: "send message to process ABC with action Vote"',
+                    ],
+                  },
+                  success: false,
+                },
+                null,
+                2,
+              );
+            }
+            tags = messageFactory.CustomAction(
+              intent.extractedParams.action,
+              intent.extractedParams.customTags,
+            );
+            data = intent.extractedParams.data || null;
+            break;
+
+          case "eval_code":
+            if (!intent.extractedParams.luaCode) {
+              return JSON.stringify(
+                {
+                  error: {
+                    code: "MISSING_LUA_CODE",
+                    message: "Code evaluation requires Lua code",
+                    suggestions: [
+                      'Try: "evaluate this lua code: return 1 + 1"',
+                    ],
+                  },
+                  success: false,
+                },
+                null,
+                2,
+              );
+            }
+            tags = messageFactory.Eval();
+            data = intent.extractedParams.luaCode;
+            break;
+
+          case "query_state":
+            tags = messageFactory.StateQuery(intent.extractedParams.queryType);
+            break;
+
+          case "transfer":
+            if (
+              !intent.extractedParams.recipient ||
+              !intent.extractedParams.amount
+            ) {
+              return JSON.stringify(
+                {
+                  error: {
+                    code: "MISSING_TRANSFER_PARAMS",
+                    message: "Transfer requires recipient and amount",
+                    suggestions: ['Try: "send alice 10 AO"'],
+                  },
+                  success: false,
+                },
+                null,
+                2,
+              );
+            }
+            tags = messageFactory.Transfer(
+              intent.extractedParams.recipient,
+              intent.extractedParams.amount,
+              intent.extractedParams.token || "",
+            );
+            break;
+
+          default:
+            return JSON.stringify(
+              {
+                error: {
+                  alternativeIntents: processingResult.alternativeIntents,
+                  code: "UNSUPPORTED_INTENT",
+                  message: `Intent type '${intent.type}' is not yet supported`,
+                  suggestions: processingResult.suggestions,
+                },
+                success: false,
+              },
+              null,
+              2,
+            );
+        }
+
+        // Step 6: Validate we have a target process
+        if (!targetProcessId) {
+          return JSON.stringify(
+            {
+              error: {
+                code: "NO_TARGET_PROCESS",
+                message:
+                  "No target process specified and none could be created",
+                suggestions: [
+                  "Provide a specific processId parameter",
+                  "Use a command that creates a new process",
+                ],
+              },
+              success: false,
+            },
+            null,
+            2,
+          );
+        }
+
+        // Step 7: Send or read the message based on operation type
+        let messageResult;
+        try {
+          const isReadOnlyOperation = isReadOnlyIntent(intent.type, tags);
+          
+          if (isReadOnlyOperation) {
+            messageResult = await read(targetProcessId, tags);
+          } else {
+            messageResult = await send(keyPair, targetProcessId, tags, data);
+          }
+        } catch (error) {
+          const operationType = isReadOnlyIntent(intent.type, tags) ? "read" : "send";
+          return JSON.stringify(
+            {
+              error: {
+                code: "MESSAGE_OPERATION_FAILED",
+                details: error,
+                message: `Failed to ${operationType} message to AO process`,
+                suggestions: [
+                  "Check if the process ID is valid",
+                  "Try again in a few moments",
+                  operationType === "read" ? "Ensure the process supports the query" : "Check if you have permission to send messages",
+                ],
+              },
+              success: false,
+            },
+            null,
+            2,
+          );
+        }
+
+        // Step 8: Store interaction in memory if enabled
+        if (args.storeInMemory !== false) {
+          try {
+            const memoryContent = {
+              content: `AO Message: ${args.prompt} → Process: ${targetProcessId}`,
+              context: {
+                domain: "ao-messaging",
+                sessionId: args.sessionId,
+                topic: `AO-${intent.type}`,
+              },
+              importance:
+                intent.confidence === "high"
+                  ? 0.8
+                  : intent.confidence === "medium"
+                    ? 0.6
+                    : 0.4,
+              memoryType: "procedure" as MemoryType,
+              metadata: {
+                accessCount: 0,
+                lastAccessed: new Date().toISOString(),
+                tags: [
+                  `ao-${intent.type}`,
+                  "natural-language",
+                  targetProcessId,
+                ],
+              },
+              p: args.userId || publicKey,
+              role: "assistant",
+            };
+
+            await aiMemoryService.addEnhanced(keyPair, hubId, memoryContent);
+          } catch {
+            // Don't fail the whole operation if memory storage fails
+          }
+        }
+
+        // Step 9: Return successful result
+        const isReadOperation = isReadOnlyIntent(intent.type, tags);
+        return JSON.stringify(
+          {
+            result: {
+              intent: {
+                confidence: intent.confidence,
+                originalPrompt: args.prompt,
+                type: intent.type,
+              },
+              message: {
+                data,
+                tags,
+              },
+              messageId: isReadOperation ? "Query executed successfully" : "Message sent successfully",
+              messageSent: !isReadOperation,
+              queryExecuted: isReadOperation,
+              processCreated: intent.requiresProcessCreation && !args.processId,
+              processId: targetProcessId,
+              response: messageResult ? (messageResult.Data || messageResult.data || messageResult) : undefined,
+            },
+            success: true,
+            suggestions:
+              intent.confidence !== "high"
+                ? [
+                    "Your request was processed but with lower confidence",
+                    "Consider being more specific for better results",
+                  ]
+                : undefined,
+          },
+          null,
+          2,
+        );
+      } catch (error) {
+        return JSON.stringify(
+          {
+            error: {
+              code: "UNKNOWN_ERROR",
+              details: error instanceof Error ? error.message : String(error),
+              message: "An unexpected error occurred",
+              suggestions: [
+                "Try simplifying your request",
+                "Check if all required parameters are provided",
+              ],
+            },
+            success: false,
+          },
+          null,
+          2,
+        );
+      }
+    };
+
+    // Execute with timeout protection (60 seconds for complex operations)
+    return await Promise.race([
+      executeWithTimeout(),
+      new Promise<string>((_, reject) =>
+        setTimeout(
+          () =>
+            reject(new Error("aoMessage operation timed out after 60 seconds")),
+          60000,
+        ),
+      ),
+    ]);
+  },
+  name: "aoMessage",
+  parameters: z.object({
+    createNewProcess: z
+      .boolean()
+      .optional()
+      .describe("Force creation of a new process even if one exists"),
+    handlerDocs: z
+      .string()
+      .optional()
+      .describe(
+        "Markdown documentation describing the process handler interface and message formats",
+      ),
+    processId: z
+      .string()
+      .optional()
+      .describe(
+        "Specific AO process ID to target (will be auto-determined if not provided)",
+      ),
+    prompt: z
+      .string()
+      .describe(
+        "Natural language description of what you want to do with AO (e.g., 'send alice 10 AO', 'launch token called Flow', 'get my balance')",
+      ),
+    sessionId: z
+      .string()
+      .optional()
+      .describe("Session identifier for grouping related messages"),
+    storeInMemory: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether to store this interaction in memory for future reference (default: true)",
+      ),
+    userId: z
+      .string()
+      .optional()
+      .describe("User identifier for memory storage and context"),
+  }),
+});
+
 // Start server immediately for responsiveness
 server.start({
   transportType: "stdio",
@@ -789,13 +1521,17 @@ server.start({
 
 // Initialize in background with timeout protection
 Promise.race([
-  init().then(() => {
-    console.log("✅ Permamind initialization complete");
-  }),
+  init(),
   new Promise((_, reject) =>
     setTimeout(() => reject(new Error("Initialization timeout")), 30000),
   ),
-]).catch((error) => {
-  console.log("⚠️ Initialization failed or timed out:", error.message);
-  // Server continues to run with limited functionality
-});
+])
+  .then(() => {
+    // Initialization completed successfully
+    serverInitialized = true;
+  })
+  .catch((error) => {
+    // Initialization failed - store error for user feedback
+    initializationError = error instanceof Error ? error.message : String(error);
+    serverInitialized = false;
+  });

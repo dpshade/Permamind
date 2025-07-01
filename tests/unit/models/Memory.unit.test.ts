@@ -76,14 +76,14 @@ describe("Memory Model", () => {
       const metadata: MemoryMetadata = {
         accessCount: 10,
         lastAccessed: "2024-01-15T10:30:00Z",
-        tags: ["important", "workflow", "analysis"],
+        tags: ["important", "processing", "analysis"],
       };
 
       expect(metadata.accessCount).toBe(10);
       expect(metadata.lastAccessed).toBe("2024-01-15T10:30:00Z");
       expect(metadata.tags).toHaveLength(3);
       expect(metadata.tags).toContain("important");
-      expect(metadata.tags).toContain("workflow");
+      expect(metadata.tags).toContain("processing");
       expect(metadata.tags).toContain("analysis");
     });
 

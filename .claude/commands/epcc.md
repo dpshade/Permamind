@@ -1,8 +1,8 @@
-# EPCC - Explore, Plan, Code, Commit 
+# EPCC - Explore, Plan, Code, Commit
 
-A structured development  for systematic feature implementation and bug fixes.
+A structured development for systematic feature implementation and bug fixes.
 
-##  Overview
+## Overview
 
 Execute development tasks using this 4-phase approach:
 
@@ -53,7 +53,7 @@ Execute development tasks using this 4-phase approach:
 /epcc <task_description>
 ```
 
-## Example 
+## Example
 
 1. **Explore**: Search for existing authentication patterns
 2. **Plan**: Break down login feature into 5 specific tasks

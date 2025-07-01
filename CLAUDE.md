@@ -87,7 +87,7 @@ src/
 ### File Naming
 
 - **Services**: PascalCase with Service suffix (`AIMemoryService.ts`)
-- **Models**: PascalCase (`AIMemory.ts`, `WorkflowDefinition.ts`)
+- **Models**: PascalCase (`AIMemory.ts`)
 - **Tests**: `.unit.test.ts` or `.integration.test.ts` suffix
 - **Constants**: camelCase with descriptive names
 
@@ -138,8 +138,7 @@ const processId = await spawn({
 ### Resource Management
 
 - Memory operations through aiMemoryService
-- Workflow operations through WorkflowHubService
-- AO messaging through AOMessageService and MarkdownWorkflowService
+- AO messaging through AOMessageService
 
 ### Error Handling
 

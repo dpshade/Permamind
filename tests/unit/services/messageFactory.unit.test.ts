@@ -110,18 +110,6 @@ describe("MessageFactory", () => {
     });
   });
 
-  describe("Workflow Messages", () => {
-    it("should create registerWorkflowMessage with workflow data", () => {
-      // TODO: Test register workflow message
-      expect(true).toBe(true); // Placeholder
-    });
-
-    it("should create getWorkflowMessage with workflow ID", () => {
-      // TODO: Test get workflow message
-      expect(true).toBe(true); // Placeholder
-    });
-  });
-
   describe("Message Validation", () => {
     it("should validate required tags are present", () => {
       // TODO: Test tag validation

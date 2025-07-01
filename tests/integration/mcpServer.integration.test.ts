@@ -327,7 +327,6 @@ describe("MCP Server Integration Tests", () => {
         performance: 0,
         procedure: 1,
         reasoning: 1,
-        workflow: 0,
       });
       expect(analytics.importanceDistribution).toEqual({
         high: 3, // 0.9, 0.8, 0.7
