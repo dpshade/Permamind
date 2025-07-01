@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 
 // Filter types replaced with manual interface
 interface Filter {
-  ids?: string[];
   authors?: string[];
+  ids?: string[];
   kinds?: string[];
-  since?: number;
-  until?: number;
-  tags?: Record<string, string[]>;
-  search?: string;
   limit?: number;
+  search?: string;
+  since?: number;
+  tags?: Record<string, string[]>;
+  until?: number;
 }
 import {
   applyClientSideFiltering,

@@ -161,7 +161,7 @@ describe("HubService", () => {
 
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        expect.stringContaining('[{"kinds":["10"],"limit":100}]')
+        expect.stringContaining('[{"kinds":["10"],"limit":100}]'),
       );
     });
 
@@ -174,7 +174,7 @@ describe("HubService", () => {
 
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        expect.stringContaining('test-user')
+        expect.stringContaining("test-user"),
       );
     });
 
@@ -189,7 +189,7 @@ describe("HubService", () => {
 
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        expect.stringContaining('test-id')
+        expect.stringContaining("test-id"),
       );
     });
 
@@ -202,7 +202,7 @@ describe("HubService", () => {
 
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        expect.stringContaining('test query')
+        expect.stringContaining("test query"),
       );
     });
 
@@ -215,7 +215,9 @@ describe("HubService", () => {
 
       expect(fetchEvents).toHaveBeenCalledWith(
         mockHubId,
-        expect.stringContaining('[{"kinds":["10"],"limit":100,"search":"test"}]')
+        expect.stringContaining(
+          '[{"kinds":["10"],"limit":100,"search":"test"}]',
+        ),
       );
     });
   });

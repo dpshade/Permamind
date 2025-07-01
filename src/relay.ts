@@ -12,14 +12,14 @@ import {
 } from "./messageFactory.js";
 // VIP01Filter types replaced with manual interfaces
 interface Filter {
-  ids?: string[];
   authors?: string[];
+  ids?: string[];
   kinds?: string[];
-  since?: number;
-  until?: number;
-  tags?: Record<string, string[]>;
-  search?: string;
   limit?: number;
+  search?: string;
+  since?: number;
+  tags?: Record<string, string[]>;
+  until?: number;
 }
 
 interface FilterOptions {
@@ -30,10 +30,10 @@ interface FilterOptions {
 
 interface FilterResult {
   events: unknown[];
-  totalCount?: number;
   hasMore?: boolean;
   newestTimestamp?: number;
   oldestTimestamp?: number;
+  totalCount?: number;
 }
 import { read, send } from "./process.js";
 import { processVIP01Results } from "./utils/vip01Processing.js";

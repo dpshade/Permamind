@@ -626,9 +626,7 @@ const aiService = (): AIMemoryService => {
         // Add time range filtering if provided
         if (filters?.timeRange) {
           if (filters.timeRange.start) {
-            filterParams.since = new Date(
-              filters.timeRange.start,
-            ).getTime();
+            filterParams.since = new Date(filters.timeRange.start).getTime();
           }
           if (filters.timeRange.end) {
             filterParams.until = new Date(filters.timeRange.end).getTime();
