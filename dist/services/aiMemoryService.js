@@ -268,7 +268,8 @@ const aiService = () => {
                     return {
                         strength: parseFloat(eventRecord.link_strength || "0.5"),
                         targetId: eventRecord.to_memory_id || "",
-                        type: (eventRecord.link_type || "references"),
+                        type: (eventRecord.link_type ||
+                            "references"),
                     };
                 });
             }
@@ -463,7 +464,10 @@ function createAIMemoryTags(memory) {
     // Add workflow-specific tags if this is a workflow memory
     const workflowMemory = memory; // Type assertion for workflow properties
     if (workflowMemory.workflowId) {
-        tags.push({ name: "workflow_id", value: workflowMemory.workflowId });
+        tags.push({
+            name: "workflow_id",
+            value: workflowMemory.workflowId,
+        });
     }
     if (workflowMemory.workflowVersion) {
         tags.push({
@@ -472,7 +476,10 @@ function createAIMemoryTags(memory) {
         });
     }
     if (workflowMemory.stage) {
-        tags.push({ name: "workflow_stage", value: workflowMemory.stage });
+        tags.push({
+            name: "workflow_stage",
+            value: workflowMemory.stage,
+        });
     }
     if (workflowMemory.performance) {
         tags.push({
