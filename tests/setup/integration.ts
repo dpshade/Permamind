@@ -1,4 +1,4 @@
-import { beforeAll, afterAll } from "vitest";
+import { afterAll, beforeAll } from "vitest";
 
 // Integration test setup
 beforeAll(async () => {

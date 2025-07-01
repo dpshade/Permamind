@@ -7,6 +7,7 @@ import {
   MemoryLink,
   MemoryType,
   ReasoningTrace,
+  RelationshipType,
   SearchFilters,
 } from "../models/AIMemory.js";
 import { Memory } from "../models/Memory.js";
@@ -16,9 +17,9 @@ import { event, fetchEvents } from "../relay.js";
 // Constants for memory kinds
 const MEMORY_KINDS = {
   AI_MEMORY: "10",
+  MEMORY_CONTEXT: "40",
   MEMORY_RELATIONSHIP: "11",
   REASONING_CHAIN: "23",
-  MEMORY_CONTEXT: "40",
 } as const;
 
 // Validation utilities
@@ -63,18 +64,36 @@ export interface AIMemoryService {
     p: string,
   ) => Promise<string>;
 
+  detectCircularReferences: (hubId: string) => Promise<string[]>;
   // Utility functions
-  eventToAIMemory: (event: any) => AIMemory;
+  eventToAIMemory: (event: Record<string, unknown>) => AIMemory;
+
+  findShortestPath: (
+    hubId: string,
+    fromId: string,
+    toId: string,
+  ) => Promise<string[]>;
+
   getContextMemories: (hubId: string, contextId: string) => Promise<AIMemory[]>;
 
   // Analytics
   getMemoryAnalytics: (hubId: string, p?: string) => Promise<MemoryAnalytics>;
+  // Relationship analysis methods
+  getMemoryRelationships: (
+    hubId: string,
+    memoryId?: string,
+  ) => Promise<MemoryLink[]>;
 
   getReasoningChain: (
     hubId: string,
     chainId: string,
   ) => Promise<null | ReasoningTrace>;
-
+  getRelationshipAnalytics: (hubId: string) => Promise<{
+    averageStrength: number;
+    strongestConnections: Array<{ from: string; strength: number; to: string }>;
+    topRelationshipTypes: Array<{ count: number; type: string }>;
+    totalLinks: number;
+  }>;
   linkMemories: (
     signer: JWKInterface,
     hubId: string,
@@ -87,12 +106,6 @@ export interface AIMemoryService {
     query: string,
     filters?: SearchFilters,
   ) => Promise<AIMemory[]>;
-
-  // Relationship analysis methods
-  getMemoryRelationships: (memoryId: string) => Promise<MemoryLink[]>;
-  getRelationshipAnalytics: (hubId: string) => Promise<any>;
-  findShortestPath: (sourceId: string, targetId: string) => Promise<string[]>;
-  detectCircularReferences: (hubId: string) => Promise<string[]>;
 }
 
 const aiService = (): AIMemoryService => {
@@ -211,7 +224,118 @@ const aiService = (): AIMemoryService => {
       }
     },
 
+    detectCircularReferences: async (hubId: string): Promise<string[]> => {
+      try {
+        const filter = {
+          kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 1000,
+          tags: { ai_type: ["link"] },
+        };
+        const _filters = JSON.stringify([filter]);
+        const events = await fetchEvents(hubId, _filters);
+
+        const links = new Map<string, Set<string>>();
+        const visited = new Set<string>();
+        const cycles: string[] = [];
+
+        // Build adjacency list from memory links
+        events.forEach((event: any) => {
+          const fromId = event.from_memory_id;
+          const toId = event.to_memory_id;
+          if (fromId && toId) {
+            if (!links.has(fromId)) links.set(fromId, new Set());
+            links.get(fromId)!.add(toId);
+          }
+        });
+
+        // DFS to detect cycles
+        const dfs = (nodeId: string, path: Set<string>): void => {
+          if (path.has(nodeId)) {
+            cycles.push(Array.from(path).join(" -> ") + " -> " + nodeId);
+            return;
+          }
+          if (visited.has(nodeId)) return;
+
+          visited.add(nodeId);
+          path.add(nodeId);
+
+          const neighbors = links.get(nodeId) || new Set();
+          neighbors.forEach((neighbor) => dfs(neighbor, path));
+
+          path.delete(nodeId);
+        };
+
+        links.keys().forEach((nodeId) => {
+          if (!visited.has(nodeId)) {
+            dfs(nodeId, new Set());
+          }
+        });
+
+        return cycles;
+      } catch (error) {
+        console.error("Error detecting circular references:", error);
+        return [];
+      }
+    },
+
     eventToAIMemory: eventToAIMemory,
+
+    findShortestPath: async (
+      hubId: string,
+      fromId: string,
+      toId: string,
+    ): Promise<string[]> => {
+      try {
+        const filter = {
+          kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 1000,
+          tags: { ai_type: ["link"] },
+        };
+        const _filters = JSON.stringify([filter]);
+        const events = await fetchEvents(hubId, _filters);
+
+        const graph = new Map<string, string[]>();
+
+        // Build adjacency list
+        events.forEach((event: any) => {
+          const from = event.from_memory_id;
+          const to = event.to_memory_id;
+          if (from && to) {
+            if (!graph.has(from)) graph.set(from, []);
+            graph.get(from)!.push(to);
+          }
+        });
+
+        // BFS to find shortest path
+        const queue: Array<{ id: string; path: string[] }> = [
+          { id: fromId, path: [fromId] },
+        ];
+        const visited = new Set<string>();
+
+        while (queue.length > 0) {
+          const { id, path } = queue.shift()!;
+
+          if (id === toId) {
+            return path;
+          }
+
+          if (visited.has(id)) continue;
+          visited.add(id);
+
+          const neighbors = graph.get(id) || [];
+          neighbors.forEach((neighbor) => {
+            if (!visited.has(neighbor)) {
+              queue.push({ id: neighbor, path: [...path, neighbor] });
+            }
+          });
+        }
+
+        return []; // No path found
+      } catch (error) {
+        console.error("Error finding shortest path:", error);
+        return [];
+      }
+    },
 
     getContextMemories: async (
       hubId: string,
@@ -226,9 +350,12 @@ const aiService = (): AIMemoryService => {
         const events = await fetchEvents(hubId, _filters);
 
         return events
-          .filter((event) => event.Content)
+          .filter(
+            (event): event is Record<string, unknown> =>
+              typeof event === "object" && event !== null && "Content" in event,
+          )
           .map((event) => eventToAIMemory(event));
-      } catch (error) {
+      } catch {
         return [];
       }
     },
@@ -238,7 +365,7 @@ const aiService = (): AIMemoryService => {
       p?: string,
     ): Promise<MemoryAnalytics> => {
       try {
-        const filter: any = {
+        const filter: Record<string, unknown> = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
         };
 
@@ -249,11 +376,14 @@ const aiService = (): AIMemoryService => {
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
         const aiMemories = events
-          .filter((event) => event.Content)
+          .filter(
+            (event): event is Record<string, unknown> =>
+              typeof event === "object" && event !== null && "Content" in event,
+          )
           .map((event) => eventToAIMemory(event));
 
         return generateAnalytics(aiMemories);
-      } catch (error) {
+      } catch {
         // Return default analytics on error
         return {
           accessPatterns: {
@@ -268,12 +398,43 @@ const aiService = (): AIMemoryService => {
           },
           memoryTypeDistribution: {
             conversation: 0,
+            enhancement: 0,
             knowledge: 0,
+            performance: 0,
             procedure: 0,
             reasoning: 0,
+            workflow: 0,
           },
           totalMemories: 0,
         };
+      }
+    },
+    getMemoryRelationships: async (
+      hubId: string,
+      memoryId?: string,
+    ): Promise<MemoryLink[]> => {
+      try {
+        const filter: any = {
+          kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 500,
+          tags: { ai_type: ["link"] },
+        };
+
+        if (memoryId) {
+          filter.tags.from_memory_id = [memoryId];
+        }
+
+        const _filters = JSON.stringify([filter]);
+        const events = await fetchEvents(hubId, _filters);
+
+        return events.map((event: any) => ({
+          strength: parseFloat(event.link_strength || "0.5"),
+          targetId: event.to_memory_id || "",
+          type: (event.link_type || "references") as RelationshipType,
+        }));
+      } catch (error) {
+        console.error("Error getting memory relationships:", error);
+        return [];
       }
     },
 
@@ -291,14 +452,85 @@ const aiService = (): AIMemoryService => {
 
         if (events.length === 0) return null;
 
-        const event = events[0];
+        const event = events[0] as Record<string, unknown>;
         return {
-          chainId: event.chainId,
-          outcome: event.outcome || "",
-          steps: JSON.parse(event.steps || "[]"),
+          chainId: event.chainId as string,
+          outcome: (event.outcome as string) || "",
+          steps: JSON.parse((event.steps as string) || "[]"),
+        };
+      } catch {
+        return null;
+      }
+    },
+
+    getRelationshipAnalytics: async (
+      hubId: string,
+    ): Promise<{
+      averageStrength: number;
+      strongestConnections: Array<{
+        from: string;
+        strength: number;
+        to: string;
+      }>;
+      topRelationshipTypes: Array<{ count: number; type: string }>;
+      totalLinks: number;
+    }> => {
+      try {
+        const links = await aiMemoryService.getMemoryRelationships(hubId);
+
+        const totalLinks = links.length;
+        const averageStrength =
+          totalLinks > 0
+            ? links.reduce((sum, link) => sum + link.strength, 0) / totalLinks
+            : 0;
+
+        // Count relationship types
+        const typeCount = new Map<string, number>();
+        links.forEach((link) => {
+          typeCount.set(link.type, (typeCount.get(link.type) || 0) + 1);
+        });
+
+        const topRelationshipTypes = Array.from(typeCount.entries())
+          .map(([type, count]) => ({ count, type }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
+        // Get events for connection analysis
+        const eventsFilter = {
+          kinds: [MEMORY_KINDS.AI_MEMORY],
+          limit: 500,
+          tags: { ai_type: ["link"] },
+        };
+        const _eventsFilters = JSON.stringify([eventsFilter]);
+        const linkEvents = await fetchEvents(hubId, _eventsFilters);
+
+        const strongestConnections = linkEvents
+          .sort(
+            (a: any, b: any) =>
+              parseFloat(b.link_strength || "0") -
+              parseFloat(a.link_strength || "0"),
+          )
+          .slice(0, 10)
+          .map((event: any) => ({
+            from: event.from_memory_id || "",
+            strength: parseFloat(event.link_strength || "0"),
+            to: event.to_memory_id || "",
+          }));
+
+        return {
+          averageStrength,
+          strongestConnections,
+          topRelationshipTypes,
+          totalLinks,
         };
       } catch (error) {
-        return null;
+        console.error("Error getting relationship analytics:", error);
+        return {
+          averageStrength: 0,
+          strongestConnections: [],
+          topRelationshipTypes: [],
+          totalLinks: 0,
+        };
       }
     },
 
@@ -338,13 +570,14 @@ const aiService = (): AIMemoryService => {
         throw new Error(`Failed to link memories: ${e}`);
       }
     },
+
     searchAdvanced: async (
       hubId: string,
       query: string,
       filters?: SearchFilters,
     ): Promise<AIMemory[]> => {
       try {
-        const filter: any = {
+        const filter: Record<string, unknown> = {
           kinds: [MEMORY_KINDS.AI_MEMORY],
         };
 
@@ -355,57 +588,41 @@ const aiService = (): AIMemoryService => {
         // Add filter conditions based on AI-specific tags
         if (filters?.memoryType) {
           filter.tags = filter.tags || {};
-          filter.tags.ai_type = [filters.memoryType];
+          (filter.tags as Record<string, unknown>).ai_type = [
+            filters.memoryType,
+          ];
         }
 
         if (filters?.importanceThreshold) {
           // Note: This would require hub-side filtering support
           filter.tags = filter.tags || {};
-          filter.tags.ai_importance_min = [
+          (filter.tags as Record<string, unknown>).ai_importance_min = [
             filters.importanceThreshold.toString(),
           ];
         }
 
         if (filters?.sessionId) {
           filter.tags = filter.tags || {};
-          filter.tags.ai_session = [filters.sessionId];
+          (filter.tags as Record<string, unknown>).ai_session = [
+            filters.sessionId,
+          ];
         }
 
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
 
         const aiMemories = events
-          .filter((event) => event.Content)
+          .filter(
+            (event): event is Record<string, unknown> =>
+              typeof event === "object" && event !== null && "Content" in event,
+          )
           .map((event) => eventToAIMemory(event))
           .filter((memory) => matchesFilters(memory, filters));
 
-        return rankMemoriesByRelevance(aiMemories, query);
+        return rankMemoriesByRelevance(aiMemories);
       } catch (error) {
         throw new Error(`Failed to search memories: ${error}`);
       }
-    },
-
-    getMemoryRelationships: async (memoryId: string): Promise<MemoryLink[]> => {
-      // Minimal implementation for TDD
-      throw new Error("getMemoryRelationships not implemented yet");
-    },
-
-    getRelationshipAnalytics: async (hubId: string): Promise<any> => {
-      // Minimal implementation for TDD
-      throw new Error("getRelationshipAnalytics not implemented yet");
-    },
-
-    findShortestPath: async (
-      sourceId: string,
-      targetId: string,
-    ): Promise<string[]> => {
-      // Minimal implementation for TDD
-      throw new Error("findShortestPath not implemented yet");
-    },
-
-    detectCircularReferences: async (hubId: string): Promise<string[]> => {
-      // Minimal implementation for TDD
-      throw new Error("detectCircularReferences not implemented yet");
     },
   };
 };
@@ -450,28 +667,80 @@ function createAIMemoryTags(memory: Partial<AIMemory>): Tag[] {
     });
   }
 
+  // Add workflow-specific tags if this is a workflow memory
+  const workflowMemory = memory as any; // Type assertion for workflow properties
+  if (workflowMemory.workflowId) {
+    tags.push({ name: "workflow_id", value: workflowMemory.workflowId });
+  }
+  if (workflowMemory.workflowVersion) {
+    tags.push({
+      name: "workflow_version",
+      value: workflowMemory.workflowVersion,
+    });
+  }
+  if (workflowMemory.stage) {
+    tags.push({ name: "workflow_stage", value: workflowMemory.stage });
+  }
+  if (workflowMemory.performance) {
+    tags.push({
+      name: "workflow_performance",
+      value: JSON.stringify(workflowMemory.performance),
+    });
+  }
+  if (workflowMemory.enhancement) {
+    tags.push({
+      name: "workflow_enhancement",
+      value: JSON.stringify(workflowMemory.enhancement),
+    });
+  }
+  if (
+    workflowMemory.dependencies &&
+    Array.isArray(workflowMemory.dependencies)
+  ) {
+    workflowMemory.dependencies.forEach((dep: string) => {
+      tags.push({ name: "workflow_dependency", value: dep });
+    });
+  }
+  if (
+    workflowMemory.capabilities &&
+    Array.isArray(workflowMemory.capabilities)
+  ) {
+    workflowMemory.capabilities.forEach((cap: string) => {
+      tags.push({ name: "workflow_capability", value: cap });
+    });
+  }
+  if (
+    workflowMemory.requirements &&
+    Array.isArray(workflowMemory.requirements)
+  ) {
+    workflowMemory.requirements.forEach((req: string) => {
+      tags.push({ name: "workflow_requirement", value: req });
+    });
+  }
+
   return tags;
 }
 
-function eventToAIMemory(event: any): AIMemory {
+function eventToAIMemory(event: Record<string, unknown>): AIMemory {
   const baseMemory: Memory = {
-    content: event.Content,
-    id: event.Id,
-    p: event.p,
-    role: event.r || event.role || "user",
-    timestamp: event.Timestamp,
+    content: event.Content as string,
+    id: event.Id as string,
+    p: event.p as string,
+    role: (event.r as string) || (event.role as string) || "user",
+    timestamp: event.Timestamp as string,
   };
 
   // Parse AI-specific fields with defaults
-  const importance = parseFloat(event.ai_importance || "0.5");
-  const memoryType: MemoryType = event.ai_type || "conversation";
+  const importance = parseFloat((event.ai_importance as string) || "0.5");
+  const memoryType: MemoryType =
+    (event.ai_type as MemoryType) || "conversation";
   const context: MemoryContext = event.ai_context
-    ? JSON.parse(event.ai_context)
+    ? JSON.parse(event.ai_context as string)
     : {};
 
   // Add domain from event tags if available
   if (event.ai_domain) {
-    context.domain = event.ai_domain;
+    context.domain = event.ai_domain as string;
   }
 
   const aiMemory: AIMemory = {
@@ -484,11 +753,61 @@ function eventToAIMemory(event: any): AIMemory {
       lastAccessed: new Date().toISOString(),
       tags: event.ai_tag
         ? Array.isArray(event.ai_tag)
-          ? event.ai_tag
-          : [event.ai_tag]
+          ? (event.ai_tag as string[])
+          : [event.ai_tag as string]
         : [],
     },
   };
+
+  // Add workflow-specific properties if present
+  const workflowMemory = aiMemory as any;
+  if (event.workflow_id) {
+    workflowMemory.workflowId = event.workflow_id as string;
+  }
+  if (event.workflow_version) {
+    workflowMemory.workflowVersion = event.workflow_version as string;
+  }
+  if (event.workflow_stage) {
+    workflowMemory.stage = event.workflow_stage as string;
+  }
+  if (event.workflow_performance) {
+    try {
+      workflowMemory.performance = JSON.parse(
+        event.workflow_performance as string,
+      );
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+  if (event.workflow_enhancement) {
+    try {
+      workflowMemory.enhancement = JSON.parse(
+        event.workflow_enhancement as string,
+      );
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  // Handle arrays
+  if (event.workflow_dependency) {
+    const deps = Array.isArray(event.workflow_dependency)
+      ? (event.workflow_dependency as string[])
+      : [event.workflow_dependency as string];
+    workflowMemory.dependencies = deps;
+  }
+  if (event.workflow_capability) {
+    const caps = Array.isArray(event.workflow_capability)
+      ? (event.workflow_capability as string[])
+      : [event.workflow_capability as string];
+    workflowMemory.capabilities = caps;
+  }
+  if (event.workflow_requirement) {
+    const reqs = Array.isArray(event.workflow_requirement)
+      ? (event.workflow_requirement as string[])
+      : [event.workflow_requirement as string];
+    workflowMemory.requirements = reqs;
+  }
 
   return aiMemory;
 }
@@ -505,9 +824,12 @@ function generateAnalytics(memories: AIMemory[]): MemoryAnalytics {
   // Ensure all types are represented
   const typeDistribution: Record<MemoryType, number> = {
     conversation: memoryTypeDistribution.conversation || 0,
+    enhancement: memoryTypeDistribution.enhancement || 0,
     knowledge: memoryTypeDistribution.knowledge || 0,
+    performance: memoryTypeDistribution.performance || 0,
     procedure: memoryTypeDistribution.procedure || 0,
     reasoning: memoryTypeDistribution.reasoning || 0,
+    workflow: memoryTypeDistribution.workflow || 0,
   };
 
   const importanceDistribution = memories.reduce(
@@ -579,10 +901,7 @@ function matchesFilters(memory: AIMemory, filters?: SearchFilters): boolean {
   return true;
 }
 
-function rankMemoriesByRelevance(
-  memories: AIMemory[],
-  query?: string,
-): AIMemory[] {
+function rankMemoriesByRelevance(memories: AIMemory[]): AIMemory[] {
   return memories.sort((a, b) => {
     // Primary sort: importance score
     if (a.importance !== b.importance) {

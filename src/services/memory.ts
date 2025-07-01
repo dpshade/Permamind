@@ -25,7 +25,9 @@ const service = (): MemoryService => {
     ): Promise<void> => {
       try {
         await event(signer, hubId, tags);
-      } catch (e) {}
+      } catch {
+        // Silent error handling for memory creation
+      }
     },
     fetch: async (hubId: string): Promise<Array<Memory>> => {
       const memories: Array<Memory> = [];
@@ -37,13 +39,18 @@ const service = (): MemoryService => {
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
         for (let i = 0; i < events.length; i++) {
-          //console.log(events[i])
-          if (events[i].Content) {
-            const memory = memoryFactory(events[i]);
+          if (
+            events[i] &&
+            typeof events[i] === "object" &&
+            (events[i] as Record<string, unknown>).Content
+          ) {
+            const memory = memoryFactory(events[i] as Record<string, unknown>);
             memories.push(memory);
           }
         }
-      } catch (error) {}
+      } catch {
+        // Silent error handling for memory fetch
+      }
       return memories;
     },
     fetchByUser: async (
@@ -61,29 +68,30 @@ const service = (): MemoryService => {
         const _filters = JSON.stringify([filter, filter2]);
         const events = await fetchEvents(hubId, _filters);
         for (let i = 0; i < events.length; i++) {
-          //console.log(events[i])
-          if (events[i].Content) {
-            const memory = memoryFactory(events[i]);
+          if (
+            events[i] &&
+            typeof events[i] === "object" &&
+            (events[i] as Record<string, unknown>).Content
+          ) {
+            const memory = memoryFactory(events[i] as Record<string, unknown>);
             memories.push(memory);
           }
         }
-      } catch (error) {}
+      } catch {
+        // Silent error handling for fetchByUser
+      }
       return memories;
     },
     get: async (hub: string, id: string): Promise<Memory> => {
-      try {
-        const filter = {
-          ids: [id],
-          kinds: ["10"],
-        };
-        const _filters = JSON.stringify([filter]);
-        const events = await fetchEvents(hub, _filters);
-        if (events.length == 0) throw "Not Found";
-        const memory = memoryFactory(events[0]);
-        return memory;
-      } catch (error) {
-        throw error;
-      }
+      const filter = {
+        ids: [id],
+        kinds: ["10"],
+      };
+      const _filters = JSON.stringify([filter]);
+      const events = await fetchEvents(hub, _filters);
+      if (events.length == 0) throw "Not Found";
+      const memory = memoryFactory(events[0] as Record<string, unknown>);
+      return memory;
     },
     search: async (hubId: string, value: string): Promise<Array<Memory>> => {
       const memories: Array<Memory> = [];
@@ -96,25 +104,30 @@ const service = (): MemoryService => {
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
         for (let i = 0; i < events.length; i++) {
-          //console.log(events[i])
-          if (events[i].Content) {
-            const memory = memoryFactory(events[i]);
+          if (
+            events[i] &&
+            typeof events[i] === "object" &&
+            (events[i] as Record<string, unknown>).Content
+          ) {
+            const memory = memoryFactory(events[i] as Record<string, unknown>);
             memories.push(memory);
           }
         }
-      } catch (error) {}
+      } catch {
+        // Silent error handling for search
+      }
       return memories;
     },
   };
 };
 
-function memoryFactory(event: any): Memory {
+function memoryFactory(event: Record<string, unknown>): Memory {
   const memory: Memory = {
-    content: event.Content,
-    id: event.Id,
-    p: event.p,
-    role: event.r,
-    timestamp: event.Timestamp,
+    content: event.Content as string,
+    id: event.Id as string,
+    p: event.p as string,
+    role: event.r as string,
+    timestamp: event.Timestamp as string,
   };
   return memory;
 }

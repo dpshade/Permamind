@@ -6,7 +6,6 @@ import { dirname, join } from 'path';
 import { homedir, platform } from 'os';
 import { createInterface } from 'readline';
 import { execSync } from 'child_process';
-import { ui, format } from '../dist/cli/ui.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -18,6 +17,20 @@ const rl = createInterface({
 
 function question(query) {
   return new Promise(resolve => rl.question(query, resolve));
+}
+
+function showBanner() {
+  const banner = `
+ ██████╗ ███████╗██████╗ ███╗   ███╗ █████╗ ███╗   ███╗██╗███╗   ██╗██████╗ 
+ ██╔══██╗██╔════╝██╔══██╗████╗ ████║██╔══██╗████╗ ████║██║████╗  ██║██╔══██╗
+ ██████╔╝█████╗  ██████╔╝██╔████╔██║███████║██╔████╔██║██║██╔██╗ ██║██║  ██║
+ ██╔═══╝ ██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══██║██║╚██╔╝██║██║██║╚██╗██║██║  ██║
+ ██║     ███████╗██║  ██║██║ ╚═╝ ██║██║  ██║██║ ╚═╝ ██║██║██║ ╚████║██████╔╝
+ ╚═╝     ╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═════╝ 
+                                                                              
+🧠 Immortal Memory Layer for AI Agents • Built on Arweave • Powered by AO
+`;
+  console.log(banner);
 }
 
 function detectOS() {
@@ -62,15 +75,82 @@ function getVSCodeConfigPath() {
   }
 }
 
+function getSeedConfigPath() {
+  const home = homedir();
+  const os = platform();
+  
+  switch (os) {
+    case 'darwin':
+      return join(home, '.config', 'permamind', 'seed.json');
+    case 'win32':
+      return join(home, 'AppData', 'Roaming', 'permamind', 'seed.json');
+    default:
+      return join(home, '.config', 'permamind', 'seed.json');
+  }
+}
+
+function isClaudeDesktopConfigured() {
+  const claudeConfigPath = getClaudeDesktopConfigPath();
+  if (!claudeConfigPath || !existsSync(claudeConfigPath)) {
+    return false;
+  }
+  
+  try {
+    const config = JSON.parse(readFileSync(claudeConfigPath, 'utf8'));
+    return !!config.mcpServers?.permamind;
+  } catch (err) {
+    return false;
+  }
+}
+
+function isVSCodeConfigured() {
+  const vscodeConfigDir = getVSCodeConfigPath();
+  if (!vscodeConfigDir) {
+    return false;
+  }
+  
+  const mcpConfigPath = join(vscodeConfigDir, 'mcp.json');
+  if (!existsSync(mcpConfigPath)) {
+    return false;
+  }
+  
+  try {
+    const config = JSON.parse(readFileSync(mcpConfigPath, 'utf8'));
+    return !!config.mcpServers?.permamind;
+  } catch (err) {
+    return false;
+  }
+}
+
 async function generateSeedPhrase() {
   try {
     // Import the mnemonic generation functionality
     const { generateMnemonic } = await import('../dist/mnemonic.js');
-    return generateMnemonic();
+    return await generateMnemonic();
   } catch (err) {
-    console.error('Error: Could not generate seed phrase. Make sure permamind is built.');
-    console.error('Run: npm run build');
-    process.exit(1);
+    // Try to build the project if dist is missing
+    const distPath = join(__dirname, '..', 'dist');
+    if (!existsSync(distPath)) {
+      console.log('📦 Building permamind...');
+      try {
+        execSync('npm run build', { 
+          cwd: join(__dirname, '..'),
+          stdio: 'inherit' 
+        });
+        // Try importing again after build
+        const { generateMnemonic } = await import('../dist/mnemonic.js');
+        return await generateMnemonic();
+      } catch (buildErr) {
+        console.error('❌ Error: Could not build permamind.');
+        console.error('This may happen with global installations.');
+        console.error('Try installing locally instead: npm install permamind');
+        process.exit(1);
+      }
+    } else {
+      console.error('❌ Error: Could not generate seed phrase.');
+      console.error('Module import failed:', err.message);
+      process.exit(1);
+    }
   }
 }
 
@@ -94,15 +174,17 @@ function updateClaudeDesktopConfig(configPath, seedPhrase) {
         config.mcpServers = {};
       }
     } catch (err) {
-      console.warn('Warning: Could not parse existing Claude Desktop config, creating new one');
+      // console.warn removed
     }
   }
 
   // Add or update Permamind server configuration
   config.mcpServers.permamind = {
-    command: "permamind",
+    command: "npx",
+    args: ["permamind"],
     env: {
-      SEED_PHRASE: seedPhrase
+      SEED_PHRASE: seedPhrase,
+      PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
     }
   };
 
@@ -122,9 +204,11 @@ function createVSCodeConfig(configDir, seedPhrase) {
   const config = {
     mcpServers: {
       permamind: {
-        command: "permamind",
+        command: "npx",
+        args: ["permamind"],
         env: {
-          SEED_PHRASE: seedPhrase
+          SEED_PHRASE: seedPhrase,
+          PATH: `${process.env.PATH}:/usr/local/bin:/opt/homebrew/bin`
         }
       }
     }
@@ -139,8 +223,7 @@ function createVSCodeConfig(configDir, seedPhrase) {
 }
 
 async function testServerConnection(seedPhrase) {
-  ui.space();
-  const loader = ui.loading('Testing server connection');
+  process.stderr.write('\nTesting server connection...\n');
   
   try {
     // Set environment variable temporarily
@@ -148,200 +231,243 @@ async function testServerConnection(seedPhrase) {
     
     // Try to start the server in test mode
     execSync('node "' + join(__dirname, 'permamind.js') + '" --test', { 
-      stdio: 'pipe',
+      stdio: 'inherit',
       env: { ...process.env, SEED_PHRASE: seedPhrase }
     });
     
-    loader.stop('Server test passed successfully!');
-    ui.success('Connection verified - server is ready');
+    // console.log removed
     return true;
   } catch (err) {
-    loader.fail('Server test failed');
-    ui.error('Connection test failed', err.message, [
-      'Check your Node.js version (requires 20+)',
-      'Ensure project is built: npm run build',
-      'Verify seed phrase is valid'
-    ]);
+    console.error('✗ Server test failed:', err.message);
     return false;
   }
 }
 
 async function main() {
-  // Read package.json for version
-  const packagePath = join(__dirname, '..', 'package.json');
-  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
-  
-  ui.banner(packageJson.version);
-  ui.header('Setup Wizard', 'Configure Permamind for optimal performance');
+  // Show welcome banner
+  showBanner();
+  console.log(`🚀 Permamind Setup Wizard`);
   
   const os = detectOS();
-  ui.info('Detected operating system:', format.emphasize(os));
+  console.log(`🖥️  Detected OS: ${os}`);
+  console.log('');
   
   // Check if permamind is built
   const distPath = join(__dirname, '..', 'dist');
   if (!existsSync(distPath)) {
-    ui.error('Project not built', 'Distribution files are missing.', [
-      format.command('npm run build'),
-      'Ensure project is properly installed'
-    ]);
+    console.error('❌ Error: Permamind is not built. Please run: npm run build');
     process.exit(1);
   }
   
-  ui.success('Project build verified');
-  
-  ui.header('1. Seed Phrase Configuration', 'Set up your Arweave wallet identity');
+  // console.log removed
+  // console.log removed
   
   let seedPhrase = process.env.SEED_PHRASE;
+  let seedSource = '';
+  
+  // Check for environment variable first
+  if (seedPhrase) {
+    seedSource = 'environment variable';
+    // console.log removed
+  } else {
+    // Check for saved config file
+    const configPath = getSeedConfigPath();
+    if (existsSync(configPath)) {
+      try {
+        const config = JSON.parse(readFileSync(configPath, 'utf8'));
+        if (config.seedPhrase) {
+          seedPhrase = config.seedPhrase;
+          seedSource = 'saved config file';
+          // console.log removed
+        }
+      } catch (err) {
+        // console.warn removed
+      }
+    }
+    
+    // Check Claude Desktop config if no seed phrase found yet
+    if (!seedPhrase) {
+      const claudeConfigPath = getClaudeDesktopConfigPath();
+      if (claudeConfigPath && existsSync(claudeConfigPath)) {
+        try {
+          const claudeConfig = JSON.parse(readFileSync(claudeConfigPath, 'utf8'));
+          if (claudeConfig.mcpServers?.permamind?.env?.SEED_PHRASE) {
+            seedPhrase = claudeConfig.mcpServers.permamind.env.SEED_PHRASE;
+            seedSource = 'Claude Desktop config';
+            // console.log removed
+          }
+        } catch (err) {
+          // console.warn removed
+        }
+      }
+    }
+  }
   
   if (seedPhrase) {
-    ui.info('Found existing SEED_PHRASE environment variable');
-    const useExisting = await question(ui.prompt('Use existing seed phrase?', 'y/n'));
-    if (useExisting.toLowerCase() !== 'y') {
-      seedPhrase = null;
+    // console.log removed
+    // console.log removed.slice(0, 3).join(' ') + '...');
+    // console.log removed
+    // console.log removed
+    
+    const choice = await question('\nChoose an option:\n1. Use existing seed phrase\n2. Generate new seed phrase\n3. Import different seed phrase\nEnter choice (1-3): ');
+    
+    if (choice === '1') {
+      // console.log removed
+      // Keep the existing seedPhrase value
+    } else if (choice === '2') {
+      // console.log removed
+      seedPhrase = await generateSeedPhrase();
+      // console.log removed
+      // console.log removed
+      // console.log removed
+    } else if (choice === '3') {
+      seedPhrase = await question('\nEnter your 12-word seed phrase: ');
+      
+      // Validate the seed phrase
+      const words = seedPhrase.trim().split(/\s+/);
+      if (words.length !== 12) {
+        console.error('❌ Invalid seed phrase. Must be exactly 12 words.');
+        process.exit(1);
+      }
+      // console.log removed
     } else {
-      ui.success('Using existing seed phrase');
+      // console.log removed
+      // Keep the existing seedPhrase value
     }
   }
   
   if (!seedPhrase) {
-    ui.space();
-    ui.info('Choose seed phrase configuration:');
-    ui.list([
-      '1. Generate new seed phrase',
-      '2. Import existing seed phrase', 
-      '3. Use system-generated temporary phrase (not recommended)'
-    ], 'numbered');
-    
-    const choice = await question(ui.prompt('Enter choice', '1-3'));
+    const choice = await question('\nChoose an option:\n1. Generate new seed phrase\n2. Import existing seed phrase\n3. Use system-generated temporary phrase (not recommended)\nEnter choice (1-3): ');
     
     if (choice === '1') {
-      ui.space();
-      const loader = ui.loading('Generating secure seed phrase');
+      // console.log removed
       seedPhrase = await generateSeedPhrase();
-      loader.stop('Seed phrase generated successfully!');
-      
-      ui.space();
-      ui.success('Generated seed phrase:');
-      ui.code(format.emphasize(seedPhrase));
-      ui.space();
-      ui.warning('CRITICAL: Store this seed phrase securely!', 
-        'Without it, you will lose access to your wallet and memories.');
-      ui.info('Export later with:', format.command('permamind --export-seed'));
-      
+      // console.log removed
+      // console.log removed
+      // console.log removed
     } else if (choice === '2') {
-      ui.space();
-      seedPhrase = await question(ui.prompt('Enter your 12-word seed phrase'));
+      seedPhrase = await question('\nEnter your 12-word seed phrase: ');
       
       // Validate the seed phrase
-      const words = seedPhrase.trim().split(/\\s+/);
+      const words = seedPhrase.trim().split(/\s+/);
       if (words.length !== 12) {
-        ui.error('Invalid seed phrase', 'Must be exactly 12 words');
+        console.error('❌ Invalid seed phrase. Must be exactly 12 words.');
         process.exit(1);
       }
-      ui.success('Seed phrase accepted and validated');
-      
+      // console.log removed
     } else if (choice === '3') {
-      ui.space();
-      ui.warning('Using temporary seed phrase', 
-        'Wallet identity will not persist between sessions');
-      ui.info('Generate persistent one later with:', 
-        format.command('permamind --generate-seed'));
+      // console.log removed
+      // console.log removed
+      // console.log removed
       seedPhrase = null; // Will use system-generated temporary
-      
     } else {
-      ui.error('Invalid choice', 'Please select 1, 2, or 3');
+      // console.log removed
       process.exit(1);
     }
   }
   
-  ui.header('2. Client Configuration', 'Set up MCP integrations');
+  // console.log removed
+  // console.log removed
   
   // Claude Desktop Configuration
   const claudeConfigPath = getClaudeDesktopConfigPath();
-  if (claudeConfigPath) {
-    ui.space();
-    const configureClaudeDesktop = await question(ui.prompt('Configure Claude Desktop?', 'y/n'));
-    if (configureClaudeDesktop.toLowerCase() === 'y') {
-      const loader = ui.loading('Configuring Claude Desktop');
-      try {
-        updateClaudeDesktopConfig(claudeConfigPath, seedPhrase);
-        loader.stop('Claude Desktop configured successfully!');
-        ui.info('Configuration saved to:', format.path(claudeConfigPath));
-      } catch (err) {
-        loader.fail('Failed to configure Claude Desktop');
-        ui.error('Configuration error', err.message);
+  if (claudeConfigPath && seedPhrase) {
+    if (isClaudeDesktopConfigured()) {
+      // console.log removed
+      const reconfigure = await question('Update configuration? (y/n): ');
+      if (reconfigure.toLowerCase() === 'y') {
+        try {
+          updateClaudeDesktopConfig(claudeConfigPath, seedPhrase);
+          // console.log removed
+        } catch (err) {
+          console.error('✗ Failed to update Claude Desktop:', err.message);
+        }
       }
     } else {
-      ui.info('Skipping Claude Desktop configuration');
+      const configureClaudeDesktop = await question(`\nConfigure Claude Desktop? (y/n): `);
+      if (configureClaudeDesktop.toLowerCase() === 'y') {
+        try {
+          updateClaudeDesktopConfig(claudeConfigPath, seedPhrase);
+          // console.log removed
+        } catch (err) {
+          console.error('✗ Failed to configure Claude Desktop:', err.message);
+        }
+      }
     }
+  } else if (!seedPhrase) {
+    // console.log removed
   } else {
-    ui.warning('Claude Desktop not detected', 
-      'Could not find configuration path for this OS');
+    // console.log removed
   }
   
   // VS Code Configuration
   const vscodeConfigDir = getVSCodeConfigPath();
-  if (vscodeConfigDir) {
-    ui.space();
-    const configureVSCode = await question(ui.prompt('Configure VS Code?', 'y/n'));
-    if (configureVSCode.toLowerCase() === 'y') {
-      const loader = ui.loading('Configuring VS Code MCP integration');
-      try {
-        const mcpConfigPath = createVSCodeConfig(vscodeConfigDir, seedPhrase);
-        loader.stop('VS Code configured successfully!');
-        ui.info('MCP config created at:', format.path(mcpConfigPath));
-      } catch (err) {
-        loader.fail('Failed to configure VS Code');
-        ui.error('Configuration error', err.message);
+  if (vscodeConfigDir && seedPhrase) {
+    if (isVSCodeConfigured()) {
+      // console.log removed
+      const reconfigure = await question('Update configuration? (y/n): ');
+      if (reconfigure.toLowerCase() === 'y') {
+        try {
+          const mcpConfigPath = createVSCodeConfig(vscodeConfigDir, seedPhrase);
+          // console.log removed
+        } catch (err) {
+          console.error('✗ Failed to update VS Code:', err.message);
+        }
       }
     } else {
-      ui.info('Skipping VS Code configuration');
+      const configureVSCode = await question('\nConfigure VS Code? (y/n): ');
+      if (configureVSCode.toLowerCase() === 'y') {
+        try {
+          const mcpConfigPath = createVSCodeConfig(vscodeConfigDir, seedPhrase);
+          // console.log removed
+        } catch (err) {
+          console.error('✗ Failed to configure VS Code:', err.message);
+        }
+      }
+    }
+  } else if (!seedPhrase) {
+    // console.log removed
+  }
+  
+  // console.log removed
+  // console.log removed
+  
+  if (seedPhrase) {
+    const testConnection = await question('\nTest server connection? (y/n): ');
+    if (testConnection.toLowerCase() === 'y') {
+      await testServerConnection(seedPhrase);
     }
   } else {
-    ui.warning('VS Code not detected', 'Could not find VS Code configuration directory');
+    // console.log removed
   }
   
-  ui.header('3. Testing Configuration', 'Verify server connectivity');
+  // console.log removed
+  // console.log removed
   
-  const testConnection = await question(ui.prompt('Test server connection?', 'y/n'));
-  if (testConnection.toLowerCase() === 'y') {
-    await testServerConnection(seedPhrase);
-  } else {
-    ui.info('Skipping connection test');
-  }
-  
-  ui.header('4. Environment Setup', 'Configure shell environment');
-  
-  const setupEnv = await question(ui.prompt('Add SEED_PHRASE to environment?', 'y/n'));
-  if (setupEnv.toLowerCase() === 'y') {
-    ui.space();
-    ui.info('Add to your shell profile (.bashrc, .zshrc, etc.):');
-    ui.code(`export ${format.env('SEED_PHRASE')}="${seedPhrase}"`);
-    
-    if (os === 'Windows') {
-      ui.space();
-      ui.info('For Windows Command Prompt:');
-      ui.code(`set ${format.env('SEED_PHRASE')}=${seedPhrase}`);
-      ui.info('For Windows PowerShell:');
-      ui.code(`$env:${format.env('SEED_PHRASE')}="${seedPhrase}"`);
+  if (seedPhrase) {
+    const setupEnv = await question('\nAdd SEED_PHRASE to environment? (y/n): ');
+    if (setupEnv.toLowerCase() === 'y') {
+      // console.log removed:');
+      // console.log removed
+      
+      if (os === 'Windows') {
+        // console.log removed
+        // console.log removed
+        // console.log removed
+        // console.log removed
+      }
     }
   } else {
-    ui.info('Skipping environment setup');
+    // console.log removed
   }
   
-  ui.space();
-  ui.success('🎉 Setup Complete!');
-  ui.divider();
-  
-  ui.subheader('Next Steps');
-  ui.list([
-    'Restart your MCP clients (Claude Desktop, VS Code, etc.)',
-    format.command('permamind') + ' - Start using Permamind',
-    format.command('permamind --test') + ' - Test configuration'
-  ], 'numbered');
-  
-  ui.space();
-  ui.info('For help:', format.command('permamind --help'));
+  // console.log removed
+  // console.log removed
+  // console.log removed
+  // console.log removed');
+  // console.log removed
+  // console.log removed
+  // console.log removed
   
   rl.close();
 }

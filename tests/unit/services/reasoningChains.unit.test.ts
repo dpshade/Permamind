@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { ReasoningStep, ReasoningTrace } from "../../../src/models/AIMemory.js";
 import { aiMemoryService } from "../../../src/services/aiMemoryService.js";
-import { ReasoningTrace, ReasoningStep } from "../../../src/models/AIMemory.js";
 import { testReasoningChain } from "../../fixtures/memories.js";
-import { mockKeyPair, mockHubId } from "../../mocks/aoConnect.js";
+import { mockHubId, mockKeyPair } from "../../mocks/aoConnect.js";
 
 vi.mock("../../../src/relay.js", () => ({
   event: vi.fn(),
@@ -25,9 +26,9 @@ describe("Reasoning Chains", () => {
 
       stepTypes.forEach((stepType) => {
         const step: ReasoningStep = {
-          stepType,
-          content: `Test ${stepType}`,
           confidence: 0.8,
+          content: `Test ${stepType}`,
+          stepType,
           timestamp: "2024-01-01T00:00:00.000Z",
         };
 
@@ -84,39 +85,39 @@ describe("Reasoning Chains", () => {
     it("should create complete reasoning chain with all step types", async () => {
       const cotChain: ReasoningTrace = {
         chainId: "cot_chain_001",
+        outcome: "Secure, scalable authentication system deployed",
         steps: [
           {
-            stepType: "observation",
-            content: "User needs authentication system",
             confidence: 0.95,
+            content: "User needs authentication system",
+            stepType: "observation",
             timestamp: "2024-01-01T10:00:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "JWT tokens provide stateless authentication",
             confidence: 0.85,
+            content: "JWT tokens provide stateless authentication",
+            stepType: "thought",
             timestamp: "2024-01-01T10:01:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Need to consider security and scalability",
             confidence: 0.9,
+            content: "Need to consider security and scalability",
+            stepType: "thought",
             timestamp: "2024-01-01T10:02:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Implement JWT-based authentication with refresh tokens",
             confidence: 0.9,
+            content: "Implement JWT-based authentication with refresh tokens",
+            stepType: "action",
             timestamp: "2024-01-01T10:03:00.000Z",
           },
           {
-            stepType: "conclusion",
-            content: "JWT authentication successfully implemented",
             confidence: 0.95,
+            content: "JWT authentication successfully implemented",
+            stepType: "conclusion",
             timestamp: "2024-01-01T10:30:00.000Z",
           },
         ],
-        outcome: "Secure, scalable authentication system deployed",
       };
 
       const result = await aiMemoryService.addReasoningChain(
@@ -132,33 +133,33 @@ describe("Reasoning Chains", () => {
     it("should handle reasoning chains with varying confidence levels", async () => {
       const uncertainChain: ReasoningTrace = {
         chainId: "uncertain_chain_001",
+        outcome: "Initiated performance monitoring",
         steps: [
           {
-            stepType: "observation",
-            content: "Performance issue reported",
             confidence: 0.8,
+            content: "Performance issue reported",
+            stepType: "observation",
             timestamp: "2024-01-01T10:00:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Could be database bottleneck",
             confidence: 0.4, // Low confidence
+            content: "Could be database bottleneck",
+            stepType: "thought",
             timestamp: "2024-01-01T10:01:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Or could be network latency",
             confidence: 0.3, // Even lower confidence
+            content: "Or could be network latency",
+            stepType: "thought",
             timestamp: "2024-01-01T10:02:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Need to gather more data",
             confidence: 0.9, // High confidence in action
+            content: "Need to gather more data",
+            stepType: "action",
             timestamp: "2024-01-01T10:03:00.000Z",
           },
         ],
-        outcome: "Initiated performance monitoring",
       };
 
       await expect(
@@ -176,45 +177,45 @@ describe("Reasoning Chains", () => {
     it("should support ReAct (Reasoning + Acting) patterns", async () => {
       const reactChain: ReasoningTrace = {
         chainId: "react_chain_001",
+        outcome: "User preferences successfully applied",
         steps: [
           {
-            stepType: "thought",
-            content: "I need to find information about user preferences",
             confidence: 0.9,
+            content: "I need to find information about user preferences",
+            stepType: "thought",
             timestamp: "2024-01-01T10:00:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Search memory for user preference data",
             confidence: 0.85,
+            content: "Search memory for user preference data",
+            stepType: "action",
             timestamp: "2024-01-01T10:01:00.000Z",
           },
           {
-            stepType: "observation",
-            content: "Found user prefers dark theme and TypeScript",
             confidence: 0.95,
+            content: "Found user prefers dark theme and TypeScript",
+            stepType: "observation",
             timestamp: "2024-01-01T10:02:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Should configure environment with these preferences",
             confidence: 0.9,
+            content: "Should configure environment with these preferences",
+            stepType: "thought",
             timestamp: "2024-01-01T10:03:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Apply dark theme and TypeScript configuration",
             confidence: 0.95,
+            content: "Apply dark theme and TypeScript configuration",
+            stepType: "action",
             timestamp: "2024-01-01T10:04:00.000Z",
           },
           {
-            stepType: "conclusion",
-            content: "User environment configured according to preferences",
             confidence: 0.9,
+            content: "User environment configured according to preferences",
+            stepType: "conclusion",
             timestamp: "2024-01-01T10:05:00.000Z",
           },
         ],
-        outcome: "User preferences successfully applied",
       };
 
       await expect(
@@ -230,82 +231,82 @@ describe("Reasoning Chains", () => {
     it("should handle iterative ReAct cycles", async () => {
       const iterativeChain: ReasoningTrace = {
         chainId: "iterative_react_001",
+        outcome: "Successfully debugged and fixed API error",
         steps: [
           // First cycle
           {
-            stepType: "thought",
-            content: "Need to debug API error",
             confidence: 0.9,
+            content: "Need to debug API error",
+            stepType: "thought",
             timestamp: "2024-01-01T10:00:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Check API logs",
             confidence: 0.95,
+            content: "Check API logs",
+            stepType: "action",
             timestamp: "2024-01-01T10:01:00.000Z",
           },
           {
-            stepType: "observation",
-            content: "Found 500 error in logs",
             confidence: 0.95,
+            content: "Found 500 error in logs",
+            stepType: "observation",
             timestamp: "2024-01-01T10:02:00.000Z",
           },
 
           // Second cycle
           {
-            stepType: "thought",
-            content: "Error might be in database connection",
             confidence: 0.7,
+            content: "Error might be in database connection",
+            stepType: "thought",
             timestamp: "2024-01-01T10:03:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Check database connectivity",
             confidence: 0.9,
+            content: "Check database connectivity",
+            stepType: "action",
             timestamp: "2024-01-01T10:04:00.000Z",
           },
           {
-            stepType: "observation",
-            content: "Database connection is healthy",
             confidence: 0.95,
+            content: "Database connection is healthy",
+            stepType: "observation",
             timestamp: "2024-01-01T10:05:00.000Z",
           },
 
           // Third cycle
           {
-            stepType: "thought",
-            content: "Must be application logic error",
             confidence: 0.8,
+            content: "Must be application logic error",
+            stepType: "thought",
             timestamp: "2024-01-01T10:06:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Review recent code changes",
             confidence: 0.85,
+            content: "Review recent code changes",
+            stepType: "action",
             timestamp: "2024-01-01T10:07:00.000Z",
           },
           {
-            stepType: "observation",
-            content: "Found null pointer in recent commit",
             confidence: 0.9,
+            content: "Found null pointer in recent commit",
+            stepType: "observation",
             timestamp: "2024-01-01T10:08:00.000Z",
           },
 
           // Resolution
           {
-            stepType: "action",
-            content: "Fix null pointer bug",
             confidence: 0.95,
+            content: "Fix null pointer bug",
+            stepType: "action",
             timestamp: "2024-01-01T10:09:00.000Z",
           },
           {
-            stepType: "conclusion",
-            content: "API error resolved",
             confidence: 0.95,
+            content: "API error resolved",
+            stepType: "conclusion",
             timestamp: "2024-01-01T10:10:00.000Z",
           },
         ],
-        outcome: "Successfully debugged and fixed API error",
       };
 
       await expect(
@@ -323,8 +324,8 @@ describe("Reasoning Chains", () => {
     it("should retrieve reasoning chain by ID", async () => {
       const mockChainEvent = {
         chainId: testReasoningChain.chainId,
-        steps: JSON.stringify(testReasoningChain.steps),
         outcome: testReasoningChain.outcome,
+        steps: JSON.stringify(testReasoningChain.steps),
       };
 
       const { fetchEvents } = await import("../../../src/relay.js");
@@ -356,8 +357,8 @@ describe("Reasoning Chains", () => {
     it("should handle malformed reasoning chain data gracefully", async () => {
       const malformedEvent = {
         chainId: "malformed_chain",
-        steps: "invalid_json",
         outcome: "Test outcome",
+        steps: "invalid_json",
       };
 
       const { fetchEvents } = await import("../../../src/relay.js");
@@ -432,71 +433,71 @@ describe("Reasoning Chains", () => {
     it("should support Tree-of-Thoughts reasoning with multiple branches", async () => {
       const treeChain: ReasoningTrace = {
         chainId: "tree_reasoning_001",
+        outcome: "Algorithm optimized using hybrid approach",
         steps: [
           {
-            stepType: "observation",
-            content: "Need to optimize algorithm",
             confidence: 0.9,
+            content: "Need to optimize algorithm",
+            stepType: "observation",
             timestamp: "2024-01-01T10:00:00.000Z",
           },
 
           // Branch 1: Space optimization
           {
-            stepType: "thought",
-            content: "Branch 1: Focus on space complexity",
             confidence: 0.7,
+            content: "Branch 1: Focus on space complexity",
+            stepType: "thought",
             timestamp: "2024-01-01T10:01:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Use hash table for O(1) lookup",
             confidence: 0.8,
+            content: "Use hash table for O(1) lookup",
+            stepType: "thought",
             timestamp: "2024-01-01T10:02:00.000Z",
           },
 
           // Branch 2: Time optimization
           {
-            stepType: "thought",
-            content: "Branch 2: Focus on time complexity",
             confidence: 0.8,
+            content: "Branch 2: Focus on time complexity",
+            stepType: "thought",
             timestamp: "2024-01-01T10:01:30.000Z",
           },
           {
-            stepType: "thought",
-            content: "Use binary search for O(log n)",
             confidence: 0.9,
+            content: "Use binary search for O(log n)",
+            stepType: "thought",
             timestamp: "2024-01-01T10:02:30.000Z",
           },
 
           // Branch 3: Hybrid approach
           {
-            stepType: "thought",
-            content: "Branch 3: Hybrid space-time optimization",
             confidence: 0.9,
+            content: "Branch 3: Hybrid space-time optimization",
+            stepType: "thought",
             timestamp: "2024-01-01T10:03:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Combine caching with efficient search",
             confidence: 0.95,
+            content: "Combine caching with efficient search",
+            stepType: "thought",
             timestamp: "2024-01-01T10:04:00.000Z",
           },
 
           // Best branch selection
           {
-            stepType: "conclusion",
-            content: "Hybrid approach provides best balance",
             confidence: 0.9,
+            content: "Hybrid approach provides best balance",
+            stepType: "conclusion",
             timestamp: "2024-01-01T10:05:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Implement hybrid optimization",
             confidence: 0.95,
+            content: "Implement hybrid optimization",
+            stepType: "action",
             timestamp: "2024-01-01T10:06:00.000Z",
           },
         ],
-        outcome: "Algorithm optimized using hybrid approach",
       };
 
       await expect(
@@ -512,67 +513,67 @@ describe("Reasoning Chains", () => {
     it("should support self-consistency checking in reasoning", async () => {
       const consistencyChain: ReasoningTrace = {
         chainId: "consistency_check_001",
+        outcome: "CPU bottleneck identified and resolved",
         steps: [
           {
-            stepType: "observation",
-            content: "System performance degraded",
             confidence: 0.9,
+            content: "System performance degraded",
+            stepType: "observation",
             timestamp: "2024-01-01T10:00:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Initial hypothesis: Memory leak",
             confidence: 0.6,
+            content: "Initial hypothesis: Memory leak",
+            stepType: "thought",
             timestamp: "2024-01-01T10:01:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Monitor memory usage",
             confidence: 0.9,
+            content: "Monitor memory usage",
+            stepType: "action",
             timestamp: "2024-01-01T10:02:00.000Z",
           },
           {
-            stepType: "observation",
-            content: "Memory usage is stable",
             confidence: 0.95,
+            content: "Memory usage is stable",
+            stepType: "observation",
             timestamp: "2024-01-01T10:03:00.000Z",
           },
 
           // Self-consistency check
           {
-            stepType: "thought",
+            confidence: 0.9,
             content:
               "Checking consistency: Memory leak hypothesis contradicted by data",
-            confidence: 0.9,
+            stepType: "thought",
             timestamp: "2024-01-01T10:04:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Revising hypothesis: CPU bottleneck more likely",
             confidence: 0.8,
+            content: "Revising hypothesis: CPU bottleneck more likely",
+            stepType: "thought",
             timestamp: "2024-01-01T10:05:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Monitor CPU usage",
             confidence: 0.9,
+            content: "Monitor CPU usage",
+            stepType: "action",
             timestamp: "2024-01-01T10:06:00.000Z",
           },
           {
-            stepType: "observation",
-            content: "CPU usage at 95%",
             confidence: 0.95,
+            content: "CPU usage at 95%",
+            stepType: "observation",
             timestamp: "2024-01-01T10:07:00.000Z",
           },
           {
-            stepType: "conclusion",
+            confidence: 0.95,
             content:
               "CPU bottleneck confirmed, hypothesis consistent with data",
-            confidence: 0.95,
+            stepType: "conclusion",
             timestamp: "2024-01-01T10:08:00.000Z",
           },
         ],
-        outcome: "CPU bottleneck identified and resolved",
       };
 
       await expect(
@@ -598,8 +599,8 @@ describe("Reasoning Chains", () => {
     it("should require at least one reasoning step", () => {
       const emptyChain: ReasoningTrace = {
         chainId: "empty_chain",
-        steps: [],
         outcome: "No reasoning performed",
+        steps: [],
       };
 
       expect(emptyChain.steps.length).toBe(0);
@@ -608,7 +609,7 @@ describe("Reasoning Chains", () => {
 
     it("should validate step type consistency", () => {
       const validStepTypes = ["observation", "thought", "action", "conclusion"];
-      const invalidStepType = "invalid_step" as any;
+      const invalidStepType = "invalid_step" as never;
 
       validStepTypes.forEach((stepType) => {
         expect(["observation", "thought", "action", "conclusion"]).toContain(
@@ -664,8 +665,8 @@ describe("Reasoning Chains", () => {
     it("should handle invalid JSON in reasoning steps", async () => {
       const invalidStepsEvent = {
         chainId: "invalid_steps_chain",
-        steps: "{invalid json}",
         outcome: "Test outcome",
+        steps: "{invalid json}",
       };
 
       const { fetchEvents } = await import("../../../src/relay.js");

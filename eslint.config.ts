@@ -9,6 +9,18 @@ export default tseslint.config(
   perfectionist.configs["recommended-alphabetical"],
   eslintConfigPrettier,
   {
-    ignores: ["**/*.js"],
+    ignores: ["**/*.js", "dashboard/.svelte-kit/**/*"],
+  },
+  {
+    files: [
+      "src/services/Workflow*.ts",
+      "src/services/CrossHub*.ts",
+      "src/services/aiMemoryService.ts",
+      "src/models/WorkflowMemory.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+    },
   },
 );

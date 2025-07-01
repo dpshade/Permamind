@@ -1,11 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
+
 import {
   AIMemory,
-  MemoryType,
-  RelationshipType,
   MemoryAnalytics,
-  SearchFilters,
+  MemoryType,
   ReasoningTrace,
+  RelationshipType,
+  SearchFilters,
 } from "../../../src/models/AIMemory.js";
 
 describe("AIMemory Types", () => {
@@ -48,26 +49,26 @@ describe("AIMemory Types", () => {
   describe("AIMemory interface", () => {
     it("should extend base Memory with AI-specific properties", () => {
       const aiMemory: AIMemory = {
+        content: "Test memory content",
+        context: {
+          domain: "development",
+          sessionId: "test_session",
+          topic: "testing",
+        },
         // Base Memory properties
         id: "test_123",
-        content: "Test memory content",
-        role: "system",
-        p: "user_key",
-        timestamp: "2024-01-01T00:00:00.000Z",
-
         // AI-specific properties
         importance: 0.8,
         memoryType: "knowledge",
-        context: {
-          sessionId: "test_session",
-          topic: "testing",
-          domain: "development",
-        },
+
         metadata: {
           accessCount: 0,
           lastAccessed: "2024-01-01T00:00:00.000Z",
           tags: ["test", "memory"],
         },
+        p: "user_key",
+        role: "system",
+        timestamp: "2024-01-01T00:00:00.000Z",
       };
 
       expect(aiMemory.importance).toBe(0.8);
@@ -78,30 +79,30 @@ describe("AIMemory Types", () => {
 
     it("should support optional relationships and reasoning", () => {
       const aiMemory: AIMemory = {
-        id: "test_123",
         content: "Test memory",
-        role: "system",
-        p: "user_key",
-        timestamp: "2024-01-01T00:00:00.000Z",
+        context: {},
+        id: "test_123",
         importance: 0.7,
         memoryType: "reasoning",
-        context: {},
         metadata: {
           accessCount: 0,
           lastAccessed: "2024-01-01T00:00:00.000Z",
         },
-        relationships: [
-          {
-            targetId: "related_memory_456",
-            type: "supports",
-            strength: 0.9,
-          },
-        ],
+        p: "user_key",
         reasoning: {
           chainId: "reasoning_chain_789",
-          steps: [],
           outcome: "Test outcome",
+          steps: [],
         },
+        relationships: [
+          {
+            strength: 0.9,
+            targetId: "related_memory_456",
+            type: "supports",
+          },
+        ],
+        role: "system",
+        timestamp: "2024-01-01T00:00:00.000Z",
       };
 
       expect(aiMemory.relationships).toHaveLength(1);
@@ -114,33 +115,33 @@ describe("AIMemory Types", () => {
     it("should define reasoning step structure correctly", () => {
       const reasoning: ReasoningTrace = {
         chainId: "test_chain",
+        outcome: "Successfully completed reasoning",
         steps: [
           {
-            stepType: "observation",
-            content: "Observed something",
             confidence: 0.9,
+            content: "Observed something",
+            stepType: "observation",
             timestamp: "2024-01-01T00:00:00.000Z",
           },
           {
-            stepType: "thought",
-            content: "Thought about it",
             confidence: 0.8,
+            content: "Thought about it",
+            stepType: "thought",
             timestamp: "2024-01-01T00:01:00.000Z",
           },
           {
-            stepType: "action",
-            content: "Took action",
             confidence: 0.85,
+            content: "Took action",
+            stepType: "action",
             timestamp: "2024-01-01T00:02:00.000Z",
           },
           {
-            stepType: "conclusion",
-            content: "Reached conclusion",
             confidence: 0.95,
+            content: "Reached conclusion",
+            stepType: "conclusion",
             timestamp: "2024-01-01T00:03:00.000Z",
           },
         ],
-        outcome: "Successfully completed reasoning",
       };
 
       expect(reasoning.steps).toHaveLength(4);
@@ -154,15 +155,15 @@ describe("AIMemory Types", () => {
   describe("SearchFilters", () => {
     it("should define comprehensive search filter options", () => {
       const filters: SearchFilters = {
-        memoryType: "knowledge",
+        domain: "development",
         importanceThreshold: 0.5,
-        timeRange: {
-          start: "2024-01-01T00:00:00.000Z",
-          end: "2024-01-31T23:59:59.999Z",
-        },
+        memoryType: "knowledge",
         relatedTo: "memory_123",
         sessionId: "session_456",
-        domain: "development",
+        timeRange: {
+          end: "2024-01-31T23:59:59.999Z",
+          start: "2024-01-01T00:00:00.000Z",
+        },
       };
 
       expect(filters.memoryType).toBe("knowledge");
@@ -185,23 +186,23 @@ describe("AIMemory Types", () => {
   describe("MemoryAnalytics", () => {
     it("should define comprehensive analytics structure", () => {
       const analytics: MemoryAnalytics = {
-        totalMemories: 100,
-        memoryTypeDistribution: {
-          conversation: 40,
-          reasoning: 20,
-          knowledge: 30,
-          procedure: 10,
-        },
-        importanceDistribution: {
-          high: 25,
-          medium: 50,
-          low: 25,
-        },
         accessPatterns: {
           mostAccessed: ["mem_1", "mem_2", "mem_3"],
           recentlyAccessed: ["mem_4", "mem_5", "mem_6"],
           unusedMemories: ["mem_7", "mem_8"],
         },
+        importanceDistribution: {
+          high: 25,
+          low: 25,
+          medium: 50,
+        },
+        memoryTypeDistribution: {
+          conversation: 40,
+          knowledge: 30,
+          procedure: 10,
+          reasoning: 20,
+        },
+        totalMemories: 100,
       };
 
       expect(analytics.totalMemories).toBe(100);
