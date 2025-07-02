@@ -18,7 +18,17 @@ let keyPair;
 let publicKey;
 let hubId;
 // Configure environment variables silently for MCP protocol compatibility
-dotenv.config();
+// Suppress all output from dotenv and any other initialization
+const originalLog = globalThis.console.log;
+const originalError = globalThis.console.error;
+globalThis.console.log = () => { };
+globalThis.console.error = () => { };
+dotenv.config({ debug: false });
+// Only restore console after dotenv is loaded (for MCP protocol compatibility)
+if (process.env.NODE_ENV !== "production") {
+    globalThis.console.log = originalLog;
+    globalThis.console.error = originalError;
+}
 async function init() {
     const arweave = Arweave.init({});
     if (process.env.SEED_PHRASE) {
@@ -47,13 +57,8 @@ async function init() {
             hubId = await hubRegistryService.create(keyPair, profile);
         }
     }
-    // Verify default process templates are loaded
-    const defaultProcesses = defaultProcessService.getDefaultProcesses();
-    if (process.env.NODE_ENV !== "production") {
-        const supportedTypes = Object.keys(defaultProcesses);
-        console.log(`✅ Default process templates loaded: ${supportedTypes.join(", ")}`);
-        console.log("🚀 Natural language token integration ready");
-    }
+    // Verify default process templates are loaded (silently for MCP compatibility)
+    defaultProcessService.getDefaultProcesses();
 }
 // Check if input looks like a processId (43-character base64-like string)
 function looksLikeProcessId(input) {
@@ -1568,55 +1573,81 @@ server.addTool({
         readOnlyHint: false,
         title: "Create Configurable Token",
     },
-    description: `Deploy a fully configurable AO token with custom minting strategies. Supports basic minting, cascade minting (progressive limits), 
-    double minting (multiple buy tokens), and simple tokens. Includes comprehensive validation, deployment, and configuration management.
+    description: `Deploy a configurable AO token with custom minting strategies. Simple, focused tool for token deployment.
     
     Available strategies:
-    - 'basic': Simple multiplier-based minting with caps
+    - 'basic': Simple multiplier-based minting with buy token
     - 'cascade': Progressive minting limits that increase over time  
-    - 'double_mint': Multiple buy tokens with different multipliers
-    - 'none': Simple admin-only minting
+    - 'double_mint': Accept multiple buy tokens with different rates
+    - 'none': Admin-only token with optional initial supply (auto-allocated to you)
     
-    The tool validates configuration, generates optimized Lua code, deploys to AO, and returns process details.`,
+    No complex allocation management needed - tokens are created ready to use.`,
     execute: async (args) => {
         try {
-            // Build token configuration from parameters
+            // Build base token configuration
             const tokenConfig = {
                 name: args.name,
                 ticker: args.ticker,
                 logo: args.logo,
                 description: args.description,
-                denomination: args.denomination,
+                denomination: args.denomination || 12,
                 mintingStrategy: args.mintingStrategy,
                 transferable: args.transferable ?? true,
                 burnable: args.burnable ?? true,
-                adminAddress: args.adminAddress,
-                initialSupply: args.initialSupply,
-                initialAllocations: args.initialAllocations,
             };
-            // Add minting configuration based on strategy
-            if (args.mintingStrategy === 'basic' && args.basicMintConfig) {
+            // Handle strategy-specific configuration
+            if (args.mintingStrategy === 'basic') {
+                if (!args.buyToken || !args.multiplier || !args.maxMint) {
+                    return JSON.stringify({
+                        success: false,
+                        error: "Basic minting strategy requires buyToken, multiplier, and maxMint parameters"
+                    });
+                }
                 tokenConfig.mintingConfig = {
-                    buyToken: args.basicMintConfig.buyToken,
-                    multiplier: args.basicMintConfig.multiplier,
-                    maxMint: args.basicMintConfig.maxMint,
+                    buyToken: args.buyToken,
+                    multiplier: args.multiplier,
+                    maxMint: args.maxMint,
                 };
             }
-            else if (args.mintingStrategy === 'cascade' && args.cascadeMintConfig) {
+            else if (args.mintingStrategy === 'cascade') {
+                if (!args.buyToken || !args.multiplier || !args.maxMint || !args.baseMintLimit || !args.incrementBlocks || !args.maxCascadeLimit) {
+                    return JSON.stringify({
+                        success: false,
+                        error: "Cascade minting strategy requires buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, and maxCascadeLimit parameters"
+                    });
+                }
                 tokenConfig.mintingConfig = {
-                    buyToken: args.cascadeMintConfig.buyToken,
-                    multiplier: args.cascadeMintConfig.multiplier,
-                    maxMint: args.cascadeMintConfig.maxMint,
-                    baseMintLimit: args.cascadeMintConfig.baseMintLimit,
-                    incrementBlocks: args.cascadeMintConfig.incrementBlocks,
-                    maxCascadeLimit: args.cascadeMintConfig.maxCascadeLimit,
+                    buyToken: args.buyToken,
+                    multiplier: args.multiplier,
+                    maxMint: args.maxMint,
+                    baseMintLimit: args.baseMintLimit,
+                    incrementBlocks: args.incrementBlocks,
+                    maxCascadeLimit: args.maxCascadeLimit,
                 };
             }
-            else if (args.mintingStrategy === 'double_mint' && args.doubleMintConfig) {
+            else if (args.mintingStrategy === 'double_mint') {
+                if (!args.buyTokens || !args.maxMint) {
+                    return JSON.stringify({
+                        success: false,
+                        error: "Double mint strategy requires buyTokens and maxMint parameters"
+                    });
+                }
                 tokenConfig.mintingConfig = {
-                    buyTokens: args.doubleMintConfig.buyTokens,
-                    maxMint: args.doubleMintConfig.maxMint,
+                    buyTokens: args.buyTokens,
+                    maxMint: args.maxMint,
                 };
+            }
+            else if (args.mintingStrategy === 'none') {
+                // For 'none' strategy, auto-allocate initial supply to creator if provided
+                if (args.initialSupply) {
+                    tokenConfig.initialSupply = args.initialSupply;
+                    tokenConfig.initialAllocations = {
+                        [publicKey]: args.initialSupply // Auto-allocate to creator
+                    };
+                }
+                else {
+                    tokenConfig.initialSupply = "0";
+                }
             }
             // Validate configuration
             const validation = validateTokenConfig(tokenConfig);
@@ -1625,44 +1656,50 @@ server.addTool({
                     success: false,
                     error: "Token configuration validation failed",
                     validationErrors: validation.errors,
-                    tokenConfig,
+                    suggestion: "Check your parameters and try again"
                 });
             }
-            // Generate Lua script
+            // Generate and deploy token
             const luaScript = generateTokenLua(tokenConfig);
-            // Deploy token using tokenService
             const processId = await tokenService.create(keyPair, luaScript);
-            // Return comprehensive deployment information
+            // Add to token registry for easy discovery
+            const tokenTags = [
+                { name: "Kind", value: MEMORY_KINDS.TOKEN_MAPPING },
+                { name: "Content", value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${processId}` },
+                { name: "p", value: publicKey },
+                { name: "token_name", value: args.name },
+                { name: "token_ticker", value: args.ticker },
+                { name: "token_processId", value: processId },
+                { name: "domain", value: "token-registry" }
+            ];
+            await event(keyPair, hubId, tokenTags);
             return JSON.stringify({
                 success: true,
                 processId,
-                tokenConfig,
-                deploymentInfo: {
-                    timestamp: new Date().toISOString(),
+                tokenInfo: {
+                    name: args.name,
+                    ticker: args.ticker,
                     strategy: args.mintingStrategy,
                     features: {
                         transferable: tokenConfig.transferable,
                         burnable: tokenConfig.burnable,
-                        hasCustomAdmin: !!tokenConfig.adminAddress,
                     },
                 },
-                message: `Token "${tokenConfig.name}" (${tokenConfig.ticker}) deployed successfully to process ${processId}`,
-                nextSteps: [
-                    `Use executeTokenAction with processId "${processId}" to interact with your token`,
-                    "Check token info with natural language: 'get token info'",
-                    tokenConfig.mintingStrategy !== 'none' ? "Send buy tokens to start minting" : "Use mint action as admin to create tokens",
+                message: `Token "${args.name}" (${args.ticker}) deployed successfully!`,
+                nextSteps: args.mintingStrategy === 'none' ? [
+                    "Use mint action as admin to create tokens",
+                    `Process ID: ${processId}`
+                ] : [
+                    `Send ${args.buyToken ? 'buy tokens' : 'payment tokens'} to process to mint`,
+                    `Process ID: ${processId}`
                 ],
+                registryAdded: true
             });
         }
         catch (error) {
             return JSON.stringify({
                 success: false,
-                error: `Token deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                tokenConfig: {
-                    name: args.name,
-                    ticker: args.ticker,
-                    mintingStrategy: args.mintingStrategy,
-                },
+                error: `Token deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
@@ -1675,37 +1712,26 @@ server.addTool({
         description: z.string().optional().describe("Token description (optional)"),
         denomination: z.number().min(0).max(18).optional().describe("Token decimals (default: 12)"),
         // Minting Strategy
-        mintingStrategy: z.enum(['basic', 'cascade', 'double_mint', 'none']).describe("Minting strategy: 'basic' (simple), 'cascade' (progressive), 'double_mint' (multi-token), 'none' (admin-only)"),
-        // Basic Minting Configuration
-        basicMintConfig: z.object({
-            buyToken: z.string().describe("Token address used for minting (e.g., wAR address)"),
-            multiplier: z.number().positive().describe("Conversion rate (e.g., 1000 = 1000 tokens per 1 buy token)"),
-            maxMint: z.string().describe("Maximum total tokens that can be minted"),
-        }).optional().describe("Configuration for basic minting strategy"),
-        // Cascade Minting Configuration  
-        cascadeMintConfig: z.object({
-            buyToken: z.string().describe("Token address used for minting"),
-            multiplier: z.number().positive().describe("Conversion rate"),
-            maxMint: z.string().describe("Maximum total tokens that can be minted"),
-            baseMintLimit: z.string().describe("Starting mint limit"),
-            incrementBlocks: z.number().positive().describe("Blocks between limit increases (e.g., 670 for ~24h)"),
-            maxCascadeLimit: z.string().describe("Final maximum cascade limit"),
-        }).optional().describe("Configuration for cascade minting strategy"),
-        // Double Mint Configuration
-        doubleMintConfig: z.object({
-            buyTokens: z.record(z.string(), z.object({
-                multiplier: z.number().positive().describe("Conversion rate for this buy token"),
-                enabled: z.boolean().describe("Whether this buy token is active"),
-            })).describe("Map of buy token addresses to their configurations"),
-            maxMint: z.string().describe("Maximum total tokens that can be minted"),
-        }).optional().describe("Configuration for double mint strategy"),
-        // Feature Toggles
+        mintingStrategy: z.enum(['basic', 'cascade', 'double_mint', 'none']).describe("Minting strategy"),
+        // Strategy-specific parameters (flattened for simplicity)
+        // Basic & Cascade shared parameters
+        buyToken: z.string().optional().describe("Token address used for minting (required for basic/cascade strategies)"),
+        multiplier: z.number().positive().optional().describe("Conversion rate (required for basic/cascade strategies)"),
+        maxMint: z.string().optional().describe("Maximum tokens that can be minted (required for basic/cascade/double_mint)"),
+        // Cascade-specific parameters
+        baseMintLimit: z.string().optional().describe("Starting mint limit (required for cascade strategy)"),
+        incrementBlocks: z.number().positive().optional().describe("Blocks between limit increases (required for cascade strategy)"),
+        maxCascadeLimit: z.string().optional().describe("Final maximum limit (required for cascade strategy)"),
+        // Double mint parameters
+        buyTokens: z.record(z.string(), z.object({
+            multiplier: z.number().positive(),
+            enabled: z.boolean(),
+        })).optional().describe("Map of buy token addresses to configurations (required for double_mint strategy)"),
+        // None strategy parameter
+        initialSupply: z.string().optional().describe("Initial supply for 'none' strategy (auto-allocated to you)"),
+        // Feature toggles
         transferable: z.boolean().optional().describe("Whether tokens can be transferred (default: true)"),
         burnable: z.boolean().optional().describe("Whether tokens can be burned (default: true)"),
-        adminAddress: z.string().optional().describe("Additional admin address (optional)"),
-        initialSupply: z.string().optional().describe("Initial token supply for 'none' strategy (optional)"),
-        // Initial Allocations
-        initialAllocations: z.record(z.string(), z.string()).optional().describe("Initial token allocations as address->balance map (optional)"),
     }),
 });
 // Tool to validate token configuration without deploying
@@ -1715,25 +1741,73 @@ server.addTool({
         readOnlyHint: true,
         title: "Validate Token Configuration",
     },
-    description: `Validate a token configuration without deploying it. Useful for testing configurations and getting validation feedback 
-    before actual deployment. Returns detailed validation results and suggestions for improvement.`,
+    description: `Validate a token configuration without deploying it. Uses the same simplified parameters as createConfigurableToken.
+    Returns detailed validation results and suggestions for improvement.`,
     execute: async (args) => {
         try {
+            // Build token configuration using same logic as createConfigurableToken
             const tokenConfig = {
                 name: args.name,
                 ticker: args.ticker,
+                logo: args.logo,
+                description: args.description,
+                denomination: args.denomination || 12,
                 mintingStrategy: args.mintingStrategy,
-                denomination: args.denomination,
+                transferable: args.transferable ?? true,
+                burnable: args.burnable ?? true,
             };
-            // Add minting configuration based on strategy
-            if (args.mintingStrategy === 'basic' && args.basicMintConfig) {
-                tokenConfig.mintingConfig = args.basicMintConfig;
+            // Handle strategy-specific configuration (same as createConfigurableToken)
+            if (args.mintingStrategy === 'basic') {
+                if (!args.buyToken || !args.multiplier || !args.maxMint) {
+                    return JSON.stringify({
+                        valid: false,
+                        errors: ["Basic minting strategy requires buyToken, multiplier, and maxMint parameters"],
+                        suggestion: "Provide all required parameters for basic minting strategy"
+                    });
+                }
+                tokenConfig.mintingConfig = {
+                    buyToken: args.buyToken,
+                    multiplier: args.multiplier,
+                    maxMint: args.maxMint,
+                };
             }
-            else if (args.mintingStrategy === 'cascade' && args.cascadeMintConfig) {
-                tokenConfig.mintingConfig = args.cascadeMintConfig;
+            else if (args.mintingStrategy === 'cascade') {
+                if (!args.buyToken || !args.multiplier || !args.maxMint || !args.baseMintLimit || !args.incrementBlocks || !args.maxCascadeLimit) {
+                    return JSON.stringify({
+                        valid: false,
+                        errors: ["Cascade minting strategy requires buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, and maxCascadeLimit parameters"],
+                        suggestion: "Provide all required parameters for cascade minting strategy"
+                    });
+                }
+                tokenConfig.mintingConfig = {
+                    buyToken: args.buyToken,
+                    multiplier: args.multiplier,
+                    maxMint: args.maxMint,
+                    baseMintLimit: args.baseMintLimit,
+                    incrementBlocks: args.incrementBlocks,
+                    maxCascadeLimit: args.maxCascadeLimit,
+                };
             }
-            else if (args.mintingStrategy === 'double_mint' && args.doubleMintConfig) {
-                tokenConfig.mintingConfig = args.doubleMintConfig;
+            else if (args.mintingStrategy === 'double_mint') {
+                if (!args.buyTokens || !args.maxMint) {
+                    return JSON.stringify({
+                        valid: false,
+                        errors: ["Double mint strategy requires buyTokens and maxMint parameters"],
+                        suggestion: "Provide buyTokens configuration and maxMint for double mint strategy"
+                    });
+                }
+                tokenConfig.mintingConfig = {
+                    buyTokens: args.buyTokens,
+                    maxMint: args.maxMint,
+                };
+            }
+            else if (args.mintingStrategy === 'none') {
+                if (args.initialSupply) {
+                    tokenConfig.initialSupply = args.initialSupply;
+                }
+                else {
+                    tokenConfig.initialSupply = "0";
+                }
             }
             const validation = validateTokenConfig(tokenConfig);
             return JSON.stringify({
@@ -1742,10 +1816,10 @@ server.addTool({
                 configuration: tokenConfig,
                 suggestions: validation.valid ? [
                     "Configuration is valid and ready for deployment",
-                    "Use createConfigurableToken to deploy this configuration",
+                    "Use createConfigurableToken with the same parameters to deploy",
                 ] : [
                     "Fix the validation errors before deployment",
-                    "Check example configurations using getTokenExamples",
+                    "Check parameter requirements for your chosen minting strategy",
                 ],
             });
         }
@@ -1759,30 +1833,27 @@ server.addTool({
     },
     name: "validateTokenConfiguration",
     parameters: z.object({
+        // Same parameters as createConfigurableToken for consistency
         name: z.string().describe("Token name"),
         ticker: z.string().describe("Token ticker"),
+        logo: z.string().optional().describe("Token logo URL (optional)"),
+        description: z.string().optional().describe("Token description (optional)"),
+        denomination: z.number().optional().describe("Token decimals (default: 12)"),
         mintingStrategy: z.enum(['basic', 'cascade', 'double_mint', 'none']).describe("Minting strategy"),
-        denomination: z.number().optional().describe("Token decimals"),
-        basicMintConfig: z.object({
-            buyToken: z.string(),
+        // Flattened strategy-specific parameters
+        buyToken: z.string().optional().describe("Token address for minting (required for basic/cascade)"),
+        multiplier: z.number().positive().optional().describe("Conversion rate (required for basic/cascade)"),
+        maxMint: z.string().optional().describe("Maximum mintable tokens (required for basic/cascade/double_mint)"),
+        baseMintLimit: z.string().optional().describe("Starting mint limit (required for cascade)"),
+        incrementBlocks: z.number().positive().optional().describe("Blocks between increases (required for cascade)"),
+        maxCascadeLimit: z.string().optional().describe("Final maximum limit (required for cascade)"),
+        buyTokens: z.record(z.string(), z.object({
             multiplier: z.number().positive(),
-            maxMint: z.string(),
-        }).optional(),
-        cascadeMintConfig: z.object({
-            buyToken: z.string(),
-            multiplier: z.number().positive(),
-            maxMint: z.string(),
-            baseMintLimit: z.string(),
-            incrementBlocks: z.number().positive(),
-            maxCascadeLimit: z.string(),
-        }).optional(),
-        doubleMintConfig: z.object({
-            buyTokens: z.record(z.string(), z.object({
-                multiplier: z.number().positive(),
-                enabled: z.boolean(),
-            })),
-            maxMint: z.string(),
-        }).optional(),
+            enabled: z.boolean(),
+        })).optional().describe("Buy token configurations (required for double_mint)"),
+        initialSupply: z.string().optional().describe("Initial supply for 'none' strategy"),
+        transferable: z.boolean().optional().describe("Whether tokens can be transferred (default: true)"),
+        burnable: z.boolean().optional().describe("Whether tokens can be burned (default: true)"),
     }),
 });
 // Simple tool to create a token (reverted to pre-allocation logic approach)

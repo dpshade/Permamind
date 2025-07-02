@@ -33,7 +33,7 @@ const aiService = () => {
                 return JSON.stringify(tags);
             }
             catch (error) {
-                console.error("Error adding enhanced memory:", error);
+                // Error adding enhanced memory - silent for MCP compatibility
                 return JSON.stringify(tags);
             }
         },
@@ -144,7 +144,7 @@ const aiService = () => {
                 return cycles;
             }
             catch (error) {
-                console.error("Error detecting circular references:", error);
+                // Error detecting circular references - silent for MCP compatibility
                 return [];
             }
         },
@@ -192,7 +192,7 @@ const aiService = () => {
                 return []; // No path found
             }
             catch (error) {
-                console.error("Error finding shortest path:", error);
+                // Error finding shortest path - silent for MCP compatibility
                 return [];
             }
         },
@@ -278,7 +278,7 @@ const aiService = () => {
                 });
             }
             catch (error) {
-                console.error("Error getting memory relationships:", error);
+                // Error getting memory relationships - silent for MCP compatibility
                 return [];
             }
         },
@@ -344,7 +344,7 @@ const aiService = () => {
                 };
             }
             catch (error) {
-                console.error("Error getting relationship analytics:", error);
+                // Error getting relationship analytics - silent for MCP compatibility
                 return {
                     averageStrength: 0,
                     strongestConnections: [],

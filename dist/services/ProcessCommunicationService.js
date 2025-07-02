@@ -265,7 +265,7 @@ const service = () => {
                 return null;
             }
             catch (error) {
-                console.error("Process type detection failed:", error);
+                // Process type detection failed silently for MCP compatibility
                 return null;
             }
         },

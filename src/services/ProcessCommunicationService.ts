@@ -434,7 +434,7 @@ const service = (): ProcessCommunicationService => {
         // Future: Could send a test message to the process to detect capabilities
         return null;
       } catch (error) {
-        console.error("Process type detection failed:", error);
+        // Process type detection failed silently for MCP compatibility
         return null;
       }
     },

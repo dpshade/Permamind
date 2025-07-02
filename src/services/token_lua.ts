@@ -106,7 +106,7 @@ ${initialAllocations && Object.entries(initialAllocations).length > 0 ?
   `-- Initial Balance Allocations (Explicit)
 ${Object.entries(initialAllocations)
   .map(([address, balance]) => `Balances["${address}"] = "${balance}"`)
-  .join('\n')}
+  .join('\\n')}
 
 -- Update total supply to match initial allocations
 local function updateSupplyForAllocations()
@@ -528,7 +528,7 @@ function getDoubleMintTemplate(config: DoubleMintConfig): string {
   const buyTokenConfigs = Object.entries(buyTokens)
     .filter(([_, config]) => config.enabled)
     .map(([address, config]) => `  ["${address}"] = ${config.multiplier}`)
-    .join(',\n');
+    .join(',\\n');
 
   return `
 
