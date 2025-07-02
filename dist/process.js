@@ -45,30 +45,38 @@ export const createProcess = async (signer) => {
     await sleep(3000);
     return processId;
 };
-export const createTokenProcess = async (signer, config) => {
-    const tags = [
-        { name: "Name", value: config.name },
-        { name: "Ticker", value: config.ticker },
-        { name: "Denomination", value: (config.denomination || 12).toString() },
-    ];
-    if (config.totalSupply) {
-        tags.push({ name: "Total-Supply", value: config.totalSupply });
-    }
-    if (config.logo) {
-        tags.push({ name: "Logo", value: config.logo });
-    }
-    if (config.description) {
-        tags.push({ name: "Description", value: config.description });
-    }
-    const processId = await spawn({
-        module: AOS_MODULE(),
-        scheduler: SCHEDULER(),
-        signer: createDataItemSigner(signer),
-        tags: tags,
-    });
-    await sleep(3000);
-    return processId;
-};
+/*export const createTokenProcess = async (
+  signer: JWKInterface,
+  config: TokenDeploymentConfig,
+) => {
+  const tags = [
+    { name: "Name", value: config.name },
+    { name: "Ticker", value: config.ticker },
+    { name: "Denomination", value: (config.denomination || 12).toString() },
+  ];
+
+  if (config.totalSupply) {
+    tags.push({ name: "Total-Supply", value: config.totalSupply });
+  }
+
+  if (config.logo) {
+    tags.push({ name: "Logo", value: config.logo });
+  }
+
+  if (config.description) {
+    tags.push({ name: "Description", value: config.description });
+  }
+
+  const processId = await spawn({
+    module: AOS_MODULE(),
+    scheduler: SCHEDULER(),
+    signer: createDataItemSigner(signer),
+    tags: tags,
+  });
+
+  await sleep(3000);
+  return processId;
+};*/
 const readMessage = async (messageId, processId) => {
     const { Error } = await result({
         message: messageId,

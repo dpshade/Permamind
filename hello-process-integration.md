@@ -4,7 +4,7 @@ A simple greeting process that sends personalized hello messages to specified re
 
 ## Hello
 
-Sends a friendly greeting message to a specified recipient
+Query a friendly greeting message to a specified recipient
 
 - recipient: name or identifier of the person to greet (required)
 

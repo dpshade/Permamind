@@ -1,4 +1,5 @@
 import { aoMessageService, } from "./AOMessageService.js";
+import { defaultProcessService, } from "./DefaultProcessService.js";
 const WRITE_KEYWORDS = [
     "send",
     "transfer",
@@ -49,9 +50,37 @@ const service = () => {
             }
             return {
                 data: typeof parameters.data === "string" ? parameters.data : undefined,
+                isWrite: handler.isWrite,
                 processId,
                 tags,
             };
+        },
+        detectProcessType: async (processId, sampleRequests) => {
+            try {
+                // For now, we'll implement basic detection logic
+                // Future enhancement: could query the process to get handler list
+                if (sampleRequests) {
+                    // Analyze sample requests to determine process type
+                    const tokenRequestCount = sampleRequests.filter((req) => defaultProcessService.canHandleRequest(req)).length;
+                    if (tokenRequestCount > 0) {
+                        const tokenTemplate = defaultProcessService.getDefaultProcess("token", processId);
+                        if (tokenTemplate) {
+                            return {
+                                confidence: Math.min(tokenRequestCount / sampleRequests.length + 0.3, 1.0),
+                                suggestedHandlers: tokenTemplate.handlers.map((h) => h.action),
+                                template: tokenTemplate,
+                                type: "token",
+                            };
+                        }
+                    }
+                }
+                // Future: Could send a test message to the process to detect capabilities
+                return null;
+            }
+            catch {
+                // Process type detection failed silently for MCP compatibility
+                return null;
+            }
         },
         executeProcessRequest: async (processMarkdown, processId, userRequest, signer) => {
             try {
@@ -75,6 +104,51 @@ const service = () => {
                 };
             }
         },
+        executeSmartRequest: async (processId, userRequest, signer, processMarkdown) => {
+            try {
+                // If markdown is provided, use traditional approach
+                if (processMarkdown) {
+                    return await service().executeProcessRequest(processMarkdown, processId, userRequest, signer);
+                }
+                // Try enhanced natural language processing with auto-detection
+                const nlpResult = defaultProcessService.processNaturalLanguage(userRequest, processId);
+                if (nlpResult && nlpResult.confidence > 0.6) {
+                    // Find the handler in the template
+                    const handler = nlpResult.template.handlers.find((h) => h.action === nlpResult.operation);
+                    if (handler) {
+                        const aoMessage = service().buildAOMessage(processId, handler, nlpResult.parameters);
+                        const response = await aoMessageService.executeMessage(signer, aoMessage);
+                        const result = service().interpretResponse(response, handler);
+                        return {
+                            ...result,
+                            confidence: nlpResult.confidence,
+                            processType: nlpResult.processType,
+                            suggestions: defaultProcessService.getSuggestedOperations(nlpResult.processType),
+                            templateUsed: "default",
+                        };
+                    }
+                }
+                // Fallback: try to detect process type and suggest operations
+                const canHandle = defaultProcessService.canHandleRequest(userRequest);
+                if (canHandle) {
+                    return {
+                        error: "Request appears to be a token operation, but process type could not be confirmed. Please provide process documentation or use executeTokenRequest for token operations.",
+                        success: false,
+                        suggestions: defaultProcessService.getSuggestedOperations("token"),
+                    };
+                }
+                return {
+                    error: "Could not process request. Please provide process documentation using processMarkdown parameter.",
+                    success: false,
+                };
+            }
+            catch (error) {
+                return {
+                    error: error instanceof Error ? error.message : "Unknown error",
+                    success: false,
+                };
+            }
+        },
         interpretResponse: (response, handler) => {
             if (!response.success) {
                 return {
@@ -84,14 +158,44 @@ const service = () => {
                 };
             }
             let interpretedData = response.data;
+            // Handle AO message structure with Data field
             if (response.data &&
                 typeof response.data === "object" &&
                 "Data" in response.data &&
                 typeof response.data.Data === "string") {
                 try {
-                    interpretedData = JSON.parse(response.data.Data);
+                    const jsonData = JSON.parse(response.data.Data);
+                    interpretedData = jsonData;
+                    // Token-specific response handling
+                    if (handler.action === "balance" && jsonData.Balance !== undefined) {
+                        // For balance queries, return structured balance information
+                        interpretedData = {
+                            account: jsonData.Account || "unknown",
+                            balance: jsonData.Balance,
+                            rawData: jsonData,
+                            ticker: jsonData.Ticker || "unknown",
+                        };
+                    }
+                    else if (handler.action === "info" && jsonData.Name !== undefined) {
+                        // For info queries, return structured token information
+                        interpretedData = {
+                            burnable: jsonData.Burnable,
+                            denomination: jsonData.Denomination,
+                            description: jsonData.Description,
+                            logo: jsonData.Logo,
+                            mintingStrategy: jsonData.MintingStrategy,
+                            name: jsonData.Name,
+                            owner: jsonData.Owner,
+                            processId: jsonData.ProcessId,
+                            rawData: jsonData,
+                            ticker: jsonData.Ticker,
+                            totalSupply: jsonData.TotalSupply,
+                            transferable: jsonData.Transferable,
+                        };
+                    }
                 }
                 catch {
+                    // Fall back to raw data if JSON parsing fails
                     interpretedData = response.data.Data;
                 }
             }
@@ -262,14 +366,15 @@ const extractParameterValue = (request, paramName, paramType) => {
             new RegExp(`send\\s+([0-9.]+)`, "i"),
             new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
             new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
-            new RegExp(`([0-9.]+)`, "g"), // Last resort: any number
+            new RegExp(`([0-9.]+)`), // Last resort: any number (removed global flag)
         ];
         for (const pattern of numberPatterns) {
             const match = request.match(pattern);
             if (match && match[1]) {
                 const num = parseFloat(match[1]);
-                if (!isNaN(num))
+                if (!isNaN(num)) {
                     return num;
+                }
             }
         }
     }

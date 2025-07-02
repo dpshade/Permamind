@@ -6,6 +6,7 @@ import { read, send } from "../process.js";
 
 export interface AOMessage {
   data?: string;
+  isWrite?: boolean;
   processId: string;
   tags: Tag[];
 }
@@ -21,7 +22,7 @@ export interface AOMessageService {
     signer: JWKInterface,
     message: AOMessage,
   ) => Promise<AOMessageResponse>;
-  isWriteOperation: (tags: Tag[]) => boolean;
+  isWriteOperation: (tags: Tag[], isWrite?: boolean) => boolean;
   sendReadMessage: (message: AOMessage) => Promise<AOMessageResponse>;
   sendWriteMessage: (
     signer: JWKInterface,
@@ -49,7 +50,7 @@ const service = (): AOMessageService => {
       message: AOMessage,
     ): Promise<AOMessageResponse> => {
       try {
-        if (service().isWriteOperation(message.tags)) {
+        if (service().isWriteOperation(message.tags, message.isWrite)) {
           return await service().sendWriteMessage(signer, message);
         } else {
           return await service().sendReadMessage(message);
@@ -62,7 +63,13 @@ const service = (): AOMessageService => {
       }
     },
 
-    isWriteOperation: (tags: Tag[]): boolean => {
+    isWriteOperation: (tags: Tag[], isWrite?: boolean): boolean => {
+      // Check handler designation first (most accurate)
+      if (isWrite !== undefined) {
+        return isWrite;
+      }
+
+      // Fall back to action-based detection for backward compatibility
       const actionTag = tags.find((tag) => tag.name === "Action");
       if (!actionTag) {
         return false;

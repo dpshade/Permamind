@@ -126,8 +126,8 @@ const service = () => {
             try {
                 return await fetchEvents(hubId, _filters);
             }
-            catch (error) {
-                console.error("Error fetching events:", error);
+            catch {
+                // Error fetching events - silent for MCP compatibility
                 return [filter];
             }
         },

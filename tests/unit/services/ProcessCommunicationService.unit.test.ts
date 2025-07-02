@@ -359,6 +359,7 @@ Send tokens
       expect(result.handlerUsed).toBe("transfer");
       expect(mockExecuteMessage).toHaveBeenCalledWith(mockSigner, {
         data: undefined,
+        isWrite: true,
         processId: "test-process",
         tags: [
           { name: "Action", value: "transfer" },

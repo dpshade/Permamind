@@ -18,9 +18,11 @@ import { event, fetchEvents, fetchEventsVIP01 } from "../relay.js";
 // Constants for memory kinds
 const MEMORY_KINDS = {
   AI_MEMORY: "10",
+  CONTACT_MAPPING: "31",
   MEMORY_CONTEXT: "40",
   MEMORY_RELATIONSHIP: "11",
   REASONING_CHAIN: "23",
+  TOKEN_MAPPING: "30",
 } as const;
 
 // Validation utilities
@@ -135,7 +137,7 @@ const aiService = (): AIMemoryService => {
         await event(signer, hubId, tags);
         return JSON.stringify(tags);
       } catch (error) {
-        console.error("Error adding enhanced memory:", error);
+        // Error adding enhanced memory - silent for MCP compatibility
         return JSON.stringify(tags);
       }
     },
@@ -275,7 +277,7 @@ const aiService = (): AIMemoryService => {
 
         return cycles;
       } catch (error) {
-        console.error("Error detecting circular references:", error);
+        // Error detecting circular references - silent for MCP compatibility
         return [];
       }
     },
@@ -334,7 +336,7 @@ const aiService = (): AIMemoryService => {
 
         return []; // No path found
       } catch (error) {
-        console.error("Error finding shortest path:", error);
+        // Error finding shortest path - silent for MCP compatibility
         return [];
       }
     },
@@ -444,7 +446,7 @@ const aiService = (): AIMemoryService => {
           };
         });
       } catch (error) {
-        console.error("Error getting memory relationships:", error);
+        // Error getting memory relationships - silent for MCP compatibility
         return [];
       }
     },
@@ -536,7 +538,7 @@ const aiService = (): AIMemoryService => {
           totalLinks,
         };
       } catch (error) {
-        console.error("Error getting relationship analytics:", error);
+        // Error getting relationship analytics - silent for MCP compatibility
         return {
           averageStrength: 0,
           strongestConnections: [],
@@ -954,3 +956,6 @@ function rankMemoriesByRelevance(memories: AIMemory[]): AIMemory[] {
 }
 
 export const aiMemoryService = aiService();
+
+// Export memory kinds for use in server
+export { MEMORY_KINDS };
