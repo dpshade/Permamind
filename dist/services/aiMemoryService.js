@@ -6,6 +6,8 @@ const MEMORY_KINDS = {
     MEMORY_CONTEXT: "40",
     MEMORY_RELATIONSHIP: "11",
     REASONING_CHAIN: "23",
+    TOKEN_MAPPING: "30",
+    CONTACT_MAPPING: "31",
 };
 // Validation utilities
 const isValidImportance = (importance) => importance >= 0 && importance <= 1;
@@ -683,3 +685,5 @@ function rankMemoriesByRelevance(memories) {
     });
 }
 export const aiMemoryService = aiService();
+// Export memory kinds for use in server
+export { MEMORY_KINDS };

@@ -15,7 +15,7 @@ const service = () => {
     return {
         executeMessage: async (signer, message) => {
             try {
-                if (service().isWriteOperation(message.tags)) {
+                if (service().isWriteOperation(message.tags, message.isWrite)) {
                     return await service().sendWriteMessage(signer, message);
                 }
                 else {
@@ -29,7 +29,12 @@ const service = () => {
                 };
             }
         },
-        isWriteOperation: (tags) => {
+        isWriteOperation: (tags, isWrite) => {
+            // Check handler designation first (most accurate)
+            if (isWrite !== undefined) {
+                return isWrite;
+            }
+            // Fall back to action-based detection for backward compatibility
             const actionTag = tags.find((tag) => tag.name === "Action");
             if (!actionTag) {
                 return false;
