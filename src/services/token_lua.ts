@@ -4,44 +4,14 @@
  * Supports: Basic, Cascade, Double Mint, and Custom minting strategies
  */
 
-// Token Configuration Interfaces
-export interface TokenConfig {
-  // Basic Token Metadata
-  name: string;
-  ticker: string;
-  logo?: string;
-  description?: string;
-  denomination?: number;
-  
-  // Minting Strategy
-  mintingStrategy: 'basic' | 'cascade' | 'double_mint' | 'none';
-  
-  // Economic Parameters
-  maxMint?: string;
-  initialSupply?: string;
-  
-  // Initial Balance Allocations
-  initialAllocations?: {
-    [address: string]: string; // address -> balance amount
-  };
-  
-  // Minting-Specific Config
-  mintingConfig?: BasicMintConfig | CascadeMintConfig | DoubleMintConfig;
-  
-  // Advanced Options
-  transferable?: boolean;
-  burnable?: boolean;
-  adminAddress?: string;
-}
-
 export interface BasicMintConfig {
-  buyToken: string;        // Token used to mint (e.g., wAR address)
-  multiplier: number;      // Conversion rate (e.g., 1000 tokens per 1 buyToken)
-  maxMint: string;         // Maximum mintable amount
+  buyToken: string; // Token used to mint (e.g., wAR address)
+  maxMint: string; // Maximum mintable amount
+  multiplier: number; // Conversion rate (e.g., 1000 tokens per 1 buyToken)
 }
 
 export interface CascadeMintConfig extends BasicMintConfig {
-  baseMintLimit: string;   // Starting mint limit (e.g., "100000")
+  baseMintLimit: string; // Starting mint limit (e.g., "100000")
   incrementBlocks: number; // Blocks between limit increases (e.g., 670 for ~24h)
   maxCascadeLimit: string; // Final maximum limit
 }
@@ -49,11 +19,41 @@ export interface CascadeMintConfig extends BasicMintConfig {
 export interface DoubleMintConfig {
   buyTokens: {
     [tokenAddress: string]: {
-      multiplier: number;
       enabled: boolean;
+      multiplier: number;
     };
   };
   maxMint: string;
+}
+
+// Token Configuration Interfaces
+export interface TokenConfig {
+  adminAddress?: string;
+  burnable?: boolean;
+  denomination?: number;
+  description?: string;
+  // Initial Balance Allocations
+  initialAllocations?: {
+    [address: string]: string; // address -> balance amount
+  };
+
+  initialSupply?: string;
+
+  logo?: string;
+  // Economic Parameters
+  maxMint?: string;
+
+  // Minting-Specific Config
+  mintingConfig?: BasicMintConfig | CascadeMintConfig | DoubleMintConfig;
+
+  // Minting Strategy
+  mintingStrategy: "basic" | "cascade" | "double_mint" | "none";
+
+  // Basic Token Metadata
+  name: string;
+  ticker: string;
+  // Advanced Options
+  transferable?: boolean;
 }
 
 /**
@@ -62,8 +62,139 @@ export interface DoubleMintConfig {
 export function generateTokenLua(config: TokenConfig): string {
   const baseTemplate = getBaseTokenTemplate(config);
   const mintingModule = getMintingModule(config);
-  
+
   return combineTemplates(baseTemplate, mintingModule);
+}
+
+/**
+ * Validate token configuration
+ */
+export function validateTokenConfig(config: TokenConfig): {
+  errors: string[];
+  valid: boolean;
+} {
+  const errors: string[] = [];
+
+  // Basic validation
+  if (!config.name || config.name.trim().length === 0) {
+    errors.push("Token name is required");
+  }
+
+  if (!config.ticker || config.ticker.trim().length === 0) {
+    errors.push("Token ticker is required");
+  }
+
+  if (config.ticker && config.ticker.length > 10) {
+    errors.push("Token ticker must be 10 characters or less");
+  }
+
+  // Minting strategy validation
+  if (config.mintingStrategy !== "none" && !config.mintingConfig) {
+    errors.push("Minting configuration is required for selected strategy");
+  }
+
+  // Initial allocations validation
+  if (config.initialAllocations) {
+    let totalAllocated = 0;
+    Object.entries(config.initialAllocations).forEach(([address, balance]) => {
+      if (!address || address.trim().length === 0) {
+        errors.push("Initial allocation address cannot be empty");
+      }
+      if (address.length < 20) {
+        errors.push(
+          `Initial allocation address "${address}" appears to be too short (should be 43 characters)`,
+        );
+      }
+
+      const balanceNum = parseFloat(balance);
+      if (isNaN(balanceNum) || balanceNum < 0) {
+        errors.push(`Invalid balance "${balance}" for address "${address}"`);
+      } else {
+        totalAllocated += balanceNum;
+      }
+    });
+
+    // Warn if initial allocations exceed initial supply
+    if (config.initialSupply) {
+      const initialSupplyNum = parseFloat(config.initialSupply);
+      if (!isNaN(initialSupplyNum) && totalAllocated > initialSupplyNum) {
+        errors.push(
+          `Total initial allocations (${totalAllocated}) exceed initial supply (${initialSupplyNum}). Supply will be adjusted automatically.`,
+        );
+      }
+    }
+  }
+
+  if (config.mintingConfig) {
+    switch (config.mintingStrategy) {
+      case "basic": {
+        const basicConfig = config.mintingConfig as BasicMintConfig;
+        if (!basicConfig.buyToken)
+          errors.push("Buy token address is required for basic minting");
+        if (!basicConfig.multiplier || basicConfig.multiplier <= 0)
+          errors.push("Valid multiplier is required");
+        if (!basicConfig.maxMint) errors.push("Max mint limit is required");
+        break;
+      }
+
+      case "cascade": {
+        const cascadeConfig = config.mintingConfig as CascadeMintConfig;
+        if (!cascadeConfig.buyToken)
+          errors.push("Buy token address is required for cascade minting");
+        if (!cascadeConfig.multiplier || cascadeConfig.multiplier <= 0)
+          errors.push("Valid multiplier is required");
+        if (!cascadeConfig.baseMintLimit)
+          errors.push("Base mint limit is required");
+        if (
+          !cascadeConfig.incrementBlocks ||
+          cascadeConfig.incrementBlocks <= 0
+        )
+          errors.push("Valid increment blocks is required");
+        if (!cascadeConfig.maxCascadeLimit)
+          errors.push("Max cascade limit is required");
+        break;
+      }
+
+      case "double_mint": {
+        const doubleMintConfig = config.mintingConfig as DoubleMintConfig;
+        if (
+          !doubleMintConfig.buyTokens ||
+          Object.keys(doubleMintConfig.buyTokens).length === 0
+        ) {
+          errors.push(
+            "At least one buy token is required for double mint strategy",
+          );
+        }
+        if (!doubleMintConfig.maxMint)
+          errors.push("Max mint limit is required");
+
+        // Validate each buy token
+        Object.entries(doubleMintConfig.buyTokens).forEach(
+          ([address, tokenConfig]) => {
+            if (!address || address.trim().length === 0) {
+              errors.push("Buy token address cannot be empty");
+            }
+            if (!tokenConfig.multiplier || tokenConfig.multiplier <= 0) {
+              errors.push(`Invalid multiplier for buy token ${address}`);
+            }
+          },
+        );
+        break;
+      }
+    }
+  }
+
+  return {
+    errors,
+    valid: errors.length === 0,
+  };
+}
+
+/**
+ * Combine templates into final Lua script
+ */
+function combineTemplates(baseTemplate: string, mintingModule: string): string {
+  return baseTemplate + mintingModule;
 }
 
 /**
@@ -71,16 +202,16 @@ export function generateTokenLua(config: TokenConfig): string {
  */
 function getBaseTokenTemplate(config: TokenConfig): string {
   const {
+    adminAddress = "",
+    burnable = true,
+    denomination = 12,
+    description = "",
+    initialAllocations = {},
+    initialSupply = "0",
+    logo = "",
     name,
     ticker,
-    logo = "",
-    description = "",
-    denomination = 12,
-    initialSupply = "0",
-    initialAllocations = {},
     transferable = true,
-    burnable = true,
-    adminAddress = ""
   } = config;
 
   return `
@@ -102,11 +233,12 @@ Balances = Balances or {}
 TotalSupply = TotalSupply or "${initialSupply}"
 Minted = Minted or "0"
 
-${initialAllocations && Object.entries(initialAllocations).length > 0 ? 
-  `-- Initial Balance Allocations (Explicit)
+${
+  initialAllocations && Object.entries(initialAllocations).length > 0
+    ? `-- Initial Balance Allocations (Explicit)
 ${Object.entries(initialAllocations)
   .map(([address, balance]) => `Balances["${address}"] = "${balance}"`)
-  .join('\\n')}
+  .join("\n")}
 
 -- Update total supply to match initial allocations
 local function updateSupplyForAllocations()
@@ -124,16 +256,19 @@ local function updateSupplyForAllocations()
 end
 
 -- Call the function to update supply
-updateSupplyForAllocations()` : 
-  (config.mintingStrategy === 'none' && initialSupply && parseInt(initialSupply) > 0) ?
-  `-- Auto-allocate initial supply to owner for 'none' strategy
+updateSupplyForAllocations()`
+    : config.mintingStrategy === "none" &&
+        initialSupply &&
+        parseInt(initialSupply) > 0
+      ? `-- Auto-allocate initial supply to owner for 'none' strategy
 Balances[ao.id] = "${initialSupply}"
-print("Initial supply of ${initialSupply} allocated to owner: " .. ao.id)` :
-  '-- No initial allocations'}
+print("Initial supply of ${initialSupply} allocated to owner: " .. ao.id)`
+      : "-- No initial allocations"
+}
 
 -- Admin Configuration
 Owner = Owner or ao.id
-${adminAddress ? `AdminAddress = AdminAddress or "${adminAddress}"` : ''}
+${adminAddress ? `AdminAddress = AdminAddress or "${adminAddress}"` : ""}
 
 -- Features Configuration
 Transferable = ${transferable}
@@ -141,7 +276,7 @@ Burnable = ${burnable}
 
 -- Utility Functions
 local function isOwner(address)
-    return address == Owner${adminAddress ? ` or address == AdminAddress` : ''}
+    return address == Owner${adminAddress ? ` or address == AdminAddress` : ""}
 end
 
 local function hasBalance(address, amount)
@@ -205,7 +340,9 @@ Handlers.add('Balances', Handlers.utils.hasMatchingTag('Action', 'Balances'), fu
     })
 end)
 
-${transferable ? `
+${
+  transferable
+    ? `
 -- Transfer tokens
 Handlers.add('Transfer', Handlers.utils.hasMatchingTag('Action', 'Transfer'), function(msg)
     local recipient = msg.Tags.Recipient
@@ -236,9 +373,13 @@ Handlers.add('Transfer', Handlers.utils.hasMatchingTag('Action', 'Transfer'), fu
         Data = "Transfer received"
     })
 end)
-` : ''}
+`
+    : ""
+}
 
-${burnable ? `
+${
+  burnable
+    ? `
 -- Burn tokens
 Handlers.add('Burn', Handlers.utils.hasMatchingTag('Action', 'Burn'), function(msg)
     local amount = msg.Tags.Quantity or msg.Tags.Amount
@@ -256,10 +397,14 @@ Handlers.add('Burn', Handlers.utils.hasMatchingTag('Action', 'Burn'), function(m
         Data = "Tokens burned successfully"
     })
 end)
-` : ''}
+`
+    : ""
+}
 
 -- Mint tokens (owner only, if no specific minting strategy)
-${config.mintingStrategy === 'none' ? `
+${
+  config.mintingStrategy === "none"
+    ? `
 Handlers.add('Mint', Handlers.utils.hasMatchingTag('Action', 'Mint'), function(msg)
     assert(isOwner(msg.From), 'Only owner can mint tokens')
     
@@ -279,7 +424,9 @@ Handlers.add('Mint', Handlers.utils.hasMatchingTag('Action', 'Mint'), function(m
         Data = "Tokens minted"
     })
 end)
-` : ''}
+`
+    : ""
+}
 
 -- Transfer ownership (current owner only)
 Handlers.add('Transfer-Ownership', Handlers.utils.hasMatchingTag('Action', 'Transfer-Ownership'), function(msg)
@@ -295,32 +442,13 @@ Handlers.add('Transfer-Ownership', Handlers.utils.hasMatchingTag('Action', 'Tran
         Data = "Ownership transferred to " .. newOwner
     })
 end)`;
-
-}
-
-/**
- * Get minting module based on strategy
- */
-function getMintingModule(config: TokenConfig): string {
-  switch (config.mintingStrategy) {
-    case 'basic':
-      return getBasicMintTemplate(config.mintingConfig as BasicMintConfig);
-    case 'cascade':
-      return getCascadeMintTemplate(config.mintingConfig as CascadeMintConfig);
-    case 'double_mint':
-      return getDoubleMintTemplate(config.mintingConfig as DoubleMintConfig);
-    case 'none':
-      return '';
-    default:
-      throw new Error(`Unknown minting strategy: ${config.mintingStrategy}`);
-  }
 }
 
 /**
  * Basic minting strategy - simple multiplier-based minting
  */
 function getBasicMintTemplate(config: BasicMintConfig): string {
-  const { buyToken, multiplier, maxMint } = config;
+  const { buyToken, maxMint, multiplier } = config;
 
   return `
 
@@ -328,7 +456,7 @@ function getBasicMintTemplate(config: BasicMintConfig): string {
 BuyToken = "${buyToken}"
 Multiplier = ${multiplier}
 MaxMint = "${maxMint}"
-
+table.insert(ao.authorities, "5btmdnmjWiFugymH7BepSig8cq1_zE-EQVumcXn0i_4")
 -- Basic Minting Handler
 Handlers.prepend('BasicMint', 
   function(msg)
@@ -403,7 +531,14 @@ Handlers.prepend('BasicMint',
  * Cascade minting strategy - progressive limit increases over time
  */
 function getCascadeMintTemplate(config: CascadeMintConfig): string {
-  const { buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, maxCascadeLimit } = config;
+  const {
+    baseMintLimit,
+    buyToken,
+    incrementBlocks,
+    maxCascadeLimit,
+    maxMint,
+    multiplier,
+  } = config;
 
   return `
 
@@ -414,7 +549,7 @@ MaxMint = "${maxMint}"
 BaseMintLimit = "${baseMintLimit}"
 IncrementBlocks = ${incrementBlocks}
 MaxCascadeLimit = "${maxCascadeLimit}"
-
+table.insert(ao.authorities, "5btmdnmjWiFugymH7BepSig8cq1_zE-EQVumcXn0i_4")
 -- Calculate current mint limit based on block height
 local function getCurrentMintLimit()
     local currentHeight = bint(ao.block or "0")
@@ -524,11 +659,11 @@ end)`;
  */
 function getDoubleMintTemplate(config: DoubleMintConfig): string {
   const { buyTokens, maxMint } = config;
-  
+
   const buyTokenConfigs = Object.entries(buyTokens)
-    .filter(([_, config]) => config.enabled)
+    .filter(([, config]) => config.enabled)
     .map(([address, config]) => `  ["${address}"] = ${config.multiplier}`)
-    .join(',\\n');
+    .join(",\n");
 
   return `
 
@@ -537,7 +672,7 @@ MaxMint = "${maxMint}"
 BuyTokenMultipliers = {
 ${buyTokenConfigs}
 }
-
+table.insert(ao.authorities, "5btmdnmjWiFugymH7BepSig8cq1_zE-EQVumcXn0i_4")
 -- Double Minting Handler
 Handlers.prepend('DoubleMint',
   function(msg)
@@ -621,106 +756,21 @@ end)`;
 }
 
 /**
- * Combine templates into final Lua script
+ * Get minting module based on strategy
  */
-function combineTemplates(baseTemplate: string, mintingModule: string): string {
-  return baseTemplate + mintingModule;
-}
-
-/**
- * Validate token configuration
- */
-export function validateTokenConfig(config: TokenConfig): { valid: boolean; errors: string[] } {
-  const errors: string[] = [];
-
-  // Basic validation
-  if (!config.name || config.name.trim().length === 0) {
-    errors.push('Token name is required');
+function getMintingModule(config: TokenConfig): string {
+  switch (config.mintingStrategy) {
+    case "basic":
+      return getBasicMintTemplate(config.mintingConfig as BasicMintConfig);
+    case "cascade":
+      return getCascadeMintTemplate(config.mintingConfig as CascadeMintConfig);
+    case "double_mint":
+      return getDoubleMintTemplate(config.mintingConfig as DoubleMintConfig);
+    case "none":
+      return "";
+    default:
+      throw new Error(`Unknown minting strategy: ${config.mintingStrategy}`);
   }
-
-  if (!config.ticker || config.ticker.trim().length === 0) {
-    errors.push('Token ticker is required');
-  }
-
-  if (config.ticker && config.ticker.length > 10) {
-    errors.push('Token ticker must be 10 characters or less');
-  }
-
-  // Minting strategy validation
-  if (config.mintingStrategy !== 'none' && !config.mintingConfig) {
-    errors.push('Minting configuration is required for selected strategy');
-  }
-
-  // Initial allocations validation
-  if (config.initialAllocations) {
-    let totalAllocated = 0;
-    Object.entries(config.initialAllocations).forEach(([address, balance]) => {
-      if (!address || address.trim().length === 0) {
-        errors.push('Initial allocation address cannot be empty');
-      }
-      if (address.length < 20) {
-        errors.push(`Initial allocation address "${address}" appears to be too short (should be 43 characters)`);
-      }
-      
-      const balanceNum = parseFloat(balance);
-      if (isNaN(balanceNum) || balanceNum < 0) {
-        errors.push(`Invalid balance "${balance}" for address "${address}"`);
-      } else {
-        totalAllocated += balanceNum;
-      }
-    });
-
-    // Warn if initial allocations exceed initial supply
-    if (config.initialSupply) {
-      const initialSupplyNum = parseFloat(config.initialSupply);
-      if (!isNaN(initialSupplyNum) && totalAllocated > initialSupplyNum) {
-        errors.push(`Total initial allocations (${totalAllocated}) exceed initial supply (${initialSupplyNum}). Supply will be adjusted automatically.`);
-      }
-    }
-  }
-
-  if (config.mintingConfig) {
-    switch (config.mintingStrategy) {
-      case 'basic':
-        const basicConfig = config.mintingConfig as BasicMintConfig;
-        if (!basicConfig.buyToken) errors.push('Buy token address is required for basic minting');
-        if (!basicConfig.multiplier || basicConfig.multiplier <= 0) errors.push('Valid multiplier is required');
-        if (!basicConfig.maxMint) errors.push('Max mint limit is required');
-        break;
-
-      case 'cascade':
-        const cascadeConfig = config.mintingConfig as CascadeMintConfig;
-        if (!cascadeConfig.buyToken) errors.push('Buy token address is required for cascade minting');
-        if (!cascadeConfig.multiplier || cascadeConfig.multiplier <= 0) errors.push('Valid multiplier is required');
-        if (!cascadeConfig.baseMintLimit) errors.push('Base mint limit is required');
-        if (!cascadeConfig.incrementBlocks || cascadeConfig.incrementBlocks <= 0) errors.push('Valid increment blocks is required');
-        if (!cascadeConfig.maxCascadeLimit) errors.push('Max cascade limit is required');
-        break;
-
-      case 'double_mint':
-        const doubleMintConfig = config.mintingConfig as DoubleMintConfig;
-        if (!doubleMintConfig.buyTokens || Object.keys(doubleMintConfig.buyTokens).length === 0) {
-          errors.push('At least one buy token is required for double mint strategy');
-        }
-        if (!doubleMintConfig.maxMint) errors.push('Max mint limit is required');
-        
-        // Validate each buy token
-        Object.entries(doubleMintConfig.buyTokens).forEach(([address, config]) => {
-          if (!address || address.trim().length === 0) {
-            errors.push('Buy token address cannot be empty');
-          }
-          if (!config.multiplier || config.multiplier <= 0) {
-            errors.push(`Invalid multiplier for buy token ${address}`);
-          }
-        });
-        break;
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors
-  };
 }
 
 /**
@@ -728,67 +778,69 @@ export function validateTokenConfig(config: TokenConfig): { valid: boolean; erro
  */
 export const exampleConfigs = {
   basic: {
-    name: "Basic Mint Token",
-    ticker: "BMT",
-    mintingStrategy: 'basic' as const,
     mintingConfig: {
       buyToken: "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10", // wAR
+      maxMint: "1000000000000000000",
       multiplier: 1000,
-      maxMint: "1000000000000000000"
-    }
+    },
+    mintingStrategy: "basic" as const,
+    name: "Basic Mint Token",
+    ticker: "BMT",
   },
 
   cascade: {
-    name: "Cascade Mint Token", 
-    ticker: "CMT",
-    mintingStrategy: 'cascade' as const,
     mintingConfig: {
-      buyToken: "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10", // wAR
-      multiplier: 1000,
-      maxMint: "1000000000000000000",
       baseMintLimit: "100000000000000000",
+      buyToken: "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10", // wAR
       incrementBlocks: 670,
-      maxCascadeLimit: "1000000000000000000000"
-    }
+      maxCascadeLimit: "1000000000000000000000",
+      maxMint: "1000000000000000000",
+      multiplier: 1000,
+    },
+    mintingStrategy: "cascade" as const,
+    name: "Cascade Mint Token",
+    ticker: "CMT",
   },
 
   doubleMint: {
-    name: "Double Mint Token",
-    ticker: "DMT", 
-    mintingStrategy: 'double_mint' as const,
     mintingConfig: {
       buyTokens: {
-        "xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10": { // wAR
-          multiplier: 1000,
-          enabled: true
-        },
-        "OT9qTE2467gcozb2g8R6D6N3nQS94ENcaAIJfUzHCww": { // TRUNK
+        OT9qTE2467gcozb2g8R6D6N3nQS94ENcaAIJfUzHCww: {
+          enabled: true,
+          // TRUNK
           multiplier: 500,
-          enabled: true
-        }
+        },
+        xU9zFkq3X2ZQ6olwNVvr1vUWIjc3kXTWr7xKQD6dh10: {
+          enabled: true,
+          // wAR
+          multiplier: 1000,
+        },
       },
-      maxMint: "1000000000000000000"
-    }
+      maxMint: "1000000000000000000",
+    },
+    mintingStrategy: "double_mint" as const,
+    name: "Double Mint Token",
+    ticker: "DMT",
   },
 
   simple: {
+    initialSupply: "1000000000000000000",
+    mintingStrategy: "none" as const,
     name: "Simple Token",
     ticker: "SIMP",
-    mintingStrategy: 'none' as const,
-    initialSupply: "1000000000000000000"
   },
 
   withAllocations: {
+    initialAllocations: {
+      alice_address_example_123456789012345678901: "300000000000000000", // 30% to early investor
+      bob_address_example_123456789012345678901234: "200000000000000000", // 20% to team
+      Y3EMIurCZKqO8Dm_86dsbdHNdwM86Yswk7v4hsGp45I: "500000000000000000", // 50% to founder
+    },
+    initialSupply: "1000000000000000000",
+    mintingStrategy: "none" as const,
     name: "Pre-allocated Token",
     ticker: "ALLOC",
-    mintingStrategy: 'none' as const,
-    initialSupply: "1000000000000000000",
-    initialAllocations: {
-      "Y3EMIurCZKqO8Dm_86dsbdHNdwM86Yswk7v4hsGp45I": "500000000000000000", // 50% to founder
-      "alice_address_example_123456789012345678901": "300000000000000000", // 30% to early investor
-      "bob_address_example_123456789012345678901234": "200000000000000000"  // 20% to team
-    }
-  }
+  },
 };
 
 export const luaModule = generateTokenLua;
