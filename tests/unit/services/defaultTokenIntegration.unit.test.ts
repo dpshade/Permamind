@@ -1,17 +1,19 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  DEFAULT_TOKEN_PROCESS,
-  getDefaultTokenProcess,
-  isTokenProcess,
-  extractTokenOperation,
-  TOKEN_DETECTION_PATTERNS,
-  TOKEN_NLP_PATTERNS,
-} from "../../../src/templates/defaultTokenProcess.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { ProcessDefinition } from "../../../src/services/ProcessCommunicationService.js";
+
 import {
   defaultProcessService,
   DefaultProcessUtils,
 } from "../../../src/services/DefaultProcessService.js";
-import type { ProcessDefinition } from "../../../src/services/ProcessCommunicationService.js";
+import {
+  DEFAULT_TOKEN_PROCESS,
+  extractTokenOperation,
+  getDefaultTokenProcess,
+  isTokenProcess,
+  TOKEN_DETECTION_PATTERNS,
+  TOKEN_NLP_PATTERNS,
+} from "../../../src/templates/defaultTokenProcess.js";
 
 describe("Default Token Process Template", () => {
   describe("DEFAULT_TOKEN_PROCESS", () => {
@@ -32,16 +34,31 @@ describe("Default Token Process Template", () => {
         "transferFrom",
       ];
 
-      const handlerNames = DEFAULT_TOKEN_PROCESS.handlers.map(h => h.action);
-      
+      const handlerNames = DEFAULT_TOKEN_PROCESS.handlers.map((h) => h.action);
+
       for (const required of requiredHandlers) {
         expect(handlerNames).toContain(required);
       }
     });
 
     it("should correctly classify write and read operations", () => {
-      const writeOperations = ["transfer", "mint", "burn", "transferOwnership", "approve", "transferFrom"];
-      const readOperations = ["balance", "totalSupply", "name", "symbol", "decimals", "owner", "allowance"];
+      const writeOperations = [
+        "transfer",
+        "mint",
+        "burn",
+        "transferOwnership",
+        "approve",
+        "transferFrom",
+      ];
+      const readOperations = [
+        "balance",
+        "totalSupply",
+        "name",
+        "symbol",
+        "decimals",
+        "owner",
+        "allowance",
+      ];
 
       for (const handler of DEFAULT_TOKEN_PROCESS.handlers) {
         if (writeOperations.includes(handler.action)) {
@@ -53,21 +70,29 @@ describe("Default Token Process Template", () => {
     });
 
     it("should have proper parameter definitions", () => {
-      const transferHandler = DEFAULT_TOKEN_PROCESS.handlers.find(h => h.action === "transfer");
+      const transferHandler = DEFAULT_TOKEN_PROCESS.handlers.find(
+        (h) => h.action === "transfer",
+      );
       expect(transferHandler).toBeDefined();
       expect(transferHandler!.parameters).toHaveLength(3);
-      
-      const recipientParam = transferHandler!.parameters.find(p => p.name === "recipient");
+
+      const recipientParam = transferHandler!.parameters.find(
+        (p) => p.name === "recipient",
+      );
       expect(recipientParam).toBeDefined();
       expect(recipientParam!.required).toBe(true);
       expect(recipientParam!.type).toBe("string");
 
-      const amountParam = transferHandler!.parameters.find(p => p.name === "amount");
+      const amountParam = transferHandler!.parameters.find(
+        (p) => p.name === "amount",
+      );
       expect(amountParam).toBeDefined();
       expect(amountParam!.required).toBe(true);
       expect(amountParam!.type).toBe("number");
 
-      const memoParam = transferHandler!.parameters.find(p => p.name === "memo");
+      const memoParam = transferHandler!.parameters.find(
+        (p) => p.name === "memo",
+      );
       expect(memoParam).toBeDefined();
       expect(memoParam!.required).toBe(false);
       expect(memoParam!.type).toBe("string");
@@ -78,7 +103,7 @@ describe("Default Token Process Template", () => {
     it("should return token process with specified process ID", () => {
       const processId = "test-token-process-123";
       const tokenProcess = getDefaultTokenProcess(processId);
-      
+
       expect(tokenProcess.processId).toBe(processId);
       expect(tokenProcess.name).toBe(DEFAULT_TOKEN_PROCESS.name);
       expect(tokenProcess.handlers).toEqual(DEFAULT_TOKEN_PROCESS.handlers);
@@ -111,28 +136,28 @@ describe("Default Token Process Template", () => {
     it("should extract transfer operations", () => {
       const testCases = [
         {
+          expected: {
+            confidence: 0.9,
+            operation: "transfer",
+            parameters: { amount: 100, recipient: "alice" },
+          },
           request: "Send 100 tokens to alice",
-          expected: {
-            operation: "transfer",
-            parameters: { recipient: "alice", amount: 100 },
-            confidence: 0.9,
-          },
         },
         {
+          expected: {
+            confidence: 0.9,
+            operation: "transfer",
+            parameters: { amount: 50, recipient: "bob" },
+          },
           request: "Transfer 50 tokens to bob with memo 'payment'",
-          expected: {
-            operation: "transfer",
-            parameters: { recipient: "bob", amount: 50 },
-            confidence: 0.9,
-          },
         },
         {
-          request: "Give charlie 25 tokens",
           expected: {
-            operation: "transfer",
-            parameters: { recipient: "charlie", amount: 25 },
             confidence: 0.9,
+            operation: "transfer",
+            parameters: { amount: 25, recipient: "charlie" },
           },
+          request: "Give charlie 25 tokens",
         },
       ];
 
@@ -140,8 +165,12 @@ describe("Default Token Process Template", () => {
         const result = extractTokenOperation(testCase.request);
         expect(result).toBeDefined();
         expect(result!.operation).toBe(testCase.expected.operation);
-        expect(result!.parameters.recipient).toBe(testCase.expected.parameters.recipient);
-        expect(result!.parameters.amount).toBe(testCase.expected.parameters.amount);
+        expect(result!.parameters.recipient).toBe(
+          testCase.expected.parameters.recipient,
+        );
+        expect(result!.parameters.amount).toBe(
+          testCase.expected.parameters.amount,
+        );
         expect(result!.confidence).toBeGreaterThanOrEqual(0.8);
       }
     });
@@ -166,12 +195,12 @@ describe("Default Token Process Template", () => {
     it("should extract mint operations", () => {
       const testCases = [
         {
+          expected: { amount: 1000, recipient: "alice" },
           request: "Mint 1000 tokens for alice",
-          expected: { recipient: "alice", amount: 1000 },
         },
         {
+          expected: { amount: 500, recipient: "bob" },
           request: "Create 500 new tokens for bob",
-          expected: { recipient: "bob", amount: 500 },
         },
       ];
 
@@ -238,14 +267,24 @@ describe("DefaultProcessService", () => {
 
     it("should return token process with process ID", () => {
       const processId = "test-token-123";
-      const process = defaultProcessService.getDefaultProcess("token", processId);
+      const process = defaultProcessService.getDefaultProcess(
+        "token",
+        processId,
+      );
       expect(process).toBeDefined();
       expect(process!.processId).toBe(processId);
     });
 
     it("should handle case-insensitive type matching", () => {
-      const testCases = ["TOKEN", "Token", "erc20", "ERC20", "fungible", "FUNGIBLE"];
-      
+      const testCases = [
+        "TOKEN",
+        "Token",
+        "erc20",
+        "ERC20",
+        "fungible",
+        "FUNGIBLE",
+      ];
+
       for (const type of testCases) {
         const process = defaultProcessService.getDefaultProcess(type);
         expect(process).toBeDefined();
@@ -260,9 +299,15 @@ describe("DefaultProcessService", () => {
 
   describe("detectProcessType", () => {
     it("should detect token processes", () => {
-      const tokenHandlers = ["transfer", "balance", "mint", "burn", "totalSupply"];
+      const tokenHandlers = [
+        "transfer",
+        "balance",
+        "mint",
+        "burn",
+        "totalSupply",
+      ];
       const detection = defaultProcessService.detectProcessType(tokenHandlers);
-      
+
       expect(detection).toBeDefined();
       expect(detection!.type).toBe("token");
       expect(detection!.confidence).toBeGreaterThan(0.4);
@@ -273,11 +318,19 @@ describe("DefaultProcessService", () => {
 
     it("should calculate confidence based on handler overlap", () => {
       const fewHandlers = ["transfer", "balance"];
-      const manyHandlers = ["transfer", "balance", "mint", "burn", "totalSupply", "name", "symbol"];
-      
+      const manyHandlers = [
+        "transfer",
+        "balance",
+        "mint",
+        "burn",
+        "totalSupply",
+        "name",
+        "symbol",
+      ];
+
       const detection1 = defaultProcessService.detectProcessType(fewHandlers);
       const detection2 = defaultProcessService.detectProcessType(manyHandlers);
-      
+
       if (detection1 && detection2) {
         expect(detection2.confidence).toBeGreaterThan(detection1.confidence);
       }
@@ -285,7 +338,8 @@ describe("DefaultProcessService", () => {
 
     it("should return null for non-token processes", () => {
       const nonTokenHandlers = ["getData", "setConfig", "processOrder"];
-      const detection = defaultProcessService.detectProcessType(nonTokenHandlers);
+      const detection =
+        defaultProcessService.detectProcessType(nonTokenHandlers);
       expect(detection).toBeNull();
     });
   });
@@ -294,9 +348,12 @@ describe("DefaultProcessService", () => {
     it("should process token requests with high confidence", () => {
       const request = "Send 100 tokens to alice";
       const processId = "test-token-123";
-      
-      const result = defaultProcessService.processNaturalLanguage(request, processId);
-      
+
+      const result = defaultProcessService.processNaturalLanguage(
+        request,
+        processId,
+      );
+
       expect(result).toBeDefined();
       expect(result!.operation).toBe("transfer");
       expect(result!.parameters.recipient).toBe("alice");
@@ -309,7 +366,7 @@ describe("DefaultProcessService", () => {
     it("should handle balance requests", () => {
       const request = "Check my balance";
       const result = defaultProcessService.processNaturalLanguage(request);
-      
+
       expect(result).toBeDefined();
       expect(result!.operation).toBe("balance");
       expect(result!.processType).toBe("token");
@@ -332,7 +389,8 @@ describe("DefaultProcessService", () => {
     });
 
     it("should return empty array for unknown types", () => {
-      const suggestions = defaultProcessService.getSuggestedOperations("unknown");
+      const suggestions =
+        defaultProcessService.getSuggestedOperations("unknown");
       expect(suggestions).toEqual([]);
     });
   });
@@ -405,19 +463,22 @@ describe("DefaultProcessUtils", () => {
     it("should suggest token operations for token-related partial requests", () => {
       const suggestions = DefaultProcessUtils.getSmartSuggestions("send");
       expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions.some(s => s.includes("tokens"))).toBe(true);
+      expect(suggestions.some((s) => s.includes("tokens"))).toBe(true);
     });
 
     it("should suggest balance operations for balance-related requests", () => {
       const suggestions = DefaultProcessUtils.getSmartSuggestions("balance");
       expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions.some(s => s.includes("balance"))).toBe(true);
+      expect(suggestions.some((s) => s.includes("balance"))).toBe(true);
     });
 
     it("should suggest mint operations for mint-related requests", () => {
-      const suggestions = DefaultProcessUtils.getSmartSuggestions("mint tokens");
+      const suggestions =
+        DefaultProcessUtils.getSmartSuggestions("mint tokens");
       expect(suggestions.length).toBeGreaterThan(0);
-      expect(suggestions.some(s => s.includes("mint") || s.includes("Mint"))).toBe(true);
+      expect(
+        suggestions.some((s) => s.includes("mint") || s.includes("Mint")),
+      ).toBe(true);
     });
   });
 });
@@ -427,38 +488,46 @@ describe("Integration Tests", () => {
     it("should handle complete token transfer flow", () => {
       const request = "Send 100 tokens to alice with memo 'payment'";
       const processId = "test-token-123";
-      
+
       // 1. Check if request can be handled
       expect(defaultProcessService.canHandleRequest(request)).toBe(true);
-      
+
       // 2. Process natural language
-      const nlpResult = defaultProcessService.processNaturalLanguage(request, processId);
+      const nlpResult = defaultProcessService.processNaturalLanguage(
+        request,
+        processId,
+      );
       expect(nlpResult).toBeDefined();
       expect(nlpResult!.operation).toBe("transfer");
-      
+
       // 3. Get appropriate template
-      const template = defaultProcessService.getDefaultProcess("token", processId);
+      const template = defaultProcessService.getDefaultProcess(
+        "token",
+        processId,
+      );
       expect(template).toBeDefined();
       expect(template!.processId).toBe(processId);
-      
+
       // 4. Verify handler exists
-      const handler = template!.handlers.find(h => h.action === "transfer");
+      const handler = template!.handlers.find((h) => h.action === "transfer");
       expect(handler).toBeDefined();
       expect(handler!.isWrite).toBe(true);
     });
 
     it("should handle process type detection flow", () => {
       const handlers = ["transfer", "balance", "mint", "burn", "totalSupply"];
-      
+
       // 1. Detect process type
       const detection = defaultProcessService.detectProcessType(handlers);
       expect(detection).toBeDefined();
       expect(detection!.type).toBe("token");
-      
+
       // 2. Get suggestions
-      const suggestions = defaultProcessService.getSuggestedOperations(detection!.type);
+      const suggestions = defaultProcessService.getSuggestedOperations(
+        detection!.type,
+      );
       expect(suggestions.length).toBeGreaterThan(0);
-      
+
       // 3. Verify template
       expect(detection!.template).toEqual(DEFAULT_TOKEN_PROCESS);
     });

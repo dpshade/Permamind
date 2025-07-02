@@ -6,7 +6,7 @@ const service = () => {
             const processId = await createProcess(signer);
             await evaluateToken(signer, processId, tokenModule);
             return processId;
-        }
+        },
     };
 };
 async function evaluateToken(signer, processId, tokenModule) {
