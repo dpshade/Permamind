@@ -470,3 +470,4 @@ export function extractTokenOperation(request: string): {
   }
   
   return null;
+}

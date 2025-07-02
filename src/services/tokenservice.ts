@@ -27,3 +27,4 @@ async function evaluateToken(signer: JWKInterface, processId: string,tokenModule
   await evalProcess(signer, tokenModule, processId);
 }
 
+export const tokenService = service();

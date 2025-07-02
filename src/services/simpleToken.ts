@@ -272,3 +272,4 @@ export function validateSimpleTokenConfig(config: SimpleTokenConfig): { valid: b
     valid: errors.length === 0,
     errors
   };
+}

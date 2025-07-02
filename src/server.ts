@@ -74,8 +74,10 @@ async function init() {
   
   // Verify default process templates are loaded
   const defaultProcesses = defaultProcessService.getDefaultProcesses();
-  const supportedTypes = Object.keys(defaultProcesses);
   if (process.env.NODE_ENV !== "production") {
+    const supportedTypes = Object.keys(defaultProcesses);
+    console.log(`✅ Default process templates loaded: ${supportedTypes.join(", ")}`);
+    console.log("🚀 Natural language token integration ready");
   }
 }
 

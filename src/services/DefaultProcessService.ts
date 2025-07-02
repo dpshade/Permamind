@@ -327,3 +327,4 @@ export type {
   DefaultProcessRegistry,
   ProcessTypeDetection,
   EnhancedNLPResult,
+};
