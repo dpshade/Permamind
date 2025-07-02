@@ -347,7 +347,7 @@ export function extractTokenOperation(request: string): {
   operation: string;
   parameters: Record<string, unknown>;
 } | null {
-  const requestLower = request.toLowerCase();
+  // const requestLower = request.toLowerCase(); // Future: use for advanced matching
   
   // Check transfer patterns
   for (const pattern of TOKEN_NLP_PATTERNS.transfer) {

@@ -77,7 +77,7 @@ const service = () => {
                 // Future: Could send a test message to the process to detect capabilities
                 return null;
             }
-            catch (error) {
+            catch {
                 // Process type detection failed silently for MCP compatibility
                 return null;
             }
@@ -95,7 +95,7 @@ const service = () => {
                 }
                 const aoMessage = service().buildAOMessage(processId, handlerMatch.handler, handlerMatch.parameters);
                 const response = await aoMessageService.executeMessage(signer, aoMessage);
-                return response;
+                return service().interpretResponse(response, handlerMatch.handler);
             }
             catch (error) {
                 return {
@@ -224,7 +224,7 @@ const service = () => {
             return bestMatch;
         },
         parseMarkdown: (markdown) => {
-            const lines = markdown.split("");
+            const lines = markdown.split("\n");
             const handlers = [];
             let currentHandler = null;
             let processName = "Unknown Process";
@@ -345,8 +345,8 @@ const extractParameters = (request, handler) => {
 const extractParameterValue = (request, paramName, paramType) => {
     // Parameter-specific patterns first
     const specificPatterns = [
-        new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
-        new RegExp(`${paramName}\s+([^\s]+)`, "i"),
+        new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
+        new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
     ];
     // Check parameter-specific patterns first
     for (const pattern of specificPatterns) {
@@ -363,17 +363,18 @@ const extractParameterValue = (request, paramName, paramType) => {
     // Type-specific fallback patterns
     if (paramType === "number") {
         const numberPatterns = [
-            new RegExp(`send\s+([0-9.]+)`, "i"),
-            new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
-            new RegExp(`([0-9.]+)\s+tokens?`, "i"),
-            new RegExp(`([0-9.]+)`, "g"), // Last resort: any number
+            new RegExp(`send\\s+([0-9.]+)`, "i"),
+            new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
+            new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
+            new RegExp(`([0-9.]+)`), // Last resort: any number (removed global flag)
         ];
         for (const pattern of numberPatterns) {
             const match = request.match(pattern);
             if (match && match[1]) {
                 const num = parseFloat(match[1]);
-                if (!isNaN(num))
+                if (!isNaN(num)) {
                     return num;
+                }
             }
         }
     }
@@ -381,8 +382,8 @@ const extractParameterValue = (request, paramName, paramType) => {
         (paramName === "recipient" || paramName === "to")) {
         // Address/recipient patterns
         const addressPatterns = [
-            new RegExp(`to\s+([^\s]+)`, "i"),
-            new RegExp(`recipient\s+([^\s]+)`, "i"),
+            new RegExp(`to\\s+([^\\s]+)`, "i"),
+            new RegExp(`recipient\\s+([^\\s]+)`, "i"),
         ];
         for (const pattern of addressPatterns) {
             const match = request.match(pattern);

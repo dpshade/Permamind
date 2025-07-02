@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ProcessDefinition } from "../../../src/services/ProcessCommunicationService.js";
-
 import {
   defaultProcessService,
   DefaultProcessUtils,
@@ -11,27 +9,25 @@ import {
   extractTokenOperation,
   getDefaultTokenProcess,
   isTokenProcess,
-  TOKEN_DETECTION_PATTERNS,
-  TOKEN_NLP_PATTERNS,
 } from "../../../src/templates/defaultTokenProcess.js";
 
 describe("Default Token Process Template", () => {
   describe("DEFAULT_TOKEN_PROCESS", () => {
     it("should have all required token handlers", () => {
       const requiredHandlers = [
-        "transfer",
-        "balance",
-        "mint",
-        "burn",
-        "totalSupply",
-        "name",
-        "symbol",
-        "decimals",
-        "owner",
-        "transferOwnership",
-        "approve",
-        "allowance",
-        "transferFrom",
+        "Transfer",
+        "Balance",
+        "Mint",
+        "Burn",
+        "TotalSupply",
+        "Name",
+        "Symbol",
+        "Decimals",
+        "Owner",
+        "Transfer-Ownership",
+        "Approve",
+        "Allowance",
+        "TransferFrom",
       ];
 
       const handlerNames = DEFAULT_TOKEN_PROCESS.handlers.map((h) => h.action);
@@ -43,21 +39,21 @@ describe("Default Token Process Template", () => {
 
     it("should correctly classify write and read operations", () => {
       const writeOperations = [
-        "transfer",
-        "mint",
-        "burn",
-        "transferOwnership",
-        "approve",
-        "transferFrom",
+        "Transfer",
+        "Mint",
+        "Burn",
+        "Transfer-Ownership",
+        "Approve",
+        "TransferFrom",
       ];
       const readOperations = [
-        "balance",
-        "totalSupply",
-        "name",
-        "symbol",
-        "decimals",
-        "owner",
-        "allowance",
+        "Balance",
+        "TotalSupply",
+        "Name",
+        "Symbol",
+        "Decimals",
+        "Owner",
+        "Allowance",
       ];
 
       for (const handler of DEFAULT_TOKEN_PROCESS.handlers) {
@@ -71,7 +67,7 @@ describe("Default Token Process Template", () => {
 
     it("should have proper parameter definitions", () => {
       const transferHandler = DEFAULT_TOKEN_PROCESS.handlers.find(
-        (h) => h.action === "transfer",
+        (h) => h.action === "Transfer",
       );
       expect(transferHandler).toBeDefined();
       expect(transferHandler!.parameters).toHaveLength(3);
@@ -84,7 +80,7 @@ describe("Default Token Process Template", () => {
       expect(recipientParam!.type).toBe("string");
 
       const amountParam = transferHandler!.parameters.find(
-        (p) => p.name === "amount",
+        (p) => p.name === "quantity",
       );
       expect(amountParam).toBeDefined();
       expect(amountParam!.required).toBe(true);
@@ -112,12 +108,12 @@ describe("Default Token Process Template", () => {
 
   describe("isTokenProcess", () => {
     it("should identify token processes with core handlers", () => {
-      const tokenHandlers = ["transfer", "balance", "mint", "burn"];
+      const tokenHandlers = ["Transfer", "Balance", "Mint", "Burn"];
       expect(isTokenProcess(tokenHandlers)).toBe(true);
     });
 
     it("should identify token processes with sufficient handlers", () => {
-      const tokenHandlers = ["transfer", "balance", "totalSupply", "name"];
+      const tokenHandlers = ["Transfer", "Balance", "TotalSupply", "Name"];
       expect(isTokenProcess(tokenHandlers)).toBe(true);
     });
 
@@ -127,7 +123,7 @@ describe("Default Token Process Template", () => {
     });
 
     it("should require minimum number of handlers when core handlers are missing", () => {
-      const insufficientHandlers = ["mint", "burn"];
+      const insufficientHandlers = ["Mint", "Burn"];
       expect(isTokenProcess(insufficientHandlers)).toBe(false);
     });
   });
@@ -300,11 +296,11 @@ describe("DefaultProcessService", () => {
   describe("detectProcessType", () => {
     it("should detect token processes", () => {
       const tokenHandlers = [
-        "transfer",
-        "balance",
-        "mint",
-        "burn",
-        "totalSupply",
+        "Transfer",
+        "Balance",
+        "Mint",
+        "Burn",
+        "TotalSupply",
       ];
       const detection = defaultProcessService.detectProcessType(tokenHandlers);
 
@@ -317,14 +313,14 @@ describe("DefaultProcessService", () => {
     });
 
     it("should calculate confidence based on handler overlap", () => {
-      const fewHandlers = ["transfer", "balance"];
+      const fewHandlers = ["Transfer", "Balance"];
       const manyHandlers = [
-        "transfer",
-        "balance",
-        "mint",
-        "burn",
-        "totalSupply",
-        "name",
+        "Transfer",
+        "Balance",
+        "Mint",
+        "Burn",
+        "TotalSupply",
+        "Name",
         "symbol",
       ];
 
@@ -467,7 +463,7 @@ describe("DefaultProcessUtils", () => {
     });
 
     it("should suggest balance operations for balance-related requests", () => {
-      const suggestions = DefaultProcessUtils.getSmartSuggestions("balance");
+      const suggestions = DefaultProcessUtils.getSmartSuggestions("Balance");
       expect(suggestions.length).toBeGreaterThan(0);
       expect(suggestions.some((s) => s.includes("balance"))).toBe(true);
     });
@@ -477,7 +473,7 @@ describe("DefaultProcessUtils", () => {
         DefaultProcessUtils.getSmartSuggestions("mint tokens");
       expect(suggestions.length).toBeGreaterThan(0);
       expect(
-        suggestions.some((s) => s.includes("mint") || s.includes("Mint")),
+        suggestions.some((s) => s.includes("Mint") || s.includes("Mint")),
       ).toBe(true);
     });
   });
@@ -509,13 +505,13 @@ describe("Integration Tests", () => {
       expect(template!.processId).toBe(processId);
 
       // 4. Verify handler exists
-      const handler = template!.handlers.find((h) => h.action === "transfer");
+      const handler = template!.handlers.find((h) => h.action === "Transfer");
       expect(handler).toBeDefined();
       expect(handler!.isWrite).toBe(true);
     });
 
     it("should handle process type detection flow", () => {
-      const handlers = ["transfer", "balance", "mint", "burn", "totalSupply"];
+      const handlers = ["Transfer", "Balance", "Mint", "Burn", "TotalSupply"];
 
       // 1. Detect process type
       const detection = defaultProcessService.detectProcessType(handlers);

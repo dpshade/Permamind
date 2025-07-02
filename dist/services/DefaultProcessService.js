@@ -19,7 +19,7 @@ const createDefaultProcessService = () => {
             // Future: Check other process types
             return false;
         },
-        detectProcessType(handlers, processResponses) {
+        detectProcessType(handlers) {
             // Check for token patterns
             if (isTokenProcess(handlers)) {
                 const tokenHandlers = handlers.filter((h) => TOKEN_DETECTION_PATTERNS.handlers.includes(h.toLowerCase()));

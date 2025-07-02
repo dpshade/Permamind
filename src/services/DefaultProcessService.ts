@@ -111,10 +111,7 @@ const createDefaultProcessService = (): DefaultProcessService => {
       return false;
     },
 
-    detectProcessType(
-      handlers: string[],
-      processResponses?: Record<string, unknown>,
-    ): null | ProcessTypeDetection {
+    detectProcessType(handlers: string[]): null | ProcessTypeDetection {
       // Check for token patterns
       if (isTokenProcess(handlers)) {
         const tokenHandlers = handlers.filter((h) =>

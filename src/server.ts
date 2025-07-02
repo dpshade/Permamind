@@ -156,7 +156,7 @@ async function resolveAddress(
             name,
           });
         }
-      } catch (error) {
+      } catch {
         // Skip invalid entries
         continue;
       }
@@ -253,7 +253,7 @@ async function resolveToken(input: string): Promise<ResolutionResult<string>> {
             ticker,
           });
         }
-      } catch (error) {
+      } catch {
         // Skip invalid entries
         continue;
       }
@@ -981,7 +981,7 @@ server.addTool({
           if (info.Denomination) {
             denomination = parseInt(info.Denomination);
           }
-        } catch (error) {
+        } catch {
           // Use default denomination if parsing fails
         }
       }
@@ -1139,7 +1139,7 @@ server.addTool({
           if (info.Denomination) {
             denomination = parseInt(info.Denomination);
           }
-        } catch (error) {
+        } catch {
           // Use default denomination if parsing fails
         }
       }
@@ -1256,7 +1256,7 @@ server.addTool({
           if (info.Denomination) {
             denomination = parseInt(info.Denomination);
           }
-        } catch (error) {
+        } catch {
           // Use default denomination if parsing fails
         }
       }

@@ -331,7 +331,7 @@ export const TOKEN_NLP_PATTERNS = {
  * Extract token operation from natural language using enhanced patterns
  */
 export function extractTokenOperation(request) {
-    const requestLower = request.toLowerCase();
+    // const requestLower = request.toLowerCase(); // Future: use for advanced matching
     // Check transfer patterns
     for (const pattern of TOKEN_NLP_PATTERNS.transfer) {
         const match = request.match(pattern);
