@@ -76,7 +76,7 @@ export interface TokenDeploymentConfig {
   totalSupply?: string;
 }
 
-export const createTokenProcess = async (
+/*export const createTokenProcess = async (
   signer: JWKInterface,
   config: TokenDeploymentConfig,
 ) => {
@@ -107,7 +107,7 @@ export const createTokenProcess = async (
 
   await sleep(3000);
   return processId;
-};
+};*/
 
 const readMessage = async (messageId: string, processId: string) => {
   const { Error } = await result({

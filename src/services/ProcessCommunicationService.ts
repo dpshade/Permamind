@@ -7,6 +7,11 @@ import {
   AOMessageResponse,
   aoMessageService,
 } from "./AOMessageService.js";
+import { 
+  defaultProcessService, 
+  type EnhancedNLPResult,
+  type ProcessTypeDetection,
+} from "./DefaultProcessService.js";
 
 export interface HandlerInfo {
   action: string;
@@ -42,6 +47,16 @@ export interface ProcessCommunicationService {
     userRequest: string,
     signer: JWKInterface,
   ) => Promise<ProcessResponse>;
+  executeSmartRequest: (
+    processId: string,
+    userRequest: string,
+    signer: JWKInterface,
+    processMarkdown?: string,
+  ) => Promise<ProcessResponse>;
+  detectProcessType: (
+    processId: string,
+    sampleRequests?: string[],
+  ) => Promise<ProcessTypeDetection | null>;
   interpretResponse: (
     response: AOMessageResponse,
     handler: HandlerInfo,
@@ -65,6 +80,10 @@ export interface ProcessResponse {
   handlerUsed?: string;
   parameters?: Record<string, unknown>;
   success: boolean;
+  processType?: string;
+  confidence?: number;
+  templateUsed?: string;
+  suggestions?: string[];
 }
 
 const WRITE_KEYWORDS = [
@@ -127,6 +146,7 @@ const service = (): ProcessCommunicationService => {
         data: typeof parameters.data === "string" ? parameters.data : undefined,
         processId,
         tags,
+        isWrite: handler.isWrite,
       };
     },
 
@@ -163,7 +183,7 @@ const service = (): ProcessCommunicationService => {
           aoMessage,
         );
 
-        return service().interpretResponse(response, handlerMatch.handler);
+        return response;
       } catch (error) {
         return {
           error: error instanceof Error ? error.message : "Unknown error",
@@ -185,6 +205,8 @@ const service = (): ProcessCommunicationService => {
       }
 
       let interpretedData = response.data;
+      
+      // Handle AO message structure with Data field
       if (
         response.data &&
         typeof response.data === "object" &&
@@ -192,8 +214,37 @@ const service = (): ProcessCommunicationService => {
         typeof response.data.Data === "string"
       ) {
         try {
-          interpretedData = JSON.parse(response.data.Data);
+          const jsonData = JSON.parse(response.data.Data);
+          interpretedData = jsonData;
+          
+          // Token-specific response handling
+          if (handler.action === 'balance' && jsonData.Balance !== undefined) {
+            // For balance queries, return structured balance information
+            interpretedData = {
+              balance: jsonData.Balance,
+              account: jsonData.Account || "unknown",
+              ticker: jsonData.Ticker || "unknown",
+              rawData: jsonData
+            };
+          } else if (handler.action === 'info' && jsonData.Name !== undefined) {
+            // For info queries, return structured token information
+            interpretedData = {
+              name: jsonData.Name,
+              ticker: jsonData.Ticker,
+              logo: jsonData.Logo,
+              description: jsonData.Description,
+              denomination: jsonData.Denomination,
+              totalSupply: jsonData.TotalSupply,
+              owner: jsonData.Owner,
+              transferable: jsonData.Transferable,
+              burnable: jsonData.Burnable,
+              mintingStrategy: jsonData.MintingStrategy,
+              processId: jsonData.ProcessId,
+              rawData: jsonData
+            };
+          }
         } catch {
+          // Fall back to raw data if JSON parsing fails
           interpretedData = response.data.Data;
         }
       }
@@ -230,7 +281,7 @@ const service = (): ProcessCommunicationService => {
     },
 
     parseMarkdown: (markdown: string): ProcessDefinition => {
-      const lines = markdown.split("\n");
+      const lines = markdown.split("");
       const handlers: HandlerInfo[] = [];
       let currentHandler: null | Partial<HandlerInfo> = null;
       let processName = "Unknown Process";
@@ -276,6 +327,116 @@ const service = (): ProcessCommunicationService => {
         name: processName,
         processId: "",
       };
+    },
+
+    executeSmartRequest: async (
+      processId: string,
+      userRequest: string,
+      signer: JWKInterface,
+      processMarkdown?: string,
+    ): Promise<ProcessResponse> => {
+      try {
+        // If markdown is provided, use traditional approach
+        if (processMarkdown) {
+          return await service().executeProcessRequest(
+            processMarkdown,
+            processId,
+            userRequest,
+            signer,
+          );
+        }
+
+        // Try enhanced natural language processing with auto-detection
+        const nlpResult = defaultProcessService.processNaturalLanguage(
+          userRequest,
+          processId,
+        );
+
+        if (nlpResult && nlpResult.confidence > 0.6) {
+          // Find the handler in the template
+          const handler = nlpResult.template.handlers.find(
+            h => h.action === nlpResult.operation
+          );
+
+          if (handler) {
+            const aoMessage = service().buildAOMessage(
+              processId,
+              handler,
+              nlpResult.parameters,
+            );
+
+            const response = await aoMessageService.executeMessage(
+              signer,
+              aoMessage,
+            );
+
+            const result = service().interpretResponse(response, handler);
+            return {
+              ...result,
+              processType: nlpResult.processType,
+              confidence: nlpResult.confidence,
+              templateUsed: "default",
+              suggestions: defaultProcessService.getSuggestedOperations(nlpResult.processType),
+            };
+          }
+        }
+
+        // Fallback: try to detect process type and suggest operations
+        const canHandle = defaultProcessService.canHandleRequest(userRequest);
+        if (canHandle) {
+          return {
+            success: false,
+            error: "Request appears to be a token operation, but process type could not be confirmed. Please provide process documentation or use executeTokenRequest for token operations.",
+            suggestions: defaultProcessService.getSuggestedOperations("token"),
+          };
+        }
+
+        return {
+          success: false,
+          error: "Could not process request. Please provide process documentation using processMarkdown parameter.",
+        };
+      } catch (error) {
+        return {
+          error: error instanceof Error ? error.message : "Unknown error",
+          success: false,
+        };
+      }
+    },
+
+
+    detectProcessType: async (
+      processId: string,
+      sampleRequests?: string[],
+    ): Promise<ProcessTypeDetection | null> => {
+      try {
+        // For now, we'll implement basic detection logic
+        // Future enhancement: could query the process to get handler list
+        
+        if (sampleRequests) {
+          // Analyze sample requests to determine process type
+          const tokenRequestCount = sampleRequests.filter(req => 
+            defaultProcessService.canHandleRequest(req)
+          ).length;
+          
+          if (tokenRequestCount > 0) {
+            const tokenTemplate = defaultProcessService.getDefaultProcess("token", processId);
+            if (tokenTemplate) {
+              return {
+                type: "token",
+                confidence: Math.min(tokenRequestCount / sampleRequests.length + 0.3, 1.0),
+                template: tokenTemplate,
+                suggestedHandlers: tokenTemplate.handlers.map(h => h.action),
+              };
+            }
+          }
+        }
+
+        // Future: Could send a test message to the process to detect capabilities
+        return null;
+      } catch (error) {
+        // Process type detection failed silently for MCP compatibility
+        return null;
+      }
     },
   };
 };
@@ -379,8 +540,8 @@ const extractParameterValue = (
 ): unknown => {
   // Parameter-specific patterns first
   const specificPatterns = [
-    new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
-    new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
+    new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
+    new RegExp(`${paramName}\s+([^\s]+)`, "i"),
   ];
 
   // Check parameter-specific patterns first
@@ -399,9 +560,9 @@ const extractParameterValue = (
   // Type-specific fallback patterns
   if (paramType === "number") {
     const numberPatterns = [
-      new RegExp(`send\\s+([0-9.]+)`, "i"),
-      new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
-      new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
+      new RegExp(`send\s+([0-9.]+)`, "i"),
+      new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+      new RegExp(`([0-9.]+)\s+tokens?`, "i"),
       new RegExp(`([0-9.]+)`, "g"), // Last resort: any number
     ];
 
@@ -418,8 +579,8 @@ const extractParameterValue = (
   ) {
     // Address/recipient patterns
     const addressPatterns = [
-      new RegExp(`to\\s+([^\\s]+)`, "i"),
-      new RegExp(`recipient\\s+([^\\s]+)`, "i"),
+      new RegExp(`to\s+([^\s]+)`, "i"),
+      new RegExp(`recipient\s+([^\s]+)`, "i"),
     ];
 
     for (const pattern of addressPatterns) {
