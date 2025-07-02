@@ -5,12 +5,12 @@
  */
 
 export interface SimpleTokenConfig {
+  denomination?: number;
+  description?: string;
+  logo?: string;
   name: string;
   ticker: string;
   totalSupply: string;
-  denomination?: number;
-  logo?: string;
-  description?: string;
 }
 
 /**
@@ -19,12 +19,12 @@ export interface SimpleTokenConfig {
  */
 export function generateSimpleTokenLua(config: SimpleTokenConfig): string {
   const {
+    denomination = 12,
+    description = "",
+    logo = "",
     name,
     ticker,
     totalSupply,
-    denomination = 12,
-    logo = "",
-    description = ""
   } = config;
 
   return `
@@ -240,36 +240,42 @@ print("Owner: " .. Owner)
 /**
  * Validate simple token configuration
  */
-export function validateSimpleTokenConfig(config: SimpleTokenConfig): { valid: boolean; errors: string[] } {
+export function validateSimpleTokenConfig(config: SimpleTokenConfig): {
+  errors: string[];
+  valid: boolean;
+} {
   const errors: string[] = [];
 
   if (!config.name || config.name.trim().length === 0) {
-    errors.push('Token name is required');
+    errors.push("Token name is required");
   }
 
   if (!config.ticker || config.ticker.trim().length === 0) {
-    errors.push('Token ticker is required');
+    errors.push("Token ticker is required");
   }
 
   if (config.ticker && config.ticker.length > 10) {
-    errors.push('Token ticker must be 10 characters or less');
+    errors.push("Token ticker must be 10 characters or less");
   }
 
   if (!config.totalSupply || config.totalSupply.trim().length === 0) {
-    errors.push('Total supply is required');
+    errors.push("Total supply is required");
   }
 
   const supplyNum = parseFloat(config.totalSupply);
   if (isNaN(supplyNum) || supplyNum <= 0) {
-    errors.push('Total supply must be a positive number');
+    errors.push("Total supply must be a positive number");
   }
 
-  if (config.denomination !== undefined && (config.denomination < 0 || config.denomination > 18)) {
-    errors.push('Denomination must be between 0 and 18');
+  if (
+    config.denomination !== undefined &&
+    (config.denomination < 0 || config.denomination > 18)
+  ) {
+    errors.push("Denomination must be between 0 and 18");
   }
 
   return {
+    errors,
     valid: errors.length === 0,
-    errors
   };
 }

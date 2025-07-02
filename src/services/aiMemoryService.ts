@@ -18,11 +18,11 @@ import { event, fetchEvents, fetchEventsVIP01 } from "../relay.js";
 // Constants for memory kinds
 const MEMORY_KINDS = {
   AI_MEMORY: "10",
+  CONTACT_MAPPING: "31",
   MEMORY_CONTEXT: "40",
   MEMORY_RELATIONSHIP: "11",
   REASONING_CHAIN: "23",
   TOKEN_MAPPING: "30",
-  CONTACT_MAPPING: "31",
 } as const;
 
 // Validation utilities

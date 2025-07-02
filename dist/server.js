@@ -7,13 +7,13 @@ import { HUB_REGISTRY_ID, ProcessHub } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { event, fetchEvents } from "./relay.js";
 import { aiMemoryService, MEMORY_KINDS } from "./services/aiMemoryService.js";
+import { defaultProcessService } from "./services/DefaultProcessService.js";
 import { hubService } from "./services/hub.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
 import { hubRegistryService } from "./services/registry.js";
-import { defaultProcessService } from "./services/DefaultProcessService.js";
+import { generateSimpleTokenLua, validateSimpleTokenConfig, } from "./services/simpleToken.js";
+import { exampleConfigs, generateTokenLua, validateTokenConfig, } from "./services/token_lua.js";
 import { tokenService } from "./services/tokenservice.js";
-import { generateTokenLua, validateTokenConfig, exampleConfigs } from "./services/token_lua.js";
-import { generateSimpleTokenLua, validateSimpleTokenConfig } from "./services/simpleToken.js";
 let keyPair;
 let publicKey;
 let hubId;
@@ -64,16 +64,93 @@ async function init() {
 function looksLikeProcessId(input) {
     return /^[A-Za-z0-9_-]{43}$/.test(input);
 }
+// Resolve contact name to address using memories
+async function resolveAddress(input) {
+    if (looksLikeProcessId(input)) {
+        return { requiresVerification: false, resolved: true, value: input };
+    }
+    try {
+        // Use dedicated kind for efficient filtering
+        const filter = {
+            kinds: [MEMORY_KINDS.CONTACT_MAPPING],
+            limit: 100,
+        };
+        const _filters = JSON.stringify([filter]);
+        const events = await fetchEvents(hubId, _filters);
+        const addressMatches = [];
+        const inputLower = input.toLowerCase();
+        for (const event of events) {
+            try {
+                const name = event.contact_name || "";
+                const address = event.contact_address || "";
+                if (!name || !address)
+                    continue;
+                let confidence = 0;
+                if (name.toLowerCase() === inputLower) {
+                    confidence = 0.9;
+                }
+                else if (name.toLowerCase().includes(inputLower)) {
+                    confidence = 0.7;
+                }
+                if (confidence > 0) {
+                    addressMatches.push({
+                        address,
+                        confidence,
+                        name,
+                    });
+                }
+            }
+            catch (error) {
+                // Skip invalid entries
+                continue;
+            }
+        }
+        // Sort by confidence
+        addressMatches.sort((a, b) => b.confidence - a.confidence);
+        if (addressMatches.length === 0) {
+            return {
+                requiresVerification: false,
+                resolved: false,
+                verificationMessage: `No contact found for "${input}". Use saveAddressMapping to register this contact.`,
+            };
+        }
+        if (addressMatches.length === 1 && addressMatches[0].confidence > 0.8) {
+            const match = addressMatches[0];
+            return {
+                requiresVerification: true,
+                resolved: true,
+                value: match.address,
+                verificationMessage: `Found contact: ${match.name} (${match.address}). Continue?`,
+            };
+        }
+        // Multiple matches - return all for user selection
+        return {
+            matches: addressMatches.map((m) => m.address),
+            requiresVerification: true,
+            resolved: false,
+            verificationMessage: `Multiple contacts found for "${input}": ${addressMatches
+                .map((m) => `${m.name} (${m.address.slice(0, 8)}...)`)
+                .join(", ")}. Please specify which one to use.`,
+        };
+    }
+    catch (error) {
+        return {
+            requiresVerification: false,
+            resolved: false,
+            verificationMessage: `Error resolving contact "${input}": ${error instanceof Error ? error.message : "Unknown error"}`,
+        };
+    }
+}
 // Resolve token name/ticker to processId using memories
 async function resolveToken(input) {
     if (looksLikeProcessId(input)) {
-        return { resolved: true, value: input, requiresVerification: false };
+        return { requiresVerification: false, resolved: true, value: input };
     }
     try {
         // Use dedicated kind for efficient filtering
         const filter = {
             kinds: [MEMORY_KINDS.TOKEN_MAPPING],
-            limit: 100
+            limit: 100,
         };
         const _filters = JSON.stringify([filter]);
         const events = await fetchEvents(hubId, _filters);
@@ -96,15 +173,16 @@ async function resolveToken(input) {
                     confidence = 0.8;
                 }
                 // Partial match
-                else if (name.toLowerCase().includes(inputLower) || ticker.toLowerCase().includes(inputLower)) {
+                else if (name.toLowerCase().includes(inputLower) ||
+                    ticker.toLowerCase().includes(inputLower)) {
                     confidence = 0.5;
                 }
                 if (confidence > 0) {
                     tokenMatches.push({
-                        processId,
+                        confidence,
                         name,
+                        processId,
                         ticker,
-                        confidence
                     });
                 }
             }
@@ -117,108 +195,35 @@ async function resolveToken(input) {
         tokenMatches.sort((a, b) => b.confidence - a.confidence);
         if (tokenMatches.length === 0) {
             return {
-                resolved: false,
                 requiresVerification: false,
-                verificationMessage: `No token found for "${input}". Use saveTokenMapping to register this token.`
+                resolved: false,
+                verificationMessage: `No token found for "${input}". Use saveTokenMapping to register this token.`,
             };
         }
         if (tokenMatches.length === 1 && tokenMatches[0].confidence > 0.8) {
             const match = tokenMatches[0];
             return {
+                requiresVerification: true,
                 resolved: true,
                 value: match.processId,
-                requiresVerification: true,
-                verificationMessage: `Found token: ${match.name || match.ticker || 'Unknown'} (${match.processId}). Continue?`
+                verificationMessage: `Found token: ${match.name || match.ticker || "Unknown"} (${match.processId}). Continue?`,
             };
         }
         // Multiple matches or low confidence - return all for user selection
         return {
-            resolved: false,
-            matches: tokenMatches.map(m => m.processId),
+            matches: tokenMatches.map((m) => m.processId),
             requiresVerification: true,
-            verificationMessage: `Multiple tokens found for "${input}": ${tokenMatches.map(m => `${m.name || m.ticker || 'Unknown'} (${m.processId.slice(0, 8)}...)`).join(', ')}. Please specify which one to use.`
+            resolved: false,
+            verificationMessage: `Multiple tokens found for "${input}": ${tokenMatches
+                .map((m) => `${m.name || m.ticker || "Unknown"} (${m.processId.slice(0, 8)}...)`)
+                .join(", ")}. Please specify which one to use.`,
         };
     }
     catch (error) {
         return {
-            resolved: false,
             requiresVerification: false,
-            verificationMessage: `Error resolving token "${input}": ${error instanceof Error ? error.message : 'Unknown error'}`
-        };
-    }
-}
-// Resolve contact name to address using memories
-async function resolveAddress(input) {
-    if (looksLikeProcessId(input)) {
-        return { resolved: true, value: input, requiresVerification: false };
-    }
-    try {
-        // Use dedicated kind for efficient filtering
-        const filter = {
-            kinds: [MEMORY_KINDS.CONTACT_MAPPING],
-            limit: 100
-        };
-        const _filters = JSON.stringify([filter]);
-        const events = await fetchEvents(hubId, _filters);
-        const addressMatches = [];
-        const inputLower = input.toLowerCase();
-        for (const event of events) {
-            try {
-                const name = event.contact_name || "";
-                const address = event.contact_address || "";
-                if (!name || !address)
-                    continue;
-                let confidence = 0;
-                if (name.toLowerCase() === inputLower) {
-                    confidence = 0.9;
-                }
-                else if (name.toLowerCase().includes(inputLower)) {
-                    confidence = 0.7;
-                }
-                if (confidence > 0) {
-                    addressMatches.push({
-                        address,
-                        name,
-                        confidence
-                    });
-                }
-            }
-            catch (error) {
-                // Skip invalid entries
-                continue;
-            }
-        }
-        // Sort by confidence
-        addressMatches.sort((a, b) => b.confidence - a.confidence);
-        if (addressMatches.length === 0) {
-            return {
-                resolved: false,
-                requiresVerification: false,
-                verificationMessage: `No contact found for "${input}". Use saveAddressMapping to register this contact.`
-            };
-        }
-        if (addressMatches.length === 1 && addressMatches[0].confidence > 0.8) {
-            const match = addressMatches[0];
-            return {
-                resolved: true,
-                value: match.address,
-                requiresVerification: true,
-                verificationMessage: `Found contact: ${match.name} (${match.address}). Continue?`
-            };
-        }
-        // Multiple matches - return all for user selection
-        return {
             resolved: false,
-            matches: addressMatches.map(m => m.address),
-            requiresVerification: true,
-            verificationMessage: `Multiple contacts found for "${input}": ${addressMatches.map(m => `${m.name} (${m.address.slice(0, 8)}...)`).join(', ')}. Please specify which one to use.`
-        };
-    }
-    catch (error) {
-        return {
-            resolved: false,
-            requiresVerification: false,
-            verificationMessage: `Error resolving contact "${input}": ${error instanceof Error ? error.message : 'Unknown error'}`
+            verificationMessage: `Error resolving token "${input}": ${error instanceof Error ? error.message : "Unknown error"}`,
         };
     }
 }
@@ -634,37 +639,40 @@ server.addTool({
             // Use dedicated token mapping kind for better filtering
             const tags = [
                 { name: "Kind", value: MEMORY_KINDS.TOKEN_MAPPING },
-                { name: "Content", value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${args.processId}` },
+                {
+                    name: "Content",
+                    value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${args.processId}`,
+                },
                 { name: "p", value: publicKey },
                 { name: "token_name", value: args.name },
                 { name: "token_ticker", value: args.ticker },
                 { name: "token_processId", value: args.processId },
-                { name: "domain", value: "token-registry" }
+                { name: "domain", value: "token-registry" },
             ];
             const result = await event(keyPair, hubId, tags);
             return JSON.stringify({
-                success: true,
                 mapping: {
                     name: args.name,
+                    processId: args.processId,
                     ticker: args.ticker,
-                    processId: args.processId
                 },
                 message: `Token mapping saved: ${args.ticker} (${args.name}) -> ${args.processId}`,
-                tags: result
+                success: true,
+                tags: result,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Failed to save token mapping: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Failed to save token mapping: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "saveTokenMapping",
     parameters: z.object({
         name: z.string().describe("Token name"),
-        ticker: z.string().describe("Token ticker/symbol"),
         processId: z.string().describe("AO process ID for the token"),
+        ticker: z.string().describe("Token ticker/symbol"),
     }),
 });
 // Save Address Mapping
@@ -680,34 +688,37 @@ server.addTool({
             // Use dedicated contact mapping kind for better filtering
             const tags = [
                 { name: "Kind", value: MEMORY_KINDS.CONTACT_MAPPING },
-                { name: "Content", value: `Contact mapping: name: ${args.name}, address: ${args.address}` },
+                {
+                    name: "Content",
+                    value: `Contact mapping: name: ${args.name}, address: ${args.address}`,
+                },
                 { name: "p", value: publicKey },
                 { name: "contact_name", value: args.name },
                 { name: "contact_address", value: args.address },
-                { name: "domain", value: "address-book" }
+                { name: "domain", value: "address-book" },
             ];
             const result = await event(keyPair, hubId, tags);
             return JSON.stringify({
-                success: true,
                 mapping: {
+                    address: args.address,
                     name: args.name,
-                    address: args.address
                 },
                 message: `Contact mapping saved: ${args.name} -> ${args.address}`,
-                tags: result
+                success: true,
+                tags: result,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Failed to save contact mapping: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Failed to save contact mapping: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "saveAddressMapping",
     parameters: z.object({
-        name: z.string().describe("Contact name"),
         address: z.string().describe("Wallet address"),
+        name: z.string().describe("Contact name"),
     }),
 });
 // List Saved Tokens
@@ -731,8 +742,8 @@ server.addTool({
         }
         catch (error) {
             return JSON.stringify({
+                error: `Failed to list tokens: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Failed to list tokens: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
@@ -760,8 +771,8 @@ server.addTool({
         }
         catch (error) {
             return JSON.stringify({
+                error: `Failed to list contacts: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Failed to list contacts: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
@@ -784,19 +795,19 @@ server.addTool({
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
@@ -804,24 +815,26 @@ server.addTool({
             const addressResolution = await resolveAddress(args.recipient);
             if (!addressResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Recipient resolution failed",
                     message: addressResolution.verificationMessage,
-                    suggestion: "Use saveAddressMapping to register this contact or provide a valid address"
+                    success: false,
+                    suggestion: "Use saveAddressMapping to register this contact or provide a valid address",
                 });
             }
             if (addressResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this recipient",
                     message: addressResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedRecipient: addressResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this recipient"
+                    success: false,
                 });
             }
             const recipient = addressResolution.value;
             // Get token info to check denomination
-            const tokenInfo = await read(processId, [{ name: 'Action', value: 'Info' }]);
+            const tokenInfo = await read(processId, [
+                { name: "Action", value: "Info" },
+            ]);
             let denomination = 12; // Default denomination
             let actualQuantity = args.quantity;
             if (tokenInfo && tokenInfo.Data) {
@@ -836,62 +849,70 @@ server.addTool({
                 }
             }
             // Convert human-readable amount to token units based on denomination
-            if (!args.quantity.includes('.') && !args.rawAmount) {
+            if (!args.quantity.includes(".") && !args.rawAmount) {
                 // If it's a whole number and not marked as raw, apply denomination
                 const numericQuantity = parseFloat(args.quantity);
                 actualQuantity = (numericQuantity * Math.pow(10, denomination)).toString();
             }
             // First check current balance
             const balanceResult = await read(processId, [
-                { name: 'Action', value: 'Balance' },
-                { name: 'Target', value: publicKey }
+                { name: "Action", value: "Balance" },
+                { name: "Target", value: publicKey },
             ]);
             // Then attempt transfer
             const tags = [
-                { name: 'Action', value: 'Transfer' },
-                { name: 'Recipient', value: recipient },
-                { name: 'Quantity', value: actualQuantity }
+                { name: "Action", value: "Transfer" },
+                { name: "Recipient", value: recipient },
+                { name: "Quantity", value: actualQuantity },
             ];
             const result = await send(keyPair, processId, tags, null);
             return JSON.stringify({
-                success: true,
                 balanceCheck: balanceResult,
-                transferResult: result,
+                success: true,
                 transferDetails: {
-                    from: publicKey,
-                    to: recipient,
-                    requestedQuantity: args.quantity,
                     actualQuantity: actualQuantity,
                     denomination: denomination,
+                    from: publicKey,
                     processId: processId,
+                    requestedQuantity: args.quantity,
                     resolvedFromInput: {
+                        originalRecipient: args.recipient,
                         originalToken: args.processId,
-                        originalRecipient: args.recipient
-                    }
-                }
+                    },
+                    to: recipient,
+                },
+                transferResult: result,
             });
         }
         catch (error) {
             return JSON.stringify({
-                success: false,
-                error: `Transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                error: `Transfer failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 errorDetails: error instanceof Error ? error.stack : undefined,
+                success: false,
                 transferAttempt: {
+                    from: publicKey,
                     processId: args.processId,
-                    recipient: args.recipient,
                     quantity: args.quantity,
-                    from: publicKey
-                }
+                    recipient: args.recipient,
+                },
             });
         }
     },
     name: "transferTokens",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved tokens/addresses"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
+        quantity: z
+            .string()
+            .describe("Amount of tokens to transfer (will be converted based on token denomination unless rawAmount is true)"),
+        rawAmount: z
+            .boolean()
+            .optional()
+            .describe("Set to true to send exact amount without denomination conversion"),
         recipient: z.string().describe("Address or contact name to send tokens to"),
-        quantity: z.string().describe("Amount of tokens to transfer (will be converted based on token denomination unless rawAmount is true)"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved tokens/addresses"),
-        rawAmount: z.boolean().optional().describe("Set to true to send exact amount without denomination conversion"),
     }),
 });
 // Mint Tokens
@@ -904,24 +925,24 @@ server.addTool({
     description: "Create new tokens (owner only). Supports token names/tickers and contact names from registry.",
     execute: async (args) => {
         try {
-            const { send, read } = await import("./process.js");
+            const { read, send } = await import("./process.js");
             // Resolve token processId if needed
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
@@ -929,24 +950,26 @@ server.addTool({
             const addressResolution = await resolveAddress(args.recipient);
             if (!addressResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Recipient resolution failed",
                     message: addressResolution.verificationMessage,
-                    suggestion: "Use saveAddressMapping to register this contact or provide a valid address"
+                    success: false,
+                    suggestion: "Use saveAddressMapping to register this contact or provide a valid address",
                 });
             }
             if (addressResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this recipient",
                     message: addressResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedRecipient: addressResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this recipient"
+                    success: false,
                 });
             }
             const recipient = addressResolution.value;
             // Get token info to check denomination
-            const tokenInfo = await read(processId, [{ name: 'Action', value: 'Info' }]);
+            const tokenInfo = await read(processId, [
+                { name: "Action", value: "Info" },
+            ]);
             let denomination = 12; // Default denomination
             let actualQuantity = args.quantity;
             if (tokenInfo && tokenInfo.Data) {
@@ -961,47 +984,57 @@ server.addTool({
                 }
             }
             // Convert human-readable amount to token units based on denomination
-            if (!args.quantity.includes('.') && !args.rawAmount) {
+            if (!args.quantity.includes(".") && !args.rawAmount) {
                 // If it's a whole number and not marked as raw, apply denomination
                 const numericQuantity = parseFloat(args.quantity);
                 actualQuantity = (numericQuantity * Math.pow(10, denomination)).toString();
             }
             const tags = [
-                { name: 'Action', value: 'Mint' },
-                { name: 'Recipient', value: recipient },
-                { name: 'Quantity', value: actualQuantity }
+                { name: "Action", value: "Mint" },
+                { name: "Recipient", value: recipient },
+                { name: "Quantity", value: actualQuantity },
             ];
             const result = await send(keyPair, processId, tags, null);
             return JSON.stringify({
-                success: true,
-                mintResult: result,
                 mintDetails: {
+                    actualQuantity: actualQuantity,
+                    denomination: denomination,
                     processId: processId,
                     recipient: recipient,
                     requestedQuantity: args.quantity,
-                    actualQuantity: actualQuantity,
-                    denomination: denomination,
                     resolvedFromInput: {
+                        originalRecipient: args.recipient,
                         originalToken: args.processId,
-                        originalRecipient: args.recipient
-                    }
-                }
+                    },
+                },
+                mintResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Mint failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Mint failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "mintTokens",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved tokens/addresses"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
-        recipient: z.string().describe("Address or contact name to receive new tokens"),
-        quantity: z.string().describe("Amount of tokens to mint (will be converted based on token denomination unless rawAmount is true)"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved tokens/addresses"),
-        rawAmount: z.boolean().optional().describe("Set to true to mint exact amount without denomination conversion"),
+        quantity: z
+            .string()
+            .describe("Amount of tokens to mint (will be converted based on token denomination unless rawAmount is true)"),
+        rawAmount: z
+            .boolean()
+            .optional()
+            .describe("Set to true to mint exact amount without denomination conversion"),
+        recipient: z
+            .string()
+            .describe("Address or contact name to receive new tokens"),
     }),
 });
 // Burn Tokens
@@ -1014,29 +1047,31 @@ server.addTool({
     description: "Destroy tokens from your account. Supports token names/tickers from registry.",
     execute: async (args) => {
         try {
-            const { send, read } = await import("./process.js");
+            const { read, send } = await import("./process.js");
             // Resolve token processId if needed
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
             // Get token info to check denomination
-            const tokenInfo = await read(processId, [{ name: 'Action', value: 'Info' }]);
+            const tokenInfo = await read(processId, [
+                { name: "Action", value: "Info" },
+            ]);
             let denomination = 12; // Default denomination
             let actualQuantity = args.quantity;
             if (tokenInfo && tokenInfo.Data) {
@@ -1051,43 +1086,51 @@ server.addTool({
                 }
             }
             // Convert human-readable amount to token units based on denomination
-            if (!args.quantity.includes('.') && !args.rawAmount) {
+            if (!args.quantity.includes(".") && !args.rawAmount) {
                 // If it's a whole number and not marked as raw, apply denomination
                 const numericQuantity = parseFloat(args.quantity);
                 actualQuantity = (numericQuantity * Math.pow(10, denomination)).toString();
             }
             const tags = [
-                { name: 'Action', value: 'Burn' },
-                { name: 'Quantity', value: actualQuantity }
+                { name: "Action", value: "Burn" },
+                { name: "Quantity", value: actualQuantity },
             ];
             const result = await send(keyPair, processId, tags, null);
             return JSON.stringify({
-                success: true,
-                burnResult: result,
                 burnDetails: {
-                    processId: processId,
-                    requestedQuantity: args.quantity,
                     actualQuantity: actualQuantity,
                     denomination: denomination,
+                    processId: processId,
+                    requestedQuantity: args.quantity,
                     resolvedFromInput: {
-                        originalToken: args.processId
-                    }
-                }
+                        originalToken: args.processId,
+                    },
+                },
+                burnResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Burn failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Burn failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "burnTokens",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved token"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
-        quantity: z.string().describe("Amount of tokens to burn (will be converted based on token denomination unless rawAmount is true)"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved token"),
-        rawAmount: z.boolean().optional().describe("Set to true to burn exact amount without denomination conversion"),
+        quantity: z
+            .string()
+            .describe("Amount of tokens to burn (will be converted based on token denomination unless rawAmount is true)"),
+        rawAmount: z
+            .boolean()
+            .optional()
+            .describe("Set to true to burn exact amount without denomination conversion"),
     }),
 });
 // Transfer Token Ownership
@@ -1105,19 +1148,19 @@ server.addTool({
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
@@ -1125,52 +1168,55 @@ server.addTool({
             const addressResolution = await resolveAddress(args.newOwner);
             if (!addressResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "New owner resolution failed",
                     message: addressResolution.verificationMessage,
-                    suggestion: "Use saveAddressMapping to register this contact or provide a valid address"
+                    success: false,
+                    suggestion: "Use saveAddressMapping to register this contact or provide a valid address",
                 });
             }
             if (addressResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this new owner",
                     message: addressResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedNewOwner: addressResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this new owner"
+                    success: false,
                 });
             }
             const newOwner = addressResolution.value;
             const tags = [
-                { name: 'Action', value: 'Transfer-Ownership' },
-                { name: 'NewOwner', value: newOwner }
+                { name: "Action", value: "Transfer-Ownership" },
+                { name: "NewOwner", value: newOwner },
             ];
             const result = await send(keyPair, processId, tags, null);
             return JSON.stringify({
-                success: true,
-                ownershipResult: result,
                 ownershipDetails: {
-                    processId: processId,
                     newOwner: newOwner,
+                    processId: processId,
                     resolvedFromInput: {
+                        originalNewOwner: args.newOwner,
                         originalToken: args.processId,
-                        originalNewOwner: args.newOwner
-                    }
-                }
+                    },
+                },
+                ownershipResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Ownership transfer failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Ownership transfer failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "transferTokenOwnership",
     parameters: z.object({
-        processId: z.string().describe("The AO token process ID, name, or ticker"),
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved token/address"),
         newOwner: z.string().describe("Address or contact name of the new owner"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved token/address"),
+        processId: z.string().describe("The AO token process ID, name, or ticker"),
     }),
 });
 // Get Token Balance
@@ -1188,19 +1234,19 @@ server.addTool({
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
@@ -1210,53 +1256,59 @@ server.addTool({
                 const addressResolution = await resolveAddress(args.target);
                 if (!addressResolution.resolved) {
                     return JSON.stringify({
-                        success: false,
                         error: "Target address resolution failed",
                         message: addressResolution.verificationMessage,
-                        suggestion: "Use saveAddressMapping to register this contact or provide a valid address"
+                        success: false,
+                        suggestion: "Use saveAddressMapping to register this contact or provide a valid address",
                     });
                 }
                 if (addressResolution.requiresVerification && !args.confirmed) {
                     return JSON.stringify({
-                        success: false,
-                        requiresConfirmation: true,
+                        instruction: "Add 'confirmed: true' to your request to proceed with this target address",
                         message: addressResolution.verificationMessage,
+                        requiresConfirmation: true,
                         resolvedTarget: addressResolution.value,
-                        instruction: "Add 'confirmed: true' to your request to proceed with this target address"
+                        success: false,
                     });
                 }
                 target = addressResolution.value;
             }
             const tags = [
-                { name: 'Action', value: 'Balance' },
-                { name: 'Target', value: target }
+                { name: "Action", value: "Balance" },
+                { name: "Target", value: target },
             ];
             const result = await read(processId, tags);
             return JSON.stringify({
-                success: true,
-                balanceResult: result,
                 balanceDetails: {
                     processId: processId,
-                    target: target,
                     resolvedFromInput: {
+                        originalTarget: args.target,
                         originalToken: args.processId,
-                        originalTarget: args.target
-                    }
-                }
+                    },
+                    target: target,
+                },
+                balanceResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Balance query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Balance query failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "getTokenBalance",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved token/address"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
-        target: z.string().optional().describe("Address or contact name to check balance for (optional, defaults to your wallet address)"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved token/address"),
+        target: z
+            .string()
+            .optional()
+            .describe("Address or contact name to check balance for (optional, defaults to your wallet address)"),
     }),
 });
 // Get All Token Balances
@@ -1274,46 +1326,49 @@ server.addTool({
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
-            const tags = [{ name: 'Action', value: 'Balances' }];
+            const tags = [{ name: "Action", value: "Balances" }];
             const result = await read(processId, tags);
             return JSON.stringify({
-                success: true,
-                balancesResult: result,
                 balancesDetails: {
                     processId: processId,
                     resolvedFromInput: {
-                        originalToken: args.processId
-                    }
-                }
+                        originalToken: args.processId,
+                    },
+                },
+                balancesResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Balances query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Balances query failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "getAllTokenBalances",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved token"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved token"),
     }),
 });
 // Get Token Info
@@ -1331,46 +1386,49 @@ server.addTool({
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
-            const tags = [{ name: 'Action', value: 'Info' }];
+            const tags = [{ name: "Action", value: "Info" }];
             const result = await read(processId, tags);
             return JSON.stringify({
-                success: true,
-                infoResult: result,
                 infoDetails: {
                     processId: processId,
                     resolvedFromInput: {
-                        originalToken: args.processId
-                    }
-                }
+                        originalToken: args.processId,
+                    },
+                },
+                infoResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Info query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Info query failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "getTokenInfo",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved token"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved token"),
     }),
 });
 // Get Token Name
@@ -1388,46 +1446,49 @@ server.addTool({
             const tokenResolution = await resolveToken(args.processId);
             if (!tokenResolution.resolved) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token resolution failed",
                     message: tokenResolution.verificationMessage,
-                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId"
+                    success: false,
+                    suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
                 });
             }
             if (tokenResolution.requiresVerification && !args.confirmed) {
                 return JSON.stringify({
-                    success: false,
-                    requiresConfirmation: true,
+                    instruction: "Add 'confirmed: true' to your request to proceed with this token",
                     message: tokenResolution.verificationMessage,
+                    requiresConfirmation: true,
                     resolvedToken: tokenResolution.value,
-                    instruction: "Add 'confirmed: true' to your request to proceed with this token"
+                    success: false,
                 });
             }
             const processId = tokenResolution.value;
-            const tags = [{ name: 'Action', value: 'Name' }];
+            const tags = [{ name: "Action", value: "Name" }];
             const result = await read(processId, tags);
             return JSON.stringify({
-                success: true,
-                nameResult: result,
                 nameDetails: {
                     processId: processId,
                     resolvedFromInput: {
-                        originalToken: args.processId
-                    }
-                }
+                        originalToken: args.processId,
+                    },
+                },
+                nameResult: result,
+                success: true,
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Name query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Name query failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "getTokenName",
     parameters: z.object({
+        confirmed: z
+            .boolean()
+            .optional()
+            .describe("Set to true to confirm resolved token"),
         processId: z.string().describe("The AO token process ID, name, or ticker"),
-        confirmed: z.boolean().optional().describe("Set to true to confirm resolved token"),
     }),
 });
 // Tool for smart process execution with auto-detection and fallback
@@ -1455,13 +1516,13 @@ server.addTool({
     name: "executeSmartProcessAction",
     parameters: z.object({
         processId: z.string().describe("The AO process ID to communicate with"),
-        request: z
-            .string()
-            .describe("Natural language request describing what action to perform"),
         processMarkdown: z
             .string()
             .optional()
             .describe("Optional markdown documentation (will attempt auto-detection if not provided)"),
+        request: z
+            .string()
+            .describe("Natural language request describing what action to perform"),
     }),
 });
 // Tool to publish process integrations (Kind 11) to ProcessHub
@@ -1586,50 +1647,55 @@ server.addTool({
         try {
             // Build base token configuration
             const tokenConfig = {
+                burnable: args.burnable ?? true,
+                denomination: args.denomination || 12,
+                description: args.description,
+                logo: args.logo,
+                mintingStrategy: args.mintingStrategy,
                 name: args.name,
                 ticker: args.ticker,
-                logo: args.logo,
-                description: args.description,
-                denomination: args.denomination || 12,
-                mintingStrategy: args.mintingStrategy,
                 transferable: args.transferable ?? true,
-                burnable: args.burnable ?? true,
             };
             // Handle strategy-specific configuration
-            if (args.mintingStrategy === 'basic') {
+            if (args.mintingStrategy === "basic") {
                 if (!args.buyToken || !args.multiplier || !args.maxMint) {
                     return JSON.stringify({
+                        error: "Basic minting strategy requires buyToken, multiplier, and maxMint parameters",
                         success: false,
-                        error: "Basic minting strategy requires buyToken, multiplier, and maxMint parameters"
                     });
                 }
                 tokenConfig.mintingConfig = {
                     buyToken: args.buyToken,
-                    multiplier: args.multiplier,
                     maxMint: args.maxMint,
+                    multiplier: args.multiplier,
                 };
             }
-            else if (args.mintingStrategy === 'cascade') {
-                if (!args.buyToken || !args.multiplier || !args.maxMint || !args.baseMintLimit || !args.incrementBlocks || !args.maxCascadeLimit) {
+            else if (args.mintingStrategy === "cascade") {
+                if (!args.buyToken ||
+                    !args.multiplier ||
+                    !args.maxMint ||
+                    !args.baseMintLimit ||
+                    !args.incrementBlocks ||
+                    !args.maxCascadeLimit) {
                     return JSON.stringify({
+                        error: "Cascade minting strategy requires buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, and maxCascadeLimit parameters",
                         success: false,
-                        error: "Cascade minting strategy requires buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, and maxCascadeLimit parameters"
                     });
                 }
                 tokenConfig.mintingConfig = {
-                    buyToken: args.buyToken,
-                    multiplier: args.multiplier,
-                    maxMint: args.maxMint,
                     baseMintLimit: args.baseMintLimit,
+                    buyToken: args.buyToken,
                     incrementBlocks: args.incrementBlocks,
                     maxCascadeLimit: args.maxCascadeLimit,
+                    maxMint: args.maxMint,
+                    multiplier: args.multiplier,
                 };
             }
-            else if (args.mintingStrategy === 'double_mint') {
+            else if (args.mintingStrategy === "double_mint") {
                 if (!args.buyTokens || !args.maxMint) {
                     return JSON.stringify({
+                        error: "Double mint strategy requires buyTokens and maxMint parameters",
                         success: false,
-                        error: "Double mint strategy requires buyTokens and maxMint parameters"
                     });
                 }
                 tokenConfig.mintingConfig = {
@@ -1637,12 +1703,12 @@ server.addTool({
                     maxMint: args.maxMint,
                 };
             }
-            else if (args.mintingStrategy === 'none') {
+            else if (args.mintingStrategy === "none") {
                 // For 'none' strategy, auto-allocate initial supply to creator if provided
                 if (args.initialSupply) {
                     tokenConfig.initialSupply = args.initialSupply;
                     tokenConfig.initialAllocations = {
-                        [publicKey]: args.initialSupply // Auto-allocate to creator
+                        [publicKey]: args.initialSupply, // Auto-allocate to creator
                     };
                 }
                 else {
@@ -1653,10 +1719,10 @@ server.addTool({
             const validation = validateTokenConfig(tokenConfig);
             if (!validation.valid) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token configuration validation failed",
+                    success: false,
+                    suggestion: "Check your parameters and try again",
                     validationErrors: validation.errors,
-                    suggestion: "Check your parameters and try again"
                 });
             }
             // Generate and deploy token
@@ -1665,73 +1731,125 @@ server.addTool({
             // Add to token registry for easy discovery
             const tokenTags = [
                 { name: "Kind", value: MEMORY_KINDS.TOKEN_MAPPING },
-                { name: "Content", value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${processId}` },
+                {
+                    name: "Content",
+                    value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${processId}`,
+                },
                 { name: "p", value: publicKey },
                 { name: "token_name", value: args.name },
                 { name: "token_ticker", value: args.ticker },
                 { name: "token_processId", value: processId },
-                { name: "domain", value: "token-registry" }
+                { name: "domain", value: "token-registry" },
             ];
             await event(keyPair, hubId, tokenTags);
             return JSON.stringify({
-                success: true,
-                processId,
-                tokenInfo: {
-                    name: args.name,
-                    ticker: args.ticker,
-                    strategy: args.mintingStrategy,
-                    features: {
-                        transferable: tokenConfig.transferable,
-                        burnable: tokenConfig.burnable,
-                    },
-                },
                 message: `Token "${args.name}" (${args.ticker}) deployed successfully!`,
-                nextSteps: args.mintingStrategy === 'none' ? [
-                    "Use mint action as admin to create tokens",
-                    `Process ID: ${processId}`
-                ] : [
-                    `Send ${args.buyToken ? 'buy tokens' : 'payment tokens'} to process to mint`,
-                    `Process ID: ${processId}`
-                ],
-                registryAdded: true
+                nextSteps: args.mintingStrategy === "none"
+                    ? [
+                        "Use mint action as admin to create tokens",
+                        `Process ID: ${processId}`,
+                    ]
+                    : [
+                        `Send ${args.buyToken ? "buy tokens" : "payment tokens"} to process to mint`,
+                        `Process ID: ${processId}`,
+                    ],
+                processId,
+                registryAdded: true,
+                success: true,
+                tokenInfo: {
+                    features: {
+                        burnable: tokenConfig.burnable,
+                        transferable: tokenConfig.transferable,
+                    },
+                    name: args.name,
+                    strategy: args.mintingStrategy,
+                    ticker: args.ticker,
+                },
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Token deployment failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Token deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "createConfigurableToken",
     parameters: z.object({
-        // Basic Token Metadata
-        name: z.string().min(1).max(50).describe("Token name (e.g., 'My Awesome Token')"),
-        ticker: z.string().min(1).max(10).describe("Token ticker/symbol (e.g., 'MAT')"),
-        logo: z.string().optional().describe("Token logo URL (optional)"),
-        description: z.string().optional().describe("Token description (optional)"),
-        denomination: z.number().min(0).max(18).optional().describe("Token decimals (default: 12)"),
-        // Minting Strategy
-        mintingStrategy: z.enum(['basic', 'cascade', 'double_mint', 'none']).describe("Minting strategy"),
+        // Cascade-specific parameters
+        baseMintLimit: z
+            .string()
+            .optional()
+            .describe("Starting mint limit (required for cascade strategy)"),
+        burnable: z
+            .boolean()
+            .optional()
+            .describe("Whether tokens can be burned (default: true)"),
         // Strategy-specific parameters (flattened for simplicity)
         // Basic & Cascade shared parameters
-        buyToken: z.string().optional().describe("Token address used for minting (required for basic/cascade strategies)"),
-        multiplier: z.number().positive().optional().describe("Conversion rate (required for basic/cascade strategies)"),
-        maxMint: z.string().optional().describe("Maximum tokens that can be minted (required for basic/cascade/double_mint)"),
-        // Cascade-specific parameters
-        baseMintLimit: z.string().optional().describe("Starting mint limit (required for cascade strategy)"),
-        incrementBlocks: z.number().positive().optional().describe("Blocks between limit increases (required for cascade strategy)"),
-        maxCascadeLimit: z.string().optional().describe("Final maximum limit (required for cascade strategy)"),
+        buyToken: z
+            .string()
+            .optional()
+            .describe("Token address used for minting (required for basic/cascade strategies)"),
         // Double mint parameters
-        buyTokens: z.record(z.string(), z.object({
-            multiplier: z.number().positive(),
+        buyTokens: z
+            .record(z.string(), z.object({
             enabled: z.boolean(),
-        })).optional().describe("Map of buy token addresses to configurations (required for double_mint strategy)"),
+            multiplier: z.number().positive(),
+        }))
+            .optional()
+            .describe("Map of buy token addresses to configurations (required for double_mint strategy)"),
+        denomination: z
+            .number()
+            .min(0)
+            .max(18)
+            .optional()
+            .describe("Token decimals (default: 12)"),
+        description: z.string().optional().describe("Token description (optional)"),
+        incrementBlocks: z
+            .number()
+            .positive()
+            .optional()
+            .describe("Blocks between limit increases (required for cascade strategy)"),
         // None strategy parameter
-        initialSupply: z.string().optional().describe("Initial supply for 'none' strategy (auto-allocated to you)"),
+        initialSupply: z
+            .string()
+            .optional()
+            .describe("Initial supply for 'none' strategy (auto-allocated to you)"),
+        logo: z.string().optional().describe("Token logo URL (optional)"),
+        maxCascadeLimit: z
+            .string()
+            .optional()
+            .describe("Final maximum limit (required for cascade strategy)"),
+        maxMint: z
+            .string()
+            .optional()
+            .describe("Maximum tokens that can be minted (required for basic/cascade/double_mint)"),
+        // Minting Strategy
+        mintingStrategy: z
+            .enum(["basic", "cascade", "double_mint", "none"])
+            .describe("Minting strategy"),
+        multiplier: z
+            .number()
+            .positive()
+            .optional()
+            .describe("Conversion rate (required for basic/cascade strategies)"),
+        // Basic Token Metadata
+        name: z
+            .string()
+            .min(1)
+            .max(50)
+            .describe("Token name (e.g., 'My Awesome Token')"),
+        ticker: z
+            .string()
+            .min(1)
+            .max(10)
+            .describe("Token ticker/symbol (e.g., 'MAT')"),
         // Feature toggles
-        transferable: z.boolean().optional().describe("Whether tokens can be transferred (default: true)"),
-        burnable: z.boolean().optional().describe("Whether tokens can be burned (default: true)"),
+        transferable: z
+            .boolean()
+            .optional()
+            .describe("Whether tokens can be transferred (default: true)"),
     }),
 });
 // Tool to validate token configuration without deploying
@@ -1747,53 +1865,64 @@ server.addTool({
         try {
             // Build token configuration using same logic as createConfigurableToken
             const tokenConfig = {
+                burnable: args.burnable ?? true,
+                denomination: args.denomination || 12,
+                description: args.description,
+                logo: args.logo,
+                mintingStrategy: args.mintingStrategy,
                 name: args.name,
                 ticker: args.ticker,
-                logo: args.logo,
-                description: args.description,
-                denomination: args.denomination || 12,
-                mintingStrategy: args.mintingStrategy,
                 transferable: args.transferable ?? true,
-                burnable: args.burnable ?? true,
             };
             // Handle strategy-specific configuration (same as createConfigurableToken)
-            if (args.mintingStrategy === 'basic') {
+            if (args.mintingStrategy === "basic") {
                 if (!args.buyToken || !args.multiplier || !args.maxMint) {
                     return JSON.stringify({
+                        errors: [
+                            "Basic minting strategy requires buyToken, multiplier, and maxMint parameters",
+                        ],
+                        suggestion: "Provide all required parameters for basic minting strategy",
                         valid: false,
-                        errors: ["Basic minting strategy requires buyToken, multiplier, and maxMint parameters"],
-                        suggestion: "Provide all required parameters for basic minting strategy"
                     });
                 }
                 tokenConfig.mintingConfig = {
                     buyToken: args.buyToken,
-                    multiplier: args.multiplier,
                     maxMint: args.maxMint,
+                    multiplier: args.multiplier,
                 };
             }
-            else if (args.mintingStrategy === 'cascade') {
-                if (!args.buyToken || !args.multiplier || !args.maxMint || !args.baseMintLimit || !args.incrementBlocks || !args.maxCascadeLimit) {
+            else if (args.mintingStrategy === "cascade") {
+                if (!args.buyToken ||
+                    !args.multiplier ||
+                    !args.maxMint ||
+                    !args.baseMintLimit ||
+                    !args.incrementBlocks ||
+                    !args.maxCascadeLimit) {
                     return JSON.stringify({
+                        errors: [
+                            "Cascade minting strategy requires buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, and maxCascadeLimit parameters",
+                        ],
+                        suggestion: "Provide all required parameters for cascade minting strategy",
                         valid: false,
-                        errors: ["Cascade minting strategy requires buyToken, multiplier, maxMint, baseMintLimit, incrementBlocks, and maxCascadeLimit parameters"],
-                        suggestion: "Provide all required parameters for cascade minting strategy"
                     });
                 }
                 tokenConfig.mintingConfig = {
-                    buyToken: args.buyToken,
-                    multiplier: args.multiplier,
-                    maxMint: args.maxMint,
                     baseMintLimit: args.baseMintLimit,
+                    buyToken: args.buyToken,
                     incrementBlocks: args.incrementBlocks,
                     maxCascadeLimit: args.maxCascadeLimit,
+                    maxMint: args.maxMint,
+                    multiplier: args.multiplier,
                 };
             }
-            else if (args.mintingStrategy === 'double_mint') {
+            else if (args.mintingStrategy === "double_mint") {
                 if (!args.buyTokens || !args.maxMint) {
                     return JSON.stringify({
+                        errors: [
+                            "Double mint strategy requires buyTokens and maxMint parameters",
+                        ],
+                        suggestion: "Provide buyTokens configuration and maxMint for double mint strategy",
                         valid: false,
-                        errors: ["Double mint strategy requires buyTokens and maxMint parameters"],
-                        suggestion: "Provide buyTokens configuration and maxMint for double mint strategy"
                     });
                 }
                 tokenConfig.mintingConfig = {
@@ -1801,7 +1930,7 @@ server.addTool({
                     maxMint: args.maxMint,
                 };
             }
-            else if (args.mintingStrategy === 'none') {
+            else if (args.mintingStrategy === "none") {
                 if (args.initialSupply) {
                     tokenConfig.initialSupply = args.initialSupply;
                 }
@@ -1811,49 +1940,90 @@ server.addTool({
             }
             const validation = validateTokenConfig(tokenConfig);
             return JSON.stringify({
-                valid: validation.valid,
-                errors: validation.errors,
                 configuration: tokenConfig,
-                suggestions: validation.valid ? [
-                    "Configuration is valid and ready for deployment",
-                    "Use createConfigurableToken with the same parameters to deploy",
-                ] : [
-                    "Fix the validation errors before deployment",
-                    "Check parameter requirements for your chosen minting strategy",
-                ],
+                errors: validation.errors,
+                suggestions: validation.valid
+                    ? [
+                        "Configuration is valid and ready for deployment",
+                        "Use createConfigurableToken with the same parameters to deploy",
+                    ]
+                    : [
+                        "Fix the validation errors before deployment",
+                        "Check parameter requirements for your chosen minting strategy",
+                    ],
+                valid: validation.valid,
             });
         }
         catch (error) {
             return JSON.stringify({
-                valid: false,
-                errors: [`Validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
                 configuration: {},
+                errors: [
+                    `Validation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+                ],
+                valid: false,
             });
         }
     },
     name: "validateTokenConfiguration",
     parameters: z.object({
+        baseMintLimit: z
+            .string()
+            .optional()
+            .describe("Starting mint limit (required for cascade)"),
+        burnable: z
+            .boolean()
+            .optional()
+            .describe("Whether tokens can be burned (default: true)"),
+        // Flattened strategy-specific parameters
+        buyToken: z
+            .string()
+            .optional()
+            .describe("Token address for minting (required for basic/cascade)"),
+        buyTokens: z
+            .record(z.string(), z.object({
+            enabled: z.boolean(),
+            multiplier: z.number().positive(),
+        }))
+            .optional()
+            .describe("Buy token configurations (required for double_mint)"),
+        denomination: z
+            .number()
+            .optional()
+            .describe("Token decimals (default: 12)"),
+        description: z.string().optional().describe("Token description (optional)"),
+        incrementBlocks: z
+            .number()
+            .positive()
+            .optional()
+            .describe("Blocks between increases (required for cascade)"),
+        initialSupply: z
+            .string()
+            .optional()
+            .describe("Initial supply for 'none' strategy"),
+        logo: z.string().optional().describe("Token logo URL (optional)"),
+        maxCascadeLimit: z
+            .string()
+            .optional()
+            .describe("Final maximum limit (required for cascade)"),
+        maxMint: z
+            .string()
+            .optional()
+            .describe("Maximum mintable tokens (required for basic/cascade/double_mint)"),
+        mintingStrategy: z
+            .enum(["basic", "cascade", "double_mint", "none"])
+            .describe("Minting strategy"),
+        multiplier: z
+            .number()
+            .positive()
+            .optional()
+            .describe("Conversion rate (required for basic/cascade)"),
         // Same parameters as createConfigurableToken for consistency
         name: z.string().describe("Token name"),
         ticker: z.string().describe("Token ticker"),
-        logo: z.string().optional().describe("Token logo URL (optional)"),
-        description: z.string().optional().describe("Token description (optional)"),
-        denomination: z.number().optional().describe("Token decimals (default: 12)"),
-        mintingStrategy: z.enum(['basic', 'cascade', 'double_mint', 'none']).describe("Minting strategy"),
-        // Flattened strategy-specific parameters
-        buyToken: z.string().optional().describe("Token address for minting (required for basic/cascade)"),
-        multiplier: z.number().positive().optional().describe("Conversion rate (required for basic/cascade)"),
-        maxMint: z.string().optional().describe("Maximum mintable tokens (required for basic/cascade/double_mint)"),
-        baseMintLimit: z.string().optional().describe("Starting mint limit (required for cascade)"),
-        incrementBlocks: z.number().positive().optional().describe("Blocks between increases (required for cascade)"),
-        maxCascadeLimit: z.string().optional().describe("Final maximum limit (required for cascade)"),
-        buyTokens: z.record(z.string(), z.object({
-            multiplier: z.number().positive(),
-            enabled: z.boolean(),
-        })).optional().describe("Buy token configurations (required for double_mint)"),
-        initialSupply: z.string().optional().describe("Initial supply for 'none' strategy"),
-        transferable: z.boolean().optional().describe("Whether tokens can be transferred (default: true)"),
-        burnable: z.boolean().optional().describe("Whether tokens can be burned (default: true)"),
+        transferable: z
+            .boolean()
+            .optional()
+            .describe("Whether tokens can be transferred (default: true)"),
     }),
 });
 // Simple tool to create a token (reverted to pre-allocation logic approach)
@@ -1868,20 +2038,20 @@ server.addTool({
         try {
             // Create simple token configuration (no complex allocation logic)
             const simpleConfig = {
+                denomination: args.denomination || 12,
+                description: args.description,
+                logo: args.logo,
                 name: args.name,
                 ticker: args.ticker,
                 totalSupply: args.totalSupply,
-                denomination: args.denomination || 12,
-                logo: args.logo,
-                description: args.description
             };
             // Validate configuration
             const validation = validateSimpleTokenConfig(simpleConfig);
             if (!validation.valid) {
                 return JSON.stringify({
-                    success: false,
                     error: "Token configuration validation failed",
-                    validationErrors: validation.errors
+                    success: false,
+                    validationErrors: validation.errors,
                 });
             }
             // Generate simple Lua script (without complex allocation logic)
@@ -1890,45 +2060,53 @@ server.addTool({
             // Add to token registry
             const tokenTags = [
                 { name: "Kind", value: MEMORY_KINDS.TOKEN_MAPPING },
-                { name: "Content", value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${processId}` },
+                {
+                    name: "Content",
+                    value: `Token mapping: name: ${args.name}, ticker: ${args.ticker}, processId: ${processId}`,
+                },
                 { name: "p", value: publicKey },
                 { name: "token_name", value: args.name },
                 { name: "token_ticker", value: args.ticker },
                 { name: "token_processId", value: processId },
-                { name: "domain", value: "token-registry" }
+                { name: "domain", value: "token-registry" },
             ];
             await event(keyPair, hubId, tokenTags);
             return JSON.stringify({
-                success: true,
+                luaScriptLength: luaScript.length,
+                message: `Simple token "${args.ticker}" created successfully (${args.totalSupply} tokens) and added to registry`,
                 processId,
+                registryAdded: true,
+                success: true,
                 tokenInfo: {
+                    approach: "simple",
+                    denomination: args.denomination || 12,
                     name: args.name,
+                    owner: publicKey,
                     ticker: args.ticker,
                     totalSupply: args.totalSupply,
-                    denomination: args.denomination || 12,
-                    owner: publicKey,
-                    approach: 'simple'
                 },
-                message: `Simple token "${args.ticker}" created successfully (${args.totalSupply} tokens) and added to registry`,
-                registryAdded: true,
-                luaScriptLength: luaScript.length
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Simple token creation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Simple token creation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "createSimpleToken",
     parameters: z.object({
+        denomination: z
+            .number()
+            .optional()
+            .describe("Token decimals (default: 12)"),
+        description: z.string().optional().describe("Token description (optional)"),
+        logo: z.string().optional().describe("Token logo URL (optional)"),
         name: z.string().describe("Token name (e.g. 'Arweave Official')"),
         ticker: z.string().describe("Token ticker (e.g. 'AO')"),
-        totalSupply: z.string().describe("Total token supply (e.g. '1000000000000000000' for 1 billion with 12 decimals)"),
-        denomination: z.number().optional().describe("Token decimals (default: 12)"),
-        logo: z.string().optional().describe("Token logo URL (optional)"),
-        description: z.string().optional().describe("Token description (optional)")
+        totalSupply: z
+            .string()
+            .describe("Total token supply (e.g. '1000000000000000000' for 1 billion with 12 decimals)"),
     }),
 });
 // Debug tool to generate and show Lua script
@@ -1942,36 +2120,41 @@ server.addTool({
     execute: async (args) => {
         try {
             const tokenConfig = {
+                denomination: args.denomination || 12,
+                initialAllocations: args.initialAllocations,
+                initialSupply: args.initialSupply || "0",
+                mintingStrategy: args.mintingStrategy,
                 name: args.name,
                 ticker: args.ticker,
-                mintingStrategy: args.mintingStrategy,
-                initialAllocations: args.initialAllocations,
-                denomination: args.denomination || 12,
-                initialSupply: args.initialSupply || "0"
             };
             const luaScript = generateTokenLua(tokenConfig);
             return JSON.stringify({
+                luaScript,
+                scriptLength: luaScript.length,
                 success: true,
                 tokenConfig,
-                luaScript,
-                scriptLength: luaScript.length
             });
         }
         catch (error) {
             return JSON.stringify({
+                error: `Script generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 success: false,
-                error: `Script generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             });
         }
     },
     name: "generateTokenLua",
     parameters: z.object({
+        denomination: z.number().optional().describe("Token decimals"),
+        initialAllocations: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe("Initial token allocations"),
+        initialSupply: z.string().optional().describe("Initial supply"),
+        mintingStrategy: z
+            .enum(["basic", "cascade", "double_mint", "none"])
+            .describe("Minting strategy"),
         name: z.string().describe("Token name"),
         ticker: z.string().describe("Token ticker"),
-        mintingStrategy: z.enum(['basic', 'cascade', 'double_mint', 'none']).describe("Minting strategy"),
-        initialAllocations: z.record(z.string(), z.string()).optional().describe("Initial token allocations"),
-        denomination: z.number().optional().describe("Token decimals"),
-        initialSupply: z.string().optional().describe("Initial supply")
     }),
 });
 // Tool to get example token configurations
@@ -2011,34 +2194,37 @@ server.addTool({
                 const selectedExample = examples[args.strategy];
                 if (selectedExample) {
                     return JSON.stringify({
-                        strategy: args.strategy,
                         example: selectedExample,
                         instructions: `Customize the parameters and use createConfigurableToken to deploy this ${args.strategy} token.`,
+                        strategy: args.strategy,
                     });
                 }
                 else {
                     return JSON.stringify({
-                        error: `Unknown strategy: ${args.strategy}`,
                         availableStrategies: Object.keys(examples),
+                        error: `Unknown strategy: ${args.strategy}`,
                     });
                 }
             }
             return JSON.stringify({
+                availableStrategies: Object.keys(examples),
                 examples,
                 instructions: "Choose a strategy and customize the configuration parameters for your needs.",
-                availableStrategies: Object.keys(examples),
             });
         }
         catch (error) {
             return JSON.stringify({
-                error: `Failed to get examples: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                error: `Failed to get examples: ${error instanceof Error ? error.message : "Unknown error"}`,
                 examples: {},
             });
         }
     },
     name: "getTokenExamples",
     parameters: z.object({
-        strategy: z.enum(['basic', 'cascade', 'double_mint', 'simple']).optional().describe("Specific strategy to get example for (optional)"),
+        strategy: z
+            .enum(["basic", "cascade", "double_mint", "simple"])
+            .optional()
+            .describe("Specific strategy to get example for (optional)"),
     }),
 });
 // Tool to query deployed token information
@@ -2054,29 +2240,31 @@ server.addTool({
         try {
             // Use direct AO call to get token info
             const { read } = await import("./process.js");
-            const result = await read(args.processId, [{ name: 'Action', value: 'Info' }]);
+            const result = await read(args.processId, [
+                { name: "Action", value: "Info" },
+            ]);
             if (result) {
                 return JSON.stringify({
-                    success: true,
                     processId: args.processId,
-                    tokenInfo: result,
                     queryTime: new Date().toISOString(),
+                    success: true,
+                    tokenInfo: result,
                 });
             }
             else {
                 return JSON.stringify({
-                    success: false,
-                    processId: args.processId,
                     error: "Failed to query token information",
+                    processId: args.processId,
+                    success: false,
                     suggestion: "Ensure the process ID is correct and the token is properly deployed",
                 });
             }
         }
         catch (error) {
             return JSON.stringify({
-                success: false,
+                error: `Query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
                 processId: args.processId,
-                error: `Query failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                success: false,
             });
         }
     },

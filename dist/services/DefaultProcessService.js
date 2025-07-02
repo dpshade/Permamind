@@ -1,4 +1,4 @@
-import { DEFAULT_TOKEN_PROCESS, getDefaultTokenProcess, isTokenProcess, extractTokenOperation, TOKEN_DETECTION_PATTERNS, } from "../templates/defaultTokenProcess.js";
+import { DEFAULT_TOKEN_PROCESS, extractTokenOperation, getDefaultTokenProcess, isTokenProcess, TOKEN_DETECTION_PATTERNS, } from "../templates/defaultTokenProcess.js";
 /**
  * Implementation of DefaultProcessService
  */
@@ -10,33 +10,62 @@ const createDefaultProcessService = () => {
     // Cache for detected process types
     const processTypeCache = new Map();
     return {
-        getDefaultProcesses() {
-            return { ...defaultProcesses };
-        },
-        getDefaultProcess(type, processId) {
-            switch (type.toLowerCase()) {
-                case "token":
-                case "erc20":
-                case "fungible":
-                    return processId ? getDefaultTokenProcess(processId) : DEFAULT_TOKEN_PROCESS;
-                default:
-                    return null;
+        canHandleRequest(request) {
+            // Check if any default template can handle this request
+            const tokenResult = extractTokenOperation(request);
+            if (tokenResult && tokenResult.confidence > 0.5) {
+                return true;
             }
+            // Future: Check other process types
+            return false;
         },
         detectProcessType(handlers, processResponses) {
             // Check for token patterns
             if (isTokenProcess(handlers)) {
-                const tokenHandlers = handlers.filter(h => TOKEN_DETECTION_PATTERNS.handlers.includes(h.toLowerCase()));
-                const confidence = Math.min((tokenHandlers.length / TOKEN_DETECTION_PATTERNS.handlers.length) * 0.8 + 0.2, 1.0);
+                const tokenHandlers = handlers.filter((h) => TOKEN_DETECTION_PATTERNS.handlers.includes(h.toLowerCase()));
+                const confidence = Math.min((tokenHandlers.length / TOKEN_DETECTION_PATTERNS.handlers.length) *
+                    0.8 +
+                    0.2, 1.0);
                 return {
-                    type: "token",
                     confidence,
-                    template: DEFAULT_TOKEN_PROCESS,
                     suggestedHandlers: TOKEN_DETECTION_PATTERNS.handlers,
+                    template: DEFAULT_TOKEN_PROCESS,
+                    type: "token",
                 };
             }
             // Future: Add detection for other process types (NFT, DAO, DeFi, etc.)
             return null;
+        },
+        getDefaultProcess(type, processId) {
+            switch (type.toLowerCase()) {
+                case "erc20":
+                case "fungible":
+                case "token":
+                    return processId
+                        ? getDefaultTokenProcess(processId)
+                        : DEFAULT_TOKEN_PROCESS;
+                default:
+                    return null;
+            }
+        },
+        getDefaultProcesses() {
+            return { ...defaultProcesses };
+        },
+        getSuggestedOperations(processType) {
+            switch (processType.toLowerCase()) {
+                case "token":
+                    return [
+                        "Check balance",
+                        "Transfer tokens",
+                        "Get token info (name, symbol, supply)",
+                        "Mint tokens (if owner)",
+                        "Burn tokens",
+                        "Approve spending",
+                        "Check allowances",
+                    ];
+                default:
+                    return [];
+            }
         },
         isKnownProcessType(processId, handlers) {
             // Check cache first
@@ -75,11 +104,13 @@ const createDefaultProcessService = () => {
                 const tokenOp = extractTokenOperation(request);
                 if (tokenOp && tokenOp.confidence > 0.7) {
                     processType = "token";
-                    template = processId ? getDefaultTokenProcess(processId) : DEFAULT_TOKEN_PROCESS;
+                    template = processId
+                        ? getDefaultTokenProcess(processId)
+                        : DEFAULT_TOKEN_PROCESS;
                     return {
+                        confidence: tokenOp.confidence,
                         operation: tokenOp.operation,
                         parameters: tokenOp.parameters,
-                        confidence: tokenOp.confidence,
                         processType,
                         template,
                     };
@@ -92,9 +123,9 @@ const createDefaultProcessService = () => {
                     const tokenOp = extractTokenOperation(request);
                     if (tokenOp) {
                         return {
+                            confidence: tokenOp.confidence,
                             operation: tokenOp.operation,
                             parameters: tokenOp.parameters,
-                            confidence: tokenOp.confidence,
                             processType,
                             template,
                         };
@@ -102,31 +133,6 @@ const createDefaultProcessService = () => {
                 }
             }
             return null;
-        },
-        getSuggestedOperations(processType) {
-            switch (processType.toLowerCase()) {
-                case "token":
-                    return [
-                        "Check balance",
-                        "Transfer tokens",
-                        "Get token info (name, symbol, supply)",
-                        "Mint tokens (if owner)",
-                        "Burn tokens",
-                        "Approve spending",
-                        "Check allowances",
-                    ];
-                default:
-                    return [];
-            }
-        },
-        canHandleRequest(request) {
-            // Check if any default template can handle this request
-            const tokenResult = extractTokenOperation(request);
-            if (tokenResult && tokenResult.confidence > 0.5) {
-                return true;
-            }
-            // Future: Check other process types
-            return false;
         },
     };
 };
@@ -139,17 +145,14 @@ export const defaultProcessService = createDefaultProcessService();
  */
 export const DefaultProcessUtils = {
     /**
-     * Get all supported process types
+     * Format process detection results for display
      */
-    getSupportedProcessTypes() {
-        return Object.keys(defaultProcessService.getDefaultProcesses());
-    },
-    /**
-     * Check if a request looks like a token operation
-     */
-    isTokenRequest(request) {
-        const result = extractTokenOperation(request);
-        return result !== null && result.confidence > 0.6;
+    formatDetectionResult(detection) {
+        return (`Detected ${detection.type} process with ${(detection.confidence * 100).toFixed(0)}% confidence. ` +
+            `Supports operations: ${detection.suggestedHandlers.slice(0, 5).join(", ")}` +
+            (detection.suggestedHandlers.length > 5
+                ? ` and ${detection.suggestedHandlers.length - 5} more.`
+                : "."));
     },
     /**
      * Get smart suggestions for a partial request
@@ -172,11 +175,16 @@ export const DefaultProcessUtils = {
         return suggestions;
     },
     /**
-     * Format process detection results for display
+     * Get all supported process types
      */
-    formatDetectionResult(detection) {
-        return `Detected ${detection.type} process with ${(detection.confidence * 100).toFixed(0)}% confidence. ` +
-            `Supports operations: ${detection.suggestedHandlers.slice(0, 5).join(", ")}` +
-            (detection.suggestedHandlers.length > 5 ? ` and ${detection.suggestedHandlers.length - 5} more.` : ".");
+    getSupportedProcessTypes() {
+        return Object.keys(defaultProcessService.getDefaultProcesses());
+    },
+    /**
+     * Check if a request looks like a token operation
+     */
+    isTokenRequest(request) {
+        const result = extractTokenOperation(request);
+        return result !== null && result.confidence > 0.6;
     },
 };

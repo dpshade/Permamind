@@ -6,9 +6,9 @@ import { read, send } from "../process.js";
 
 export interface AOMessage {
   data?: string;
+  isWrite?: boolean;
   processId: string;
   tags: Tag[];
-  isWrite?: boolean;
 }
 
 export interface AOMessageResponse {
@@ -68,7 +68,7 @@ const service = (): AOMessageService => {
       if (isWrite !== undefined) {
         return isWrite;
       }
-      
+
       // Fall back to action-based detection for backward compatibility
       const actionTag = tags.find((tag) => tag.name === "Action");
       if (!actionTag) {
