@@ -550,7 +550,7 @@ Regular contributors may be invited to become maintainers based on:
 - [Memory System](./memory-system.md)
 
 ### External Resources
-- [AO Documentation](https://ao.arweave.dev/)
+- [AO Cookbook](https://cookbook_ao.g8way.io/)
 - [Arweave Documentation](https://docs.arweave.org/)
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)

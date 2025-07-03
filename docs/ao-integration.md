@@ -1,6 +1,6 @@
 # AO Process Integration Guide
 
-Learn how to integrate any AO (Autonomous Objects) process with Permamind using natural language interfaces and markdown documentation.
+Learn how to integrate any AO process with Permamind using natural language interfaces and markdown documentation.
 
 ## Overview
 

@@ -7,7 +7,7 @@
 [![MCP](https://img.shields.io/badge/MCP-Compatible-lightblue.svg)](https://modelcontextprotocol.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**The world's first permanent, decentralized AI memory system built on Arweave and AO (Autonomous Objects)**
+**The world's first permanent, decentralized AI memory system built on Arweave and AO**
 
 Permamind is a Model Context Protocol (MCP) server that provides an immortal memory layer for AI agents, leveraging Arweave's permanent storage and the AO ecosystem for decentralized computation. Unlike traditional memory systems that are ephemeral and centralized, Permamind creates truly persistent AI memory that survives forever.
 
@@ -32,7 +32,7 @@ Permamind is a Model Context Protocol (MCP) server that provides an immortal mem
 - **Advanced Search**: Multi-filter, relevance-ranked memory retrieval
 
 ### 🌐 **Decentralized Architecture**
-- **AO-Powered**: Leverage Autonomous Objects for computation
+- **AO-Powered**: Leverage AO compute layer for decentralized processing
 - **Hub System**: Distributed memory nodes with the Velocity Protocol
 - **Permissionless**: No gatekeepers, true Web3 infrastructure
 - **Cross-Agent Memory**: Shared knowledge between AI systems
@@ -80,7 +80,7 @@ graph TD
 
 **Core Components:**
 - **MCP Server**: FastMCP-based server exposing AI memory tools
-- **AO Integration**: Direct communication with Autonomous Objects
+- **AO Integration**: Direct communication with AO processes
 - **Memory Services**: Enhanced AI memory with metadata and relationships
 - **Token System**: Advanced minting strategies with credit notice detection
 - **Velocity Protocol**: Decentralized hub discovery and event routing
@@ -633,7 +633,7 @@ npm run lint       # Check code quality
 ## 🌐 Ecosystem & Links
 
 ### Core Technologies
-- **[AO (Autonomous Objects)](https://ao.arweave.dev/)** - Decentralized compute layer
+- **[AO Cookbook](https://cookbook_ao.g8way.io/)** - AO development guide and compute layer
 - **[Arweave](https://arweave.org/)** - Permanent data storage
 - **[Model Context Protocol](https://modelcontextprotocol.io/)** - AI tool standard
 - **[FastMCP](https://github.com/jlowin/fastmcp)** - TypeScript MCP framework
@@ -646,7 +646,7 @@ npm run lint       # Check code quality
 - **Updates**: [@ALLiDoizCode](https://twitter.com/ALLiDoizCode)
 
 ### Related Projects
-- **[AO Cookbook](https://github.com/permaweb/ao-cookbook)** - AO development guide
+- **[AO Cookbook](https://cookbook_ao.g8way.io/)** - AO development guide
 - **[Arweave Cookbook](https://cookbook.arweave.dev/)** - Arweave development
 - **[Claude Desktop](https://claude.ai/download)** - Primary MCP client
 

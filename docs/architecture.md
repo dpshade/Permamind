@@ -1,10 +1,10 @@
 # Permamind Architecture Guide
 
-This guide explains the technical architecture of Permamind, the world's first permanent, decentralized AI memory system.
+This guide explains the technical architecture of Permamind, the world's first permanent, decentralized AI memory system built on Arweave and AO.
 
 ## System Overview
 
-Permamind is built on a three-layer architecture that combines the Model Context Protocol (MCP) for AI tool integration, Autonomous Objects (AO) for decentralized computation, and Arweave for permanent data storage.
+Permamind is built on a three-layer architecture that combines the Model Context Protocol (MCP) for AI tool integration, AO for decentralized computation, and Arweave for permanent data storage.
 
 ```mermaid
 graph TB

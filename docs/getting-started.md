@@ -4,7 +4,7 @@ Welcome to Permamind! This guide will help you set up and start using the world'
 
 ## Overview
 
-Permamind provides immortal memory for AI agents using Arweave's permanent storage and the AO (Autonomous Objects) ecosystem. Unlike traditional memory systems that are ephemeral, Permamind creates persistent AI memory that survives forever.
+Permamind provides immortal memory for AI agents using Arweave's permanent storage and the AO ecosystem. Unlike traditional memory systems that are ephemeral, Permamind creates persistent AI memory that survives forever.
 
 ## Prerequisites
 
