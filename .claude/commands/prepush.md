@@ -43,25 +43,26 @@ Execute comprehensive pre-push validation using this 9-phase approach that simul
 
 ### Phase 3: 🎨 CODE QUALITY CHECKS
 
-**Run exact linting and formatting checks from CI**
+**Run exact CI commands to guarantee success**
 
-- **Full Lint Check**: `npm run lint` (EXACT CI COMMAND)
-  - This runs: `prettier --check . && eslint . && tsc --noEmit`
+- **Format Check**: `npm run format:check` (EXACT CI COMMAND)
+  - This runs: `prettier --check .`
+  - Must pass WITHOUT any formatting changes needed
   - Matches CI exactly - prevents discrepancies
-  - On failure, suggest auto-fixes with individual commands:
-    - Formatting: `npm run format` (prettier --write . && eslint --fix .)
-    - Manual fixes required for complex ESLint errors
-- **Alternative Individual Checks** (for debugging):
-  - **Prettier Check**: `npm run format:check`
-  - **ESLint Check**: `eslint .`
-  - **TypeScript Check**: `npm run type-check`
+  - On failure: STOP and run manual fixes before retrying
+- **Type Check**: `npm run type-check` (EXACT CI COMMAND)  
+- **Test Suite**: `npm test` (EXACT CI COMMAND)
+- **Security Audit**: `npm run audit` (EXACT CI COMMAND)
 
-**Auto-Fix Integration:**
+**IMPORTANT - No Auto-Fixing:**
 
-- Primary: Run `npm run format` to auto-fix formatting and basic ESLint issues
-- Secondary: Manual intervention for complex type errors
-- Re-run `npm run lint` after fixes to confirm resolution
-- Exit with error if any lint issues remain unfixed
+- **All checks must pass perfectly** - no modifications allowed
+- On failure, **STOP and fix manually** before retrying
+- Suggested manual fixes:
+  - Format: `npm run format` then commit changes
+  - Lint: `npm run lint:fix` then commit changes  
+  - Tests: Fix failing tests and commit changes
+- **Re-run `/prepush` after manual fixes to verify**
 
 ### Phase 3.5: 🧹 LOGGING CLEANUP
 

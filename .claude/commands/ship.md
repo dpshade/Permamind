@@ -53,7 +53,7 @@ Executes `/prepush` command to:
 
 - Validate git state and branch readiness
 - Ensure clean dependency installation (npm ci)
-- Run **EXACT CI COMMANDS**: `npm run lint` (prettier + eslint + tsc)
+- Run **EXACT CI COMMANDS**: `npm run format:check && npm run type-check && npm test && npm run audit`
 - Remove debug logging statements
 - Execute build verification
 - Run complete test suite with coverage
