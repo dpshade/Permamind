@@ -69,11 +69,14 @@ describe("PermawebDocs", () => {
     });
 
     it("should handle fetch errors gracefully", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+      permawebDocs.clearCache(); // Ensure arweave is not cached
+      mockFetch.mockClear();
+      mockFetch.mockImplementation(() => Promise.reject(new Error("Network error")));
 
       await expect(permawebDocs.preload(["arweave"])).rejects.toThrow(
         "Failed to load arweave documentation: Network error",
       );
+      expect(mockFetch).toHaveBeenCalled();
     });
   });
 
@@ -253,12 +256,51 @@ This section has nothing to do with the query.
       },
     ];
 
+    beforeEach(() => {
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes("arweave")) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve("# Arweave Guide\nHow to use arweave-js library? Arweave is a permanent storage blockchain."),
+          });
+        }
+        if (url.includes("ao")) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve("# AO Process\nAO process spawning tutorial. AO processes are autonomous computing units."),
+          });
+        }
+        if (url.includes("ario")) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve("# AR.IO Gateway\nAR.IO gateway setup and deployment."),
+          });
+        }
+        if (url.includes("hyperbeam")) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve("# HyperBEAM Device\nHyperBEAM device configuration and distributed computation."),
+          });
+        }
+        if (url.includes("permaweb-glossary")) {
+          return Promise.resolve({
+            ok: true,
+            text: () => Promise.resolve("permaweb: The global, permanent web.\n\nblockchain: a distributed ledger."),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve("General documentation content."),
+        });
+      });
+    });
+
     testCases.forEach(({ expectedDomains, query }) => {
       it(`should detect ${expectedDomains.join(", ")} for query: "${query}"`, async () => {
         const response = await permawebDocs.query(query);
-
+        const detectedDomains = PermawebDocs.extractDomains(response);
         expectedDomains.forEach((domain) => {
-          expect(response).toContain(domain as PermawebDomain);
+          expect(detectedDomains).toContain(domain as PermawebDomain);
         });
       });
     });

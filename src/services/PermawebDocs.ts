@@ -268,10 +268,12 @@ export class PermawebDocs {
 
   /**
    * Preload documentation for specific domains
+   * Throws if any domain fails to load
    */
   async preload(
     domains: PermawebDomain[] = this.getAvailableDomains(),
   ): Promise<void> {
+    // Use ensureDocsLoaded, but propagate errors if any fail
     await this.ensureDocsLoaded(domains);
   }
 
@@ -292,19 +294,39 @@ export class PermawebDocs {
 
   /**
    * Query Permaweb documentation and return up to 20 most relevant chunks.
+   * If requestedDomains is not provided, use domain detection to select relevant domains.
+   * Throws if any domain fails to load.
    */
   async query(query: string, requestedDomains?: string[]): Promise<PermawebDocsResult[]> {
+    // Use domain detection if no domains specified
+    let domains: PermawebDomain[];
+    if (requestedDomains && requestedDomains.length > 0) {
+      domains = requestedDomains.filter(d => this.getAvailableDomains().includes(d as PermawebDomain)) as PermawebDomain[];
+    } else {
+      domains = this.detectRelevantDomains(query);
+      // Always include glossary for definition/what is queries
+      if (/\bwhat is\b|\bdefine\b|\bdefinition\b|\bglossary\b|\bmeaning\b|\bexplain\b/i.test(query) && !domains.includes("permaweb-glossary")) {
+        domains.push("permaweb-glossary");
+      }
+      // Fallback: if no domains detected, search all
+      if (domains.length === 0) {
+        domains = this.getAvailableDomains();
+      }
+    }
+    // Ensure docs are loaded (throws if any fail)
+    await this.ensureDocsLoaded(domains);
     const results: PermawebDocsResult[] = [];
-    const domains = requestedDomains?.filter(d => this.getAvailableDomains().includes(d as PermawebDomain)) as PermawebDomain[] || this.getAvailableDomains();
     for (const domain of domains) {
-      await this.ensureDocsLoaded([domain]);
       const cached = this.cache.get(domain);
       if (!cached) continue;
       const url = DOC_SOURCES.find(s => s.domain === domain)!.url;
       const chunks = this.chunkContent(domain, cached.content);
       for (const chunk of chunks) {
         const relevanceScore = this.calculateChunkRelevance(query, chunk, domain);
-        if (relevanceScore >= this.relevanceThreshold) {
+        // Only include chunks that contain at least one query word and meet threshold
+        const queryWords = query.toLowerCase().split(/\s+/);
+        const containsQueryWord = queryWords.some(word => chunk.toLowerCase().includes(word));
+        if (relevanceScore >= this.relevanceThreshold && containsQueryWord) {
           results.push({
             content: chunk,
             domain,
@@ -357,17 +379,12 @@ export class PermawebDocs {
       ];
 
       for (const { keyword, weight } of allKeywords) {
-        if (query.includes(keyword.toLowerCase())) {
+        // Flexible: match if keyword is in query or any query word is in keyword
+        if (
+          query.toLowerCase().includes(keyword.toLowerCase()) ||
+          words.some(word => keyword.toLowerCase().includes(word))
+        ) {
           score += weight;
-        }
-      }
-
-      for (const word of words) {
-        const matchingKeyword = allKeywords.find(k => 
-          k.keyword.toLowerCase() === word.toLowerCase()
-        );
-        if (matchingKeyword) {
-          score += matchingKeyword.weight;
         }
       }
 
@@ -384,13 +401,18 @@ export class PermawebDocs {
 
   /**
    * Enhanced document loading with retry logic
+   * Throws if any domain fails to load
    */
   private async ensureDocsLoaded(domains: PermawebDomain[]): Promise<void> {
     const loadPromises = domains
       .filter(domain => !this.isDocLoaded(domain))
       .map(domain => this.loadDocumentationWithRetry(domain));
-
-    await Promise.all(loadPromises);
+    // Wait for all, but throw if any fail
+    const results = await Promise.allSettled(loadPromises);
+    const rejected = results.find(r => r.status === 'rejected');
+    if (rejected && rejected.status === 'rejected') {
+      throw rejected.reason;
+    }
   }
 
   /**
@@ -465,6 +487,13 @@ export class PermawebDocs {
         `Failed to load ${domain} documentation: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
+  }
+
+  /**
+   * Helper for tests: extract unique domains from results
+   */
+  static extractDomains(results: PermawebDocsResult[]): PermawebDomain[] {
+    return Array.from(new Set(results.map(r => r.domain)));
   }
 }
 
