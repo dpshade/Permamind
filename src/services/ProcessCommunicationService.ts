@@ -399,7 +399,8 @@ const service = (): ProcessCommunicationService => {
     },
 
     parseMarkdown: (markdown: string): ProcessDefinition => {
-      const lines = markdown.split("\n");
+      const lines = markdown.split("
+");
       const handlers: HandlerInfo[] = [];
       let currentHandler: null | Partial<HandlerInfo> = null;
       let processName = "Unknown Process";
@@ -548,8 +549,8 @@ const extractParameterValue = (
 ): unknown => {
   // Parameter-specific patterns first
   const specificPatterns = [
-    new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
-    new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
+    new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
+    new RegExp(`${paramName}\s+([^\s]+)`, "i"),
   ];
 
   // Check parameter-specific patterns first
@@ -568,9 +569,9 @@ const extractParameterValue = (
   // Type-specific fallback patterns
   if (paramType === "number") {
     const numberPatterns = [
-      new RegExp(`send\\s+([0-9.]+)`, "i"),
-      new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
-      new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
+      new RegExp(`send\s+([0-9.]+)`, "i"),
+      new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+      new RegExp(`([0-9.]+)\s+tokens?`, "i"),
       new RegExp(`([0-9.]+)`), // Last resort: any number (removed global flag)
     ];
 
@@ -589,8 +590,8 @@ const extractParameterValue = (
   ) {
     // Address/recipient patterns
     const addressPatterns = [
-      new RegExp(`to\\s+([^\\s]+)`, "i"),
-      new RegExp(`recipient\\s+([^\\s]+)`, "i"),
+      new RegExp(`to\s+([^\s]+)`, "i"),
+      new RegExp(`recipient\s+([^\s]+)`, "i"),
     ];
 
     for (const pattern of addressPatterns) {
