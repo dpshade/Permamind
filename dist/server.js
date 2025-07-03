@@ -7,6 +7,7 @@ import { HUB_REGISTRY_ID, ProcessHub } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { event, fetchEvents } from "./relay.js";
 import { aiMemoryService, MEMORY_KINDS } from "./services/aiMemoryService.js";
+import { contextInitializationService } from "./services/ContextInitializationService.js";
 import { defaultProcessService } from "./services/DefaultProcessService.js";
 import { hubService } from "./services/hub.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
@@ -59,6 +60,8 @@ async function init() {
     }
     // Verify default process templates are loaded (silently for MCP compatibility)
     defaultProcessService.getDefaultProcesses();
+    // Context initialization is now user-triggered via "Hello AO" greeting
+    // No automatic loading on startup for better performance and user control
 }
 // Check if input looks like a processId (43-character base64-like string)
 function looksLikeProcessId(input) {
@@ -336,7 +339,7 @@ server.addTool({
         readOnlyHint: true, // This tool doesn't modify anything
         title: "Search Memories",
     },
-    description: "Retrieve all stored Memories for the hubId by keywords or content. Call this tool when you need to search for memories based on a keyword or content",
+    description: "Retrieve all stored Memories for the hubId by keywords or content. Automatically searches both user memories and comprehensive Permaweb ecosystem context documentation. Call this tool when you need to search for memories based on a keyword or content.",
     execute: async (args) => {
         const memories = await hubService.search(hubId, args.search, "10");
         return JSON.stringify(memories);
@@ -400,7 +403,7 @@ server.addTool({
             .optional()
             .describe("Importance score 0-1 (default: 0.5)"),
         memoryType: z
-            .enum(["conversation", "reasoning", "knowledge", "procedure"])
+            .enum(["conversation", "context", "reasoning", "knowledge", "procedure"])
             .optional()
             .describe("Type of memory (default: conversation)"),
         p: z.string().describe("The public key of the participant"),
@@ -422,7 +425,8 @@ server.addTool({
         title: "Advanced Memory Search",
     },
     description: `Search memories with advanced filtering options including memory type, importance threshold, 
-    time range, and contextual filters. Returns results ranked by relevance and importance.`,
+    time range, and contextual filters. Returns results ranked by relevance and importance. Automatically includes 
+    context documentation from the Permaweb ecosystem (Arweave, AO, AR.IO, HyperBEAM, Permaweb glossary).`,
     execute: async (args) => {
         try {
             const filters = {
@@ -458,7 +462,7 @@ server.addTool({
             .optional()
             .describe("Minimum importance score"),
         memoryType: z
-            .enum(["conversation", "reasoning", "knowledge", "procedure"])
+            .enum(["conversation", "context", "reasoning", "knowledge", "procedure"])
             .optional()
             .describe("Filter by memory type"),
         query: z.string().describe("Search query or keywords"),
@@ -467,6 +471,172 @@ server.addTool({
             .string()
             .optional()
             .describe("Start date for time range filter (ISO string)"),
+    }),
+});
+// Greeting Detection and Context Loading
+// Tool to detect AO greetings and trigger context loading
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: false,
+        title: "Hello AO - Initialize Context",
+    },
+    description: `Detect when a user greets with "Hello AO", "Hey AO", or similar and automatically trigger 
+    comprehensive Permaweb ecosystem knowledge loading. Provides friendly, conversational responses throughout 
+    the initialization process with progress updates and completion status.`,
+    execute: async (args) => {
+        try {
+            // Check if the message contains an AO greeting
+            const message = args.message.toLowerCase();
+            const aoGreetings = [
+                "hello ao",
+                "hey ao",
+                "hi ao",
+                "good morning ao",
+                "good afternoon ao",
+                "good evening ao",
+                "greetings ao",
+                "howdy ao",
+                "what's up ao",
+                "sup ao",
+            ];
+            const isAoGreeting = aoGreetings.some((greeting) => message.includes(greeting) ||
+                message
+                    .replace(/[^\w\s]/g, "")
+                    .includes(greeting.replace(/[^\w\s]/g, "")));
+            if (!isAoGreeting) {
+                return JSON.stringify({
+                    isGreeting: false,
+                    message: "This doesn't appear to be an AO greeting. Try saying 'Hello AO' to load my comprehensive knowledge!",
+                    success: true,
+                });
+            }
+            // Trigger context loading with friendly messaging
+            const messages = await contextInitializationService.initializeContextWithGreeting(keyPair, hubId, publicKey);
+            return JSON.stringify({
+                contextLoaded: true,
+                isGreeting: true,
+                messages: messages,
+                success: true,
+            });
+        }
+        catch (error) {
+            return JSON.stringify({
+                error: `Greeting processing failed: ${error}`,
+                isGreeting: true,
+                messages: [
+                    "👋 Hello! I recognized your greeting but had trouble loading my knowledge base.",
+                    "🤔 I'm still here to help though! You can try greeting me again later.",
+                ],
+                success: false,
+            });
+        }
+    },
+    name: "helloAO",
+    parameters: z.object({
+        message: z
+            .string()
+            .describe("The user's message to check for AO greetings"),
+    }),
+});
+// Context Management Tools
+// Tool to get context status
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Get Context Status",
+    },
+    description: `Get the status of loaded Permaweb ecosystem context documentation. Shows which sources are loaded, 
+    when they were last updated, total chunks and words, and any loading errors.`,
+    execute: async () => {
+        try {
+            const status = await contextInitializationService.getContextStatus(hubId);
+            return JSON.stringify(status);
+        }
+        catch (error) {
+            return JSON.stringify({
+                error: `Failed to get context status: ${error}`,
+                loaded: false,
+                sources: [],
+                totalChunks: 0,
+                totalWords: 0,
+            });
+        }
+    },
+    name: "getContextStatus",
+    parameters: z.object({}),
+});
+// Tool to refresh context
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: false,
+        title: "Refresh Context",
+    },
+    description: `Manually refresh the Permaweb ecosystem context documentation. Can refresh all sources or specific ones. 
+    This will fetch the latest versions from the URLs and update the stored context chunks.`,
+    execute: async (args) => {
+        try {
+            const sourceTypes = args.sourceTypes
+                ? args.sourceTypes.split(",").map((s) => s.trim())
+                : undefined;
+            const status = await contextInitializationService.refreshContext(keyPair, hubId, publicKey, sourceTypes);
+            return JSON.stringify(status);
+        }
+        catch (error) {
+            return JSON.stringify({
+                error: `Failed to refresh context: ${error}`,
+                success: false,
+            });
+        }
+    },
+    name: "refreshContext",
+    parameters: z.object({
+        sourceTypes: z
+            .string()
+            .optional()
+            .describe("Comma-separated list of source types to refresh (hyperbeam,arweave,ao,ario,permaweb-glossary). If not provided, all sources will be refreshed."),
+    }),
+});
+// Tool to search context
+server.addTool({
+    annotations: {
+        openWorldHint: false,
+        readOnlyHint: true,
+        title: "Search Context Documentation",
+    },
+    description: `Search specifically within the loaded Permaweb ecosystem context documentation. This searches through 
+    comprehensive documentation from Arweave, AO, AR.IO, HyperBEAM, and Permaweb glossary sources.`,
+    execute: async (args) => {
+        try {
+            const sourceTypes = args.sourceTypes
+                ? args.sourceTypes.split(",").map((s) => s.trim())
+                : undefined;
+            const results = await contextInitializationService.searchContextContent(hubId, args.query, sourceTypes);
+            return JSON.stringify({
+                resultCount: results.length,
+                results,
+                searchQuery: args.query,
+                sourceTypes: sourceTypes || "all",
+                success: true,
+            });
+        }
+        catch (error) {
+            return JSON.stringify({
+                error: `Failed to search context: ${error}`,
+                results: [],
+                success: false,
+            });
+        }
+    },
+    name: "searchContext",
+    parameters: z.object({
+        query: z.string().describe("Search query to find in context documentation"),
+        sourceTypes: z
+            .string()
+            .optional()
+            .describe("Comma-separated list of source types to search within (hyperbeam,arweave,ao,ario,permaweb-glossary). If not provided, all sources will be searched."),
     }),
 });
 // Tool to link memories for relationship building

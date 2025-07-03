@@ -353,6 +353,7 @@ describe("MCP Server Integration Tests", () => {
 
       expect(analytics.totalMemories).toBe(5);
       expect(analytics.memoryTypeDistribution).toEqual({
+        context: 0,
         conversation: 1,
         enhancement: 0,
         knowledge: 2,

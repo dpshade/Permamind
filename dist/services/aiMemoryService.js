@@ -4,6 +4,7 @@ import { event, fetchEvents, fetchEventsVIP01 } from "../relay.js";
 const MEMORY_KINDS = {
     AI_MEMORY: "10",
     CONTACT_MAPPING: "31",
+    CONTEXT_DOCUMENTATION: "50",
     MEMORY_CONTEXT: "40",
     MEMORY_RELATIONSHIP: "11",
     REASONING_CHAIN: "23",
@@ -137,7 +138,7 @@ const aiService = () => {
                     neighbors.forEach((neighbor) => dfs(neighbor, path));
                     path.delete(nodeId);
                 };
-                links.keys().forEach((nodeId) => {
+                Array.from(links.keys()).forEach((nodeId) => {
                     if (!visited.has(nodeId)) {
                         dfs(nodeId, new Set());
                     }
@@ -244,6 +245,7 @@ const aiService = () => {
                         medium: 0,
                     },
                     memoryTypeDistribution: {
+                        context: 0,
                         conversation: 0,
                         enhancement: 0,
                         knowledge: 0,
@@ -619,6 +621,7 @@ function generateAnalytics(memories) {
     }, {});
     // Ensure all types are represented
     const typeDistribution = {
+        context: memoryTypeDistribution.context || 0,
         conversation: memoryTypeDistribution.conversation || 0,
         enhancement: memoryTypeDistribution.enhancement || 0,
         knowledge: memoryTypeDistribution.knowledge || 0,

@@ -194,6 +194,7 @@ describe("ServiceName", () => {
 ### AI Memory Types
 
 - **conversation**: Chat interactions and context
+- **context**: Comprehensive Permaweb ecosystem documentation (automatically loaded)
 - **knowledge**: Factual information and learning
 - **procedure**: Step-by-step processes and workflows
 - **reasoning**: Decision trees and logic chains
@@ -279,6 +280,12 @@ NODE_ENV=development|production
 DEBUG=true                    # Enable debug mode
 MCP_LOG_LEVEL=info           # MCP logging level
 TEST_TIMEOUT=60000           # Test timeout in ms
+
+# Context Management Configuration
+ENABLE_AUTO_CONTEXT=true     # Enable automatic context loading on startup (default: true)
+CONTEXT_REFRESH_HOURS=24     # Hours between automatic context refreshes (default: 24)
+CONTEXT_RETRY_ATTEMPTS=3     # Number of retry attempts for failed URL fetches (default: 3)
+CONTEXT_CHUNK_SIZE=2000      # Maximum characters per context chunk (default: 2000)
 ```
 
 ## Integration Points
@@ -362,6 +369,45 @@ const memory: Partial<AIMemory> = {
 };
 
 await aiMemoryService.addEnhanced(signer, hubId, memory);
+```
+
+## Context Initialization System
+
+### Overview
+
+Permamind automatically loads comprehensive Permaweb ecosystem documentation into context on startup, providing instant access to:
+
+- **Arweave Ecosystem**: 65 documents, 21,106 words of development guides
+- **AO Computer System**: 90 documents, 36,805 words of system documentation
+- **AR.IO Infrastructure**: 125 documents, 78,208 words of ecosystem guides
+- **HyperBEAM Computing**: Decentralized computing implementation docs
+- **Permaweb Glossary**: 9,710 words of comprehensive terminology
+
+### Context Management Tools
+
+- `getContextStatus` - Check loading status and statistics
+- `refreshContext` - Manually refresh context from sources
+- `searchContext` - Search specifically within context documentation
+- `searchMemoriesAdvanced` - Includes context in general memory searches
+
+### Technical Implementation
+
+- **Intelligent Chunking**: Content split at semantic boundaries (~2000 chars)
+- **Importance Scoring**: Context prioritized by relevance and keywords
+- **Caching**: 24-hour TTL with retry logic for reliability
+- **Background Loading**: Non-blocking startup with progress tracking
+- **Error Handling**: Graceful fallback when sources are unavailable
+
+### Context URLs
+
+```typescript
+const CONTEXT_SOURCES = [
+  "https://fuel_permawebllms.permagate.io/hyperbeam-llms.txt",
+  "https://fuel_permawebllms.permagate.io/arweave-llms.txt",
+  "https://fuel_permawebllms.permagate.io/ao-llms.txt",
+  "https://fuel_permawebllms.permagate.io/ario-llms.txt",
+  "https://fuel_permawebllms.permagate.io/permaweb-glossary-llms.txt",
+];
 ```
 
 This project represents a cutting-edge implementation of persistent AI memory using decentralized technologies, combining the reliability of Arweave with the computational power of AO and the standardization of MCP.

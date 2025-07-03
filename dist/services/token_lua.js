@@ -143,7 +143,7 @@ ${initialAllocations && Object.entries(initialAllocations).length > 0
         ? `-- Initial Balance Allocations (Explicit)
 ${Object.entries(initialAllocations)
             .map(([address, balance]) => `Balances["${address}"] = "${balance}"`)
-            .join("\n")}
+            .join("")}
 
 -- Update total supply to match initial allocations
 local function updateSupplyForAllocations()
@@ -550,7 +550,7 @@ function getDoubleMintTemplate(config) {
     const buyTokenConfigs = Object.entries(buyTokens)
         .filter(([, config]) => config.enabled)
         .map(([address, config]) => `  ["${address}"] = ${config.multiplier}`)
-        .join(",\n");
+        .join(",");
     return `
 
 -- Double Mint Strategy

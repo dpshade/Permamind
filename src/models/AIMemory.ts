@@ -9,6 +9,33 @@ export interface AIMemory extends Memory {
   relationships?: MemoryLink[];
 }
 
+// Context-specific interfaces
+export interface ContextChunk {
+  chunkIndex: number;
+  content: string;
+  importance: number;
+  section?: string;
+  sourceType: "ao" | "ario" | "arweave" | "hyperbeam" | "permaweb-glossary";
+  sourceUrl: string;
+  tags: string[];
+  totalChunks: number;
+}
+
+export interface ContextStatus {
+  lastUpdated?: string;
+  loaded: boolean;
+  sources: {
+    chunkCount?: number;
+    error?: string;
+    lastFetched?: string;
+    sourceType: string;
+    status: "error" | "loaded" | "loading";
+    url: string;
+  }[];
+  totalChunks: number;
+  totalWords: number;
+}
+
 export interface MemoryAnalytics {
   accessPatterns: {
     mostAccessed: string[];
@@ -25,10 +52,16 @@ export interface MemoryAnalytics {
 }
 
 export interface MemoryContext {
+  chunkIndex?: number;
   domain?: string;
   relatedMemories?: string[];
+  section?: string;
   sessionId?: string;
+  sourceType?: "ao" | "ario" | "arweave" | "hyperbeam" | "permaweb-glossary";
+  // Context-specific properties
+  sourceUrl?: string;
   topic?: string;
+  totalChunks?: number;
 }
 
 export interface MemoryLink {
@@ -45,6 +78,7 @@ export interface MemoryMetadata {
 }
 
 export type MemoryType =
+  | "context"
   | "conversation"
   | "enhancement"
   | "knowledge"
