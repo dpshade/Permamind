@@ -1,6 +1,6 @@
-# Contributing to Permamind
+# 🤝 Contributing Guide
 
-Thank you for your interest in contributing to Permamind! This guide will help you get started with contributing to the world's first permanent, decentralized AI memory system.
+Welcome to the Permamind community! We're excited to have you contribute to the world's first permanent, decentralized AI memory system.
 
 ## Table of Contents
 
@@ -17,6 +17,7 @@ Thank you for your interest in contributing to Permamind! This guide will help y
 ### Prerequisites
 
 Before contributing, ensure you have:
+
 - **Node.js 20+** installed
 - **Git** for version control
 - Basic knowledge of **TypeScript**, **AO**, and **Arweave**
@@ -48,11 +49,13 @@ Before contributing, ensure you have:
 ### Environment Setup
 
 1. **Create a development environment file**:
+
    ```bash
    cp .env.example .env
    ```
 
 2. **Generate a development seed phrase**:
+
    ```bash
    node -e "
    const { generateMnemonic } = require('bip39');
@@ -133,6 +136,7 @@ examples/                  # Usage examples
 ### 🧠 Memory Systems
 
 **Areas for contribution**:
+
 - Enhanced memory algorithms
 - New memory relationship types
 - Improved importance scoring
@@ -140,6 +144,7 @@ examples/                  # Usage examples
 - Advanced analytics
 
 **Getting started**:
+
 1. Study `src/services/aiMemoryService.ts`
 2. Review memory models in `src/models/`
 3. Check existing tests for patterns
@@ -148,6 +153,7 @@ examples/                  # Usage examples
 ### 🌐 AO Integration
 
 **Areas for contribution**:
+
 - New process type templates
 - Natural language processing improvements
 - Parameter extraction patterns
@@ -155,6 +161,7 @@ examples/                  # Usage examples
 - Error handling
 
 **Getting started**:
+
 1. Review `src/services/ProcessCommunicationService.ts`
 2. Study `src/templates/defaultTokenProcess.ts`
 3. Read AO documentation
@@ -163,6 +170,7 @@ examples/                  # Usage examples
 ### 🔍 Search & Analytics
 
 **Areas for contribution**:
+
 - Search algorithm improvements
 - New filtering capabilities
 - Performance optimizations
@@ -170,6 +178,7 @@ examples/                  # Usage examples
 - Memory usage analytics
 
 **Getting started**:
+
 1. Examine search implementation in `aiMemoryService.ts`
 2. Review VIP01 processing utilities
 3. Study search test cases
@@ -178,6 +187,7 @@ examples/                  # Usage examples
 ### 📚 Documentation & Examples
 
 **Areas for contribution**:
+
 - Tutorial improvements
 - New usage examples
 - API documentation updates
@@ -185,6 +195,7 @@ examples/                  # Usage examples
 - Troubleshooting guides
 
 **Getting started**:
+
 1. Review existing documentation in `docs/`
 2. Try examples and find gaps
 3. Improve clarity and completeness
@@ -193,6 +204,7 @@ examples/                  # Usage examples
 ### 🧪 Testing & Quality
 
 **Areas for contribution**:
+
 - Increase test coverage
 - Add integration tests
 - Performance benchmarks
@@ -200,6 +212,7 @@ examples/                  # Usage examples
 - CI/CD improvements
 
 **Getting started**:
+
 1. Review test structure in `tests/`
 2. Check coverage reports
 3. Identify untested code paths
@@ -208,6 +221,7 @@ examples/                  # Usage examples
 ### 🛡 Security & Performance
 
 **Areas for contribution**:
+
 - Security audit and improvements
 - Performance optimizations
 - Memory leak detection
@@ -215,6 +229,7 @@ examples/                  # Usage examples
 - Error handling improvements
 
 **Getting started**:
+
 1. Review security considerations
 2. Profile performance bottlenecks
 3. Study error handling patterns
@@ -231,6 +246,7 @@ examples/                  # Usage examples
 5. **Error Handling**: Comprehensive error handling
 
 **Example**:
+
 ```typescript
 interface MemoryCreateRequest {
   content: string;
@@ -240,7 +256,7 @@ interface MemoryCreateRequest {
 }
 
 export async function createMemory(
-  request: MemoryCreateRequest
+  request: MemoryCreateRequest,
 ): Promise<MemoryCreateResponse> {
   try {
     // Implementation with proper error handling
@@ -260,6 +276,7 @@ export async function createMemory(
 5. **Imports**: ES modules with `.js` extensions for local imports
 
 **Example**:
+
 ```typescript
 /**
  * Creates an enhanced AI memory with metadata and relationships
@@ -271,7 +288,7 @@ export async function createMemory(
 export async function addEnhanced(
   signer: JWKInterface,
   hubId: string,
-  memory: Partial<AIMemory>
+  memory: Partial<AIMemory>,
 ): Promise<string> {
   // Implementation
 }
@@ -292,6 +309,7 @@ export async function addEnhanced(
 4. **Logging**: Appropriate logging for debugging
 
 **Example**:
+
 ```typescript
 interface ServiceError {
   code: string;
@@ -315,8 +333,8 @@ export async function serviceOperation(): Promise<ServiceResponse<Data>> {
       error: {
         code: "OPERATION_FAILED",
         message: error instanceof Error ? error.message : "Unknown error",
-        details: error
-      }
+        details: error,
+      },
     };
   }
 }
@@ -352,14 +370,14 @@ describe("AIMemoryService", () => {
       const memory = {
         content: "Test memory",
         importance: 0.8,
-        memoryType: "knowledge" as MemoryType
+        memoryType: "knowledge" as MemoryType,
       };
 
       // Act
       const result = await aiMemoryService.addEnhanced(
         mockSigner,
         "hub_123",
-        memory
+        memory,
       );
 
       // Assert
@@ -369,15 +387,15 @@ describe("AIMemoryService", () => {
         "hub_123",
         expect.arrayContaining([
           { name: "Content", value: "Test memory" },
-          { name: "ai_importance", value: "0.8" }
-        ])
+          { name: "ai_importance", value: "0.8" },
+        ]),
       );
     });
 
     it("should validate required parameters", async () => {
       // Test error cases
       await expect(
-        aiMemoryService.addEnhanced(mockSigner, "hub_123", {})
+        aiMemoryService.addEnhanced(mockSigner, "hub_123", {}),
       ).rejects.toThrow("Memory content is required");
     });
   });
@@ -431,20 +449,24 @@ npx vitest run src/services/aiMemoryService.test.ts
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to change)
 - [ ] Documentation update
 
 ## Testing
+
 - [ ] All existing tests pass
 - [ ] New tests added for new functionality
 - [ ] Test coverage maintained/improved
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Comments added for complex code
@@ -452,6 +474,7 @@ Brief description of changes
 - [ ] No breaking changes (or clearly documented)
 
 ## Related Issues
+
 Fixes #(issue_number)
 ```
 
@@ -528,6 +551,7 @@ When making significant architectural changes:
 ### Contributors
 
 We recognize contributors through:
+
 - **GitHub Contributors** page
 - **Changelog** acknowledgments
 - **Community spotlight** (coming soon)
@@ -536,6 +560,7 @@ We recognize contributors through:
 ### Becoming a Maintainer
 
 Regular contributors may be invited to become maintainers based on:
+
 - **Consistent Contributions**: Regular, high-quality contributions
 - **Community Engagement**: Helping other contributors
 - **Technical Expertise**: Deep understanding of the codebase
@@ -544,18 +569,21 @@ Regular contributors may be invited to become maintainers based on:
 ## Resources
 
 ### Documentation
+
 - [Getting Started](./getting-started.md)
 - [Architecture Guide](./architecture.md)
 - [API Reference](./api-reference.md)
 - [Memory System](./memory-system.md)
 
 ### External Resources
+
 - [AO Cookbook](https://cookbook_ao.g8way.io/)
 - [Arweave Documentation](https://docs.arweave.org/)
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/)
 
 ### Tools and Libraries
+
 - [FastMCP](https://github.com/jlowin/fastmcp) - MCP framework
 - [AO Connect](https://www.npmjs.com/package/@permaweb/aoconnect) - AO integration
 - [Vitest](https://vitest.dev/) - Testing framework
