@@ -8,3 +8,4 @@ debug-*.md
 temp.*
 mcp-*.js
 mcp-*.sh
+dist

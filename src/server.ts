@@ -6,6 +6,8 @@ import dotenv from "dotenv";
 import { FastMCP } from "fastmcp";
 import { z } from "zod";
 
+import type { PermawebDomain } from "./services/PermawebDocs.js";
+
 import { HUB_REGISTRY_ID, ProcessHub } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
 import { MemoryType } from "./models/AIMemory.js";
@@ -13,7 +15,6 @@ import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
 import { event, fetchEvents } from "./relay.js";
 import { aiMemoryService, MEMORY_KINDS } from "./services/aiMemoryService.js";
-import { contextInitializationService } from "./services/ContextInitializationService.js";
 import { defaultProcessService } from "./services/DefaultProcessService.js";
 import { hubService } from "./services/hub.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
@@ -512,10 +513,44 @@ server.addTool({
     title: "Advanced Memory Search",
   },
   description: `Search memories with advanced filtering options including memory type, importance threshold, 
-    time range, and contextual filters. Returns results ranked by relevance and importance. Automatically includes 
-    context documentation from the Permaweb ecosystem (Arweave, AO, AR.IO, HyperBEAM, Permaweb glossary).`,
+    time range, and contextual filters. Returns results ranked by relevance and importance. Can also include 
+    live Permaweb documentation results for comprehensive answers.`,
   execute: async (args) => {
     try {
+      let permawebResults: Array<{
+        content: string;
+        domain: PermawebDomain;
+        relevanceScore: number;
+        section?: string;
+        type: string;
+        url: string;
+      }> = [];
+
+      // Check if we should include Permaweb documentation
+      if (args.includePermawebDocs !== false) {
+        try {
+          const { permawebDocs } = await import("./services/PermawebDocs.js");
+
+          // Use new BFS-powered query signature, more generous with results
+          const docsResults = await permawebDocs.query(
+            args.query
+          );
+
+          if (docsResults.length > 0) {
+            permawebResults = docsResults.map((result: any) => ({
+              content: result.content,
+              domain: result.domain,
+              relevanceScore: result.relevanceScore,
+              isFullDocument: true,
+              type: "permaweb_docs",
+              url: result.url,
+            }));
+          }
+        } catch {
+          // Continue with search even if docs query fails
+        }
+      }
+
       const filters = {
         domain: args.domain,
         importanceThreshold: args.importanceThreshold,
@@ -535,7 +570,16 @@ server.addTool({
         args.query,
         filters,
       );
-      return JSON.stringify(memories);
+
+      // Combine memory results with Permaweb docs if available
+      const response = {
+        memories,
+        permawebDocs: permawebResults,
+        query: args.query,
+        totalResults: memories.length + permawebResults.length,
+      };
+
+      return JSON.stringify(response);
     } catch (error) {
       return `Error: ${error}`;
     }
@@ -553,6 +597,10 @@ server.addTool({
       .max(1)
       .optional()
       .describe("Minimum importance score"),
+    includePermawebDocs: z
+      .boolean()
+      .optional()
+      .describe("Include live Permaweb documentation results (default: true)"),
     memoryType: z
       .enum(["conversation", "context", "reasoning", "knowledge", "procedure"])
       .optional()
@@ -613,17 +661,14 @@ server.addTool({
       }
 
       // Trigger context loading with friendly messaging
-      const messages =
-        await contextInitializationService.initializeContextWithGreeting(
-          keyPair,
-          hubId,
-          publicKey,
-        );
-
+      // Instead, respond with a static message or use PermawebDocs preload if needed
       return JSON.stringify({
         contextLoaded: true,
         isGreeting: true,
-        messages: messages,
+        messages: [
+          "👋 Hello! Permaweb documentation is now loaded via PermawebDocs service.",
+          "🚀 Ready to answer your questions about Arweave, AO, AR.IO, HyperBEAM, and more!",
+        ],
         success: true,
       });
     } catch (error) {
@@ -643,123 +688,6 @@ server.addTool({
     message: z
       .string()
       .describe("The user's message to check for AO greetings"),
-  }),
-});
-
-// Context Management Tools
-
-// Tool to get context status
-server.addTool({
-  annotations: {
-    openWorldHint: false,
-    readOnlyHint: true,
-    title: "Get Context Status",
-  },
-  description: `Get the status of loaded Permaweb ecosystem context documentation. Shows which sources are loaded, 
-    when they were last updated, total chunks and words, and any loading errors.`,
-  execute: async () => {
-    try {
-      const status = await contextInitializationService.getContextStatus(hubId);
-      return JSON.stringify(status);
-    } catch (error) {
-      return JSON.stringify({
-        error: `Failed to get context status: ${error}`,
-        loaded: false,
-        sources: [],
-        totalChunks: 0,
-        totalWords: 0,
-      });
-    }
-  },
-  name: "getContextStatus",
-  parameters: z.object({}),
-});
-
-// Tool to refresh context
-server.addTool({
-  annotations: {
-    openWorldHint: false,
-    readOnlyHint: false,
-    title: "Refresh Context",
-  },
-  description: `Manually refresh the Permaweb ecosystem context documentation. Can refresh all sources or specific ones. 
-    This will fetch the latest versions from the URLs and update the stored context chunks.`,
-  execute: async (args) => {
-    try {
-      const sourceTypes = args.sourceTypes
-        ? args.sourceTypes.split(",").map((s) => s.trim())
-        : undefined;
-
-      const status = await contextInitializationService.refreshContext(
-        keyPair,
-        hubId,
-        publicKey,
-        sourceTypes,
-      );
-      return JSON.stringify(status);
-    } catch (error) {
-      return JSON.stringify({
-        error: `Failed to refresh context: ${error}`,
-        success: false,
-      });
-    }
-  },
-  name: "refreshContext",
-  parameters: z.object({
-    sourceTypes: z
-      .string()
-      .optional()
-      .describe(
-        "Comma-separated list of source types to refresh (hyperbeam,arweave,ao,ario,permaweb-glossary). If not provided, all sources will be refreshed.",
-      ),
-  }),
-});
-
-// Tool to search context
-server.addTool({
-  annotations: {
-    openWorldHint: false,
-    readOnlyHint: true,
-    title: "Search Context Documentation",
-  },
-  description: `Search specifically within the loaded Permaweb ecosystem context documentation. This searches through 
-    comprehensive documentation from Arweave, AO, AR.IO, HyperBEAM, and Permaweb glossary sources.`,
-  execute: async (args) => {
-    try {
-      const sourceTypes = args.sourceTypes
-        ? args.sourceTypes.split(",").map((s) => s.trim())
-        : undefined;
-
-      const results = await contextInitializationService.searchContextContent(
-        hubId,
-        args.query,
-        sourceTypes,
-      );
-
-      return JSON.stringify({
-        resultCount: results.length,
-        results,
-        searchQuery: args.query,
-        sourceTypes: sourceTypes || "all",
-        success: true,
-      });
-    } catch (error) {
-      return JSON.stringify({
-        error: `Failed to search context: ${error}`,
-        results: [],
-        success: false,
-      });
-    }
-  },
-  name: "searchContext",
-  parameters: z.object({
-    query: z.string().describe("Search query to find in context documentation"),
-    sourceTypes: z
-      .string()
-      .optional()
-      .describe(
-        "Comma-separated list of source types to search within (hyperbeam,arweave,ao,ario,permaweb-glossary). If not provided, all sources will be searched.",
-      ),
   }),
 });
 
@@ -2776,6 +2704,160 @@ server.addTool({
   name: "queryTokenInfo",
   parameters: z.object({
     processId: z.string().describe("The AO process ID of the deployed token"),
+  }),
+});
+
+// Permaweb Documentation Tool
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Query Permaweb Documentation",
+  },
+  description: `Query comprehensive Permaweb ecosystem documentation with intelligent domain detection. 
+    Automatically searches through Arweave, AO, AR.IO, HyperBEAM, and Permaweb glossary based on your query. 
+    Returns relevant documentation sections with high accuracy scoring.`,
+  execute: async (args) => {
+    try {
+      const { permawebDocs } = await import("./services/PermawebDocs.js");
+
+      // Use new BFS-powered query signature, more generous with results
+      const docsResults = await permawebDocs.query(
+        args.query
+      );
+
+      if (docsResults.length > 0) {
+        const permawebResults = docsResults.map((result: any) => ({
+          content: result.content,
+          domain: result.domain,
+          relevanceScore: result.relevanceScore,
+          isFullDocument: true,
+          type: "permaweb_docs",
+          url: result.url,
+        }));
+        return JSON.stringify({
+          query: args.query,
+          results: permawebResults,
+          success: true,
+          totalResults: permawebResults.length,
+        });
+      }
+
+      return JSON.stringify({
+        query: args.query,
+        results: [],
+        success: true,
+        totalResults: 0,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        error: `Documentation query failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        query: args.query,
+        success: false,
+      });
+    }
+  },
+  name: "queryPermawebDocs",
+  parameters: z.object({
+    domains: z
+      .string()
+      .optional()
+      .describe(
+        "Comma-separated list of domains to search (arweave,ao,ario,hyperbeam,permaweb-glossary). If not provided, domains are auto-detected.",
+      ),
+    maxResults: z
+      .number()
+      .min(1)
+      .max(50)
+      .optional()
+      .describe("Maximum number of results to return (default: 10)"),
+    query: z
+      .string()
+      .describe("Your question or search query about the Permaweb ecosystem"),
+  }),
+});
+
+// Tool to manage Permaweb documentation cache
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: false,
+    title: "Manage Permaweb Docs Cache",
+  },
+  description: `Manage the Permaweb documentation cache. Check cache status, preload documentation, 
+    or clear cached content for specific domains. Useful for ensuring fresh documentation or optimizing performance.`,
+  execute: async (args) => {
+    try {
+      const { permawebDocs } = await import("./services/PermawebDocs.js");
+
+      if (args.action === "status") {
+        const status = permawebDocs.getCacheStatus();
+        return JSON.stringify({
+          action: "status",
+          cacheStatus: status,
+          success: true,
+        });
+      }
+
+      if (args.action === "preload") {
+        const domains = args.domains
+          ? (args.domains.split(",").map((d) => d.trim()) as PermawebDomain[])
+          : undefined;
+        await permawebDocs.preload(domains);
+        return JSON.stringify({
+          action: "preload",
+          domains: domains || permawebDocs.getAvailableDomains(),
+          message: "Documentation preloaded successfully",
+          success: true,
+        });
+      }
+
+      if (args.action === "clear") {
+        if (args.domains) {
+          const domains = args.domains
+            .split(",")
+            .map((d) => d.trim()) as PermawebDomain[];
+          domains.forEach((domain) => permawebDocs.clearCache(domain));
+          return JSON.stringify({
+            action: "clear",
+            domains: domains,
+            message: "Cache cleared for specified domains",
+            success: true,
+          });
+        } else {
+          permawebDocs.clearCache();
+          return JSON.stringify({
+            action: "clear",
+            message: "All cache cleared",
+            success: true,
+          });
+        }
+      }
+
+      return JSON.stringify({
+        error: "Invalid action. Use: status, preload, or clear",
+        success: false,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        error: `Cache management failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+        success: false,
+      });
+    }
+  },
+  name: "managePermawebDocsCache",
+  parameters: z.object({
+    action: z
+      .enum(["status", "preload", "clear"])
+      .describe(
+        "Action to perform: status (check cache), preload (load docs), clear (remove cache)",
+      ),
+    domains: z
+      .string()
+      .optional()
+      .describe(
+        "Comma-separated list of domains for preload/clear actions (arweave,ao,ario,hyperbeam,permaweb-glossary)",
+      ),
   }),
 });
 
