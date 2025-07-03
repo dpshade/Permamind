@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import { JWKInterface } from "arweave/node/lib/wallet.js";
 
 import type { Tag } from "../models/Tag.js";
@@ -548,8 +549,8 @@ const extractParameterValue = (
 ): unknown => {
   // Parameter-specific patterns first
   const specificPatterns = [
-    new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
-    new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
+    new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
+    new RegExp(`${paramName}\s+([^\s]+)`, "i"),
   ];
 
   // Check parameter-specific patterns first
@@ -569,11 +570,11 @@ const extractParameterValue = (
   if (paramType === "number") {
     // Look for numbers in various contexts
     const numberPatterns = [
-      new RegExp(`send\\s+([0-9.]+)`, "i"),
-      new RegExp(`transfer\\s+([0-9.]+)`, "i"),
-      new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
-      new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
-      new RegExp(`([0-9.]+)\\s+to`, "i"), // amount before "to"
+      new RegExp(`send\s+([0-9.]+)`, "i"),
+      new RegExp(`transfer\s+([0-9.]+)`, "i"),
+      new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+      new RegExp(`([0-9.]+)\s+tokens?`, "i"),
+      new RegExp(`([0-9.]+)\s+to`, "i"), // amount before "to"
       new RegExp(`([0-9.]+)`), // Last resort: any number
     ];
 
@@ -606,10 +607,10 @@ const extractParameterValue = (
     } else if (paramName === "account" || paramName === "address") {
       // Account/address patterns for balance checks etc.
       const accountPatterns = [
-        new RegExp(`account\\s+([^\\s]+)`, "i"),
-        new RegExp(`address\\s+([^\\s]+)`, "i"),
-        new RegExp(`for\\s+([^\\s]+)`, "i"), // "balance for alice"
-        new RegExp(`of\\s+([^\\s]+)`, "i"), // "balance of alice"
+        new RegExp(`account\s+([^\s]+)`, "i"),
+        new RegExp(`address\s+([^\s]+)`, "i"),
+        new RegExp(`for\s+([^\s]+)`, "i"), // "balance for alice"
+        new RegExp(`of\s+([^\s]+)`, "i"), // "balance of alice"
       ];
 
       for (const pattern of accountPatterns) {
