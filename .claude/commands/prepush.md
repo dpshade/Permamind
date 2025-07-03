@@ -45,21 +45,23 @@ Execute comprehensive pre-push validation using this 9-phase approach that simul
 
 **Run exact linting and formatting checks from CI**
 
-- **Prettier Check**: `npm run format:check`
-  - On failure, suggest: `npm run format` to auto-fix
-  - Use Bash to capture specific file failures
-- **ESLint Check**: `npm run lint:fix --dry-run`
-  - Show linting errors with file locations
-  - Suggest auto-fixes: `npm run lint:fix`
-- **TypeScript Check**: `npm run type-check`
-  - Parse TypeScript errors for detailed reporting
-  - Show specific file and line numbers for failures
+- **Full Lint Check**: `npm run lint` (EXACT CI COMMAND)
+  - This runs: `prettier --check . && eslint . && tsc --noEmit`
+  - Matches CI exactly - prevents discrepancies
+  - On failure, suggest auto-fixes with individual commands:
+    - Formatting: `npm run format` (prettier --write . && eslint --fix .)
+    - Manual fixes required for complex ESLint errors
+- **Alternative Individual Checks** (for debugging):
+  - **Prettier Check**: `npm run format:check`
+  - **ESLint Check**: `eslint .`
+  - **TypeScript Check**: `npm run type-check`
 
 **Auto-Fix Integration:**
 
-- Offer to run auto-fixes for formatting and linting
-- Provide specific commands for manual fixes
-- Re-run checks after auto-fixes to confirm resolution
+- Primary: Run `npm run format` to auto-fix formatting and basic ESLint issues
+- Secondary: Manual intervention for complex type errors
+- Re-run `npm run lint` after fixes to confirm resolution
+- Exit with error if any lint issues remain unfixed
 
 ### Phase 3.5: 🧹 LOGGING CLEANUP
 
@@ -182,7 +184,8 @@ grep -r "console\.warn" src/ | grep -v "error handling" || echo "✅ Clean conso
 **Comprehensive status summary and confidence scoring**
 
 - **Confidence Score Calculation** (0-100%):
-  - Phase 1-3 failures: -20 points each (critical)
+  - Phase 1-2 failures: -20 points each (critical - git/deps)
+  - Phase 3 failures: -30 points (critical - SAME AS CI FAILURE)
   - Phase 3.5 (logging) failures: -15 points (major - debug code in production)
   - Phase 4-6 failures: -15 points each (major)
   - Phase 7-8 failures: -10 points each (moderate)
@@ -191,11 +194,12 @@ grep -r "console\.warn" src/ | grep -v "error handling" || echo "✅ Clean conso
   - ✅ Passed phases with timing
   - ❌ Failed phases with specific remediation steps
   - ⚠️ Warnings with improvement suggestions
+  - 🎯 **Phase 3 = CI Success Guarantee**
 - **Push Readiness Assessment**:
-  - 90-100%: Ready to push ✅
-  - 70-89%: Ready with minor issues ⚠️
-  - 50-69%: Fix issues before pushing ❌
-  - <50%: Major problems, do not push 🚫
+  - 90-100%: Ready to push ✅ (CI will pass)
+  - 70-89%: Ready with minor issues ⚠️ (CI might pass)
+  - 50-69%: Fix issues before pushing ❌ (CI will likely fail)
+  - <50%: Major problems, do not push 🚫 (CI will definitely fail)
 
 **Action Recommendations:**
 
@@ -209,12 +213,15 @@ grep -r "console\.warn" src/ | grep -v "error handling" || echo "✅ Clean conso
 ### Error Handling & Reporting
 
 ```bash
-# Capture exit codes and provide detailed feedback
-if ! npm run format:check; then
-  echo "❌ Formatting check failed"
-  echo "💡 Fix with: npm run format"
-  echo "📄 Files that need formatting:"
-  # Show specific files
+# Capture exit codes and provide detailed feedback for exact CI command
+if ! npm run lint; then
+  echo "❌ Lint check failed (same command CI uses)"
+  echo "💡 Auto-fix attempt: npm run format"
+  echo "📄 Manual fixes may be required for:"
+  echo "  - TypeScript type errors"
+  echo "  - Complex ESLint violations"
+  echo "  - Unused variable patterns"
+  echo "🔄 Re-run: npm run lint"
 fi
 ```
 
