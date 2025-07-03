@@ -71,7 +71,9 @@ describe("PermawebDocs", () => {
     it("should handle fetch errors gracefully", async () => {
       permawebDocs.clearCache(); // Ensure arweave is not cached
       mockFetch.mockClear();
-      mockFetch.mockImplementation(() => Promise.reject(new Error("Network error")));
+      mockFetch.mockImplementation(() =>
+        Promise.reject(new Error("Network error")),
+      );
 
       await expect(permawebDocs.preload(["arweave"])).rejects.toThrow(
         "Failed to load arweave documentation: Network error",
@@ -152,9 +154,14 @@ describe("PermawebDocs", () => {
     });
 
     it("should use specified domains", async () => {
-      const results = await permawebDocs.query("general question", ["ao", "ario"]);
+      const results = await permawebDocs.query("general question", [
+        "ao",
+        "ario",
+      ]);
       // Should only return results from ao or ario
-      expect(results.every(r => ["ao", "ario"].includes(r.domain))).toBe(true);
+      expect(results.every((r) => ["ao", "ario"].includes(r.domain))).toBe(
+        true,
+      );
     });
 
     it("should limit results based on maxResults", async () => {
@@ -180,13 +187,17 @@ Even more arweave information.
     });
 
     it("should return empty results for no matches", async () => {
-      const results = await permawebDocs.query("completely unrelated query about cooking");
+      const results = await permawebDocs.query(
+        "completely unrelated query about cooking",
+      );
       expect(results).toEqual([]);
     });
 
     it("should include glossary for definition queries", async () => {
       const results = await permawebDocs.query("what is blockchain?");
-      const glossaryChunks = results.filter(r => r.domain === "permaweb-glossary");
+      const glossaryChunks = results.filter(
+        (r) => r.domain === "permaweb-glossary",
+      );
       expect(glossaryChunks.length).toBeGreaterThanOrEqual(0);
     });
 
@@ -261,31 +272,46 @@ This section has nothing to do with the query.
         if (url.includes("arweave")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve("# Arweave Guide\nHow to use arweave-js library? Arweave is a permanent storage blockchain."),
+            text: () =>
+              Promise.resolve(
+                "# Arweave Guide\nHow to use arweave-js library? Arweave is a permanent storage blockchain.",
+              ),
           });
         }
         if (url.includes("ao")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve("# AO Process\nAO process spawning tutorial. AO processes are autonomous computing units."),
+            text: () =>
+              Promise.resolve(
+                "# AO Process\nAO process spawning tutorial. AO processes are autonomous computing units.",
+              ),
           });
         }
         if (url.includes("ario")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve("# AR.IO Gateway\nAR.IO gateway setup and deployment."),
+            text: () =>
+              Promise.resolve(
+                "# AR.IO Gateway\nAR.IO gateway setup and deployment.",
+              ),
           });
         }
         if (url.includes("hyperbeam")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve("# HyperBEAM Device\nHyperBEAM device configuration and distributed computation."),
+            text: () =>
+              Promise.resolve(
+                "# HyperBEAM Device\nHyperBEAM device configuration and distributed computation.",
+              ),
           });
         }
         if (url.includes("permaweb-glossary")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve("permaweb: The global, permanent web.\n\nblockchain: a distributed ledger."),
+            text: () =>
+              Promise.resolve(
+                "permaweb: The global, permanent web.\n\nblockchain: a distributed ledger.",
+              ),
           });
         }
         return Promise.resolve({
@@ -310,9 +336,9 @@ This section has nothing to do with the query.
     it("should handle network errors during query", async () => {
       mockFetch.mockRejectedValue(new Error("Network failure"));
 
-      await expect(
-        permawebDocs.query("arweave question"),
-      ).rejects.toThrow("Failed to load arweave documentation");
+      await expect(permawebDocs.query("arweave question")).rejects.toThrow(
+        "Failed to load arweave documentation",
+      );
     });
 
     it("should handle HTTP errors", async () => {
@@ -322,9 +348,9 @@ This section has nothing to do with the query.
         statusText: "Not Found",
       });
 
-      await expect(
-        permawebDocs.query("arweave question"),
-      ).rejects.toThrow("HTTP 404: Not Found");
+      await expect(permawebDocs.query("arweave question")).rejects.toThrow(
+        "HTTP 404: Not Found",
+      );
     });
 
     it("should handle empty responses", async () => {
@@ -333,9 +359,9 @@ This section has nothing to do with the query.
         text: () => Promise.resolve(""),
       });
 
-      await expect(
-        permawebDocs.query("arweave question"),
-      ).rejects.toThrow("Empty content received");
+      await expect(permawebDocs.query("arweave question")).rejects.toThrow(
+        "Empty content received",
+      );
     });
   });
 
@@ -367,7 +393,7 @@ This section has nothing to do with the query.
       expect(chunks).toEqual([
         "Section 1\nContent A",
         "Section 2\nContent B",
-        "Section 3\nContent C"
+        "Section 3\nContent C",
       ]);
     });
 
@@ -377,7 +403,7 @@ This section has nothing to do with the query.
       expect(chunks).toEqual([
         "Term 1: Definition 1.",
         "Term 2: Definition 2.",
-        "Term 3: Definition 3."
+        "Term 3: Definition 3.",
       ]);
     });
   });
@@ -388,13 +414,19 @@ This section has nothing to do with the query.
         if (url.includes("arweave")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve(`Section 1 about arweave\n---\nSection 2 unrelated\n---\nSection 3 arweave storage`),
+            text: () =>
+              Promise.resolve(
+                `Section 1 about arweave\n---\nSection 2 unrelated\n---\nSection 3 arweave storage`,
+              ),
           });
         }
         if (url.includes("permaweb-glossary")) {
           return Promise.resolve({
             ok: true,
-            text: () => Promise.resolve(`blockchain: a distributed ledger.\n\nstorage: saving data forever.`),
+            text: () =>
+              Promise.resolve(
+                `blockchain: a distributed ledger.\n\nstorage: saving data forever.`,
+              ),
           });
         }
         return Promise.resolve({
@@ -415,7 +447,9 @@ This section has nothing to do with the query.
 
     it("returns glossary chunks split by double newline", async () => {
       const results = await permawebDocs.query("blockchain");
-      const glossaryChunks = results.filter(r => r.domain === "permaweb-glossary");
+      const glossaryChunks = results.filter(
+        (r) => r.domain === "permaweb-glossary",
+      );
       expect(glossaryChunks.length).toBeGreaterThan(0);
       for (const res of glossaryChunks) {
         expect(res.content).toMatch(/blockchain|storage/);

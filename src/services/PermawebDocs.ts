@@ -15,9 +15,9 @@ export interface PermawebDocsResponse {
 export interface PermawebDocsResult {
   content: string;
   domain: PermawebDomain;
+  isFullDocument: boolean;
   relevanceScore: number;
   url: string;
-  isFullDocument: boolean;
 }
 
 export type PermawebDomain =
@@ -219,6 +219,13 @@ export class PermawebDocs {
   private readonly relevanceThreshold = 2;
 
   /**
+   * Helper for tests: extract unique domains from results
+   */
+  static extractDomains(results: PermawebDocsResult[]): PermawebDomain[] {
+    return Array.from(new Set(results.map((r) => r.domain)));
+  }
+
+  /**
    * Clear cached documentation
    */
   clearCache(domain?: PermawebDomain): void {
@@ -278,34 +285,29 @@ export class PermawebDocs {
   }
 
   /**
-   * Split documentation content into logical chunks by domain.
-   * @param domain The documentation domain
-   * @param content The full document content
-   * @returns Array of chunked content strings
-   */
-  private chunkContent(domain: PermawebDomain, content: string): string[] {
-    if (domain === "permaweb-glossary") {
-      // Split by double newlines (glossary entries)
-      return content.split(/\n{2,}/).map(s => s.trim()).filter(Boolean);
-    }
-    // Split by '---' delimiters (most llms.txt)
-    return content.split(/^---+$/m).map(s => s.trim()).filter(Boolean);
-  }
-
-  /**
    * Query Permaweb documentation and return up to 20 most relevant chunks.
    * If requestedDomains is not provided, use domain detection to select relevant domains.
    * Throws if any domain fails to load.
    */
-  async query(query: string, requestedDomains?: string[]): Promise<PermawebDocsResult[]> {
+  async query(
+    query: string,
+    requestedDomains?: string[],
+  ): Promise<PermawebDocsResult[]> {
     // Use domain detection if no domains specified
     let domains: PermawebDomain[];
     if (requestedDomains && requestedDomains.length > 0) {
-      domains = requestedDomains.filter(d => this.getAvailableDomains().includes(d as PermawebDomain)) as PermawebDomain[];
+      domains = requestedDomains.filter((d) =>
+        this.getAvailableDomains().includes(d as PermawebDomain),
+      ) as PermawebDomain[];
     } else {
       domains = this.detectRelevantDomains(query);
       // Always include glossary for definition/what is queries
-      if (/\bwhat is\b|\bdefine\b|\bdefinition\b|\bglossary\b|\bmeaning\b|\bexplain\b/i.test(query) && !domains.includes("permaweb-glossary")) {
+      if (
+        /\bwhat is\b|\bdefine\b|\bdefinition\b|\bglossary\b|\bmeaning\b|\bexplain\b/i.test(
+          query,
+        ) &&
+        !domains.includes("permaweb-glossary")
+      ) {
         domains.push("permaweb-glossary");
       }
       // Fallback: if no domains detected, search all
@@ -319,32 +321,44 @@ export class PermawebDocs {
     for (const domain of domains) {
       const cached = this.cache.get(domain);
       if (!cached) continue;
-      const url = DOC_SOURCES.find(s => s.domain === domain)!.url;
+      const url = DOC_SOURCES.find((s) => s.domain === domain)!.url;
       const chunks = this.chunkContent(domain, cached.content);
       for (const chunk of chunks) {
-        const relevanceScore = this.calculateChunkRelevance(query, chunk, domain);
+        const relevanceScore = this.calculateChunkRelevance(
+          query,
+          chunk,
+          domain,
+        );
         // Only include chunks that contain at least one query word and meet threshold
         const queryWords = query.toLowerCase().split(/\s+/);
-        const containsQueryWord = queryWords.some(word => chunk.toLowerCase().includes(word));
+        const containsQueryWord = queryWords.some((word) =>
+          chunk.toLowerCase().includes(word),
+        );
         if (relevanceScore >= this.relevanceThreshold && containsQueryWord) {
           results.push({
             content: chunk,
             domain,
+            isFullDocument: false,
             relevanceScore,
             url,
-            isFullDocument: false
           });
         }
       }
     }
     // Sort by relevance and return only the top 20
-    return results.sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 20);
+    return results
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 20);
   }
 
   /**
    * Calculate relevance of a chunk for a query and domain.
    */
-  private calculateChunkRelevance(query: string, chunk: string, domain: PermawebDomain): number {
+  private calculateChunkRelevance(
+    query: string,
+    chunk: string,
+    domain: PermawebDomain,
+  ): number {
     const source = DOC_SOURCES.find((s) => s.domain === domain)!;
     const content = chunk.toLowerCase();
     const queryWords = query.toLowerCase().split(/\s+/);
@@ -363,6 +377,51 @@ export class PermawebDocs {
     return score;
   }
 
+  private calculateDocumentRelevance(
+    query: string,
+    domain: PermawebDomain,
+  ): number {
+    const cached = this.cache.get(domain);
+    if (!cached) return 0;
+    const source = DOC_SOURCES.find((s) => s.domain === domain)!;
+    const content = cached.content.toLowerCase();
+    const queryWords = query.toLowerCase().split(/\s+/);
+    let score = 0;
+    for (const word of queryWords) {
+      if (content.includes(word)) score += 2;
+    }
+    const allKeywords = [
+      ...source.keywords.primary,
+      ...source.keywords.secondary,
+      ...source.keywords.technical,
+    ];
+    for (const keyword of allKeywords) {
+      if (content.includes(keyword)) score += 1;
+    }
+    return score;
+  }
+
+  /**
+   * Split documentation content into logical chunks by domain.
+   * @param domain The documentation domain
+   * @param content The full document content
+   * @returns Array of chunked content strings
+   */
+  private chunkContent(domain: PermawebDomain, content: string): string[] {
+    if (domain === "permaweb-glossary") {
+      // Split by double newlines (glossary entries)
+      return content
+        .split(/\n{2,}/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    // Split by '---' delimiters (most llms.txt)
+    return content
+      .split(/^---+$/m)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
   /**
    * Enhanced domain detection with better fallback scoring
    */
@@ -373,16 +432,16 @@ export class PermawebDocs {
     for (const source of DOC_SOURCES) {
       let score = 0;
       const allKeywords = [
-        ...source.keywords.primary.map(k => ({ keyword: k, weight: 3 })),
-        ...source.keywords.secondary.map(k => ({ keyword: k, weight: 2 })),
-        ...source.keywords.technical.map(k => ({ keyword: k, weight: 2 }))
+        ...source.keywords.primary.map((k) => ({ keyword: k, weight: 3 })),
+        ...source.keywords.secondary.map((k) => ({ keyword: k, weight: 2 })),
+        ...source.keywords.technical.map((k) => ({ keyword: k, weight: 2 })),
       ];
 
       for (const { keyword, weight } of allKeywords) {
         // Flexible: match if keyword is in query or any query word is in keyword
         if (
           query.toLowerCase().includes(keyword.toLowerCase()) ||
-          words.some(word => keyword.toLowerCase().includes(word))
+          words.some((word) => keyword.toLowerCase().includes(word))
         ) {
           score += weight;
         }
@@ -405,60 +464,14 @@ export class PermawebDocs {
    */
   private async ensureDocsLoaded(domains: PermawebDomain[]): Promise<void> {
     const loadPromises = domains
-      .filter(domain => !this.isDocLoaded(domain))
-      .map(domain => this.loadDocumentationWithRetry(domain));
+      .filter((domain) => !this.isDocLoaded(domain))
+      .map((domain) => this.loadDocumentationWithRetry(domain));
     // Wait for all, but throw if any fail
     const results = await Promise.allSettled(loadPromises);
-    const rejected = results.find(r => r.status === 'rejected');
-    if (rejected && rejected.status === 'rejected') {
+    const rejected = results.find((r) => r.status === "rejected");
+    if (rejected && rejected.status === "rejected") {
       throw rejected.reason;
     }
-  }
-
-  /**
-   * Load documentation with retry logic for better reliability
-   */
-  private async loadDocumentationWithRetry(
-    domain: PermawebDomain, 
-    maxRetries: number = 2
-  ): Promise<void> {
-    let lastError: Error = new Error('Unknown error');
-    
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        await this.loadDocumentation(domain);
-        return;
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        
-        if (attempt < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
-      }
-    }
-    
-    throw new Error(`Failed to load ${domain} after ${maxRetries + 1} attempts: ${lastError.message}`);
-  }
-
-  private calculateDocumentRelevance(query: string, domain: PermawebDomain): number {
-    const cached = this.cache.get(domain);
-    if (!cached) return 0;
-    const source = DOC_SOURCES.find((s) => s.domain === domain)!;
-    const content = cached.content.toLowerCase();
-    const queryWords = query.toLowerCase().split(/\s+/);
-    let score = 0;
-    for (const word of queryWords) {
-      if (content.includes(word)) score += 2;
-    }
-    const allKeywords = [
-      ...source.keywords.primary,
-      ...source.keywords.secondary,
-      ...source.keywords.technical,
-    ];
-    for (const keyword of allKeywords) {
-      if (content.includes(keyword)) score += 1;
-    }
-    return score;
   }
 
   private async loadDocumentation(domain: PermawebDomain): Promise<void> {
@@ -490,10 +503,32 @@ export class PermawebDocs {
   }
 
   /**
-   * Helper for tests: extract unique domains from results
+   * Load documentation with retry logic for better reliability
    */
-  static extractDomains(results: PermawebDocsResult[]): PermawebDomain[] {
-    return Array.from(new Set(results.map(r => r.domain)));
+  private async loadDocumentationWithRetry(
+    domain: PermawebDomain,
+    maxRetries: number = 2,
+  ): Promise<void> {
+    let lastError: Error = new Error("Unknown error");
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        await this.loadDocumentation(domain);
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        if (attempt < maxRetries) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, Math.pow(2, attempt) * 1000),
+          );
+        }
+      }
+    }
+
+    throw new Error(
+      `Failed to load ${domain} after ${maxRetries + 1} attempts: ${lastError.message}`,
+    );
   }
 }
 

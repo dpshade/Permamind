@@ -532,16 +532,14 @@ server.addTool({
           const { permawebDocs } = await import("./services/PermawebDocs.js");
 
           // Use new BFS-powered query signature, more generous with results
-          const docsResults = await permawebDocs.query(
-            args.query
-          );
+          const docsResults = await permawebDocs.query(args.query);
 
           if (docsResults.length > 0) {
             permawebResults = docsResults.map((result: any) => ({
               content: result.content,
               domain: result.domain,
-              relevanceScore: result.relevanceScore,
               isFullDocument: true,
+              relevanceScore: result.relevanceScore,
               type: "permaweb_docs",
               url: result.url,
             }));
@@ -2722,16 +2720,14 @@ server.addTool({
       const { permawebDocs } = await import("./services/PermawebDocs.js");
 
       // Use new BFS-powered query signature, more generous with results
-      const docsResults = await permawebDocs.query(
-        args.query
-      );
+      const docsResults = await permawebDocs.query(args.query);
 
       if (docsResults.length > 0) {
         const permawebResults = docsResults.map((result: any) => ({
           content: result.content,
           domain: result.domain,
-          relevanceScore: result.relevanceScore,
           isFullDocument: true,
+          relevanceScore: result.relevanceScore,
           type: "permaweb_docs",
           url: result.url,
         }));
