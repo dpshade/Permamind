@@ -1,560 +1,173 @@
-# Permamind
+# Permamind 🧠⚡️
 
-An MCP server that provides an immortal memory layer for AI agents and clients using AO/Arweave.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+[![AO](https://img.shields.io/badge/AO-Powered-orange.svg)](https://ao.arweave.dev/)
+[![Arweave](https://img.shields.io/badge/Arweave-Permanent-purple.svg)](https://arweave.org/)
+[![MCP](https://img.shields.io/badge/MCP-Compatible-lightblue.svg)](https://modelcontextprotocol.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This MCP server leverages the Velocity Protocol on AO and Arweave (the permaweb) as the datastore, providing permanent, decentralized memory storage with advanced AI-specific features for reasoning, knowledge management, and multi-agent coordination.
+**The world's first permanent, decentralized AI memory system built on Arweave and AO**
 
-## 🚀 Features
+Permamind is a Model Context Protocol (MCP) server that provides an immortal memory layer for AI agents, leveraging Arweave's permanent storage and the AO ecosystem for decentralized computation. Unlike traditional memory systems that are ephemeral and centralized, Permamind creates truly persistent AI memory that survives forever.
 
-### Core Memory Operations
+---
 
-- **Immortal Storage**: Permanent memory storage on Arweave blockchain
-- **Decentralized Architecture**: Velocity Protocol hubs for distributed memory access
-- **MCP Integration**: Native Model Context Protocol support for AI agents
+## 🌟 Why Permamind?
 
-### AI-Enhanced Memory Features
+| Traditional AI Memory        | Permamind                        |
+| ---------------------------- | -------------------------------- |
+| ❌ Ephemeral sessions        | ✅ Permanent storage             |
+| ❌ Centralized servers       | ✅ Decentralized AO network      |
+| ❌ Limited context           | ✅ Unlimited knowledge graphs    |
+| ❌ No cross-session learning | ✅ Continuous learning & memory  |
+| ❌ Vendor lock-in            | ✅ Open, permissionless protocol |
 
-- **Semantic Memory Organization**: Rich metadata and contextual information
-- **Importance Scoring**: Relevance-based memory prioritization (0-1 scale)
-- **Memory Type Classification**: Conversation, reasoning, knowledge, and procedural memories
-- **Advanced Search**: Multi-filter search with relevance ranking
-- **Memory Analytics**: Usage patterns and optimization insights
-- **Batch Operations**: Efficient bulk memory operations
+## 🚀 Key Features
 
-### Knowledge Graph Capabilities
+### 🧠 **Immortal AI Memory**
 
-- **Memory Relationships**: Link related memories with typed relationships
-- **Reasoning Chain Storage**: Document AI decision-making processes
-- **Knowledge Networks**: Build interconnected concept maps
-- **Cross-Reference Support**: Navigate related information efficiently
+- **Permanent Storage**: All memories stored forever on Arweave blockchain
+- **Rich Metadata**: Context, importance scoring, and semantic relationships
+- **Memory Types**: Conversation, reasoning, knowledge, procedures, workflows
+- **Advanced Search**: Multi-filter, relevance-ranked memory retrieval
 
-### Multi-Agent Coordination
+### 🌐 **Decentralized Architecture**
 
-- **Shared Memory Spaces**: Collaborative memory building between AI agents
-- **Access Control**: Permission-based memory sharing
-- **Conflict Resolution**: Handle concurrent memory updates
-- **Hub Discovery**: Find and connect to specialized memory hubs
+- **AO-Powered**: Leverage AO compute layer for decentralized processing
+- **Hub System**: Distributed memory nodes with the Velocity Protocol
+- **Permissionless**: No gatekeepers, true Web3 infrastructure
+- **Cross-Agent Memory**: Shared knowledge between AI systems
 
-### Natural Language Process Integration
+### 🔗 **Knowledge Graphs**
 
-- **Universal AO Process Support**: Interact with any AO process using natural language
-- **Markdown-Based Documentation**: Developers document processes in simple markdown format
-- **Intelligent Request Parsing**: Automatically interprets user requests and extracts parameters
-- **Seamless Message Formatting**: Converts natural language to proper AO message tags
-- **Dynamic Process Discovery**: Connect to new processes without manual tool creation
+- **Memory Relationships**: Link related concepts with typed connections
+- **Reasoning Chains**: Document AI decision-making processes
+- **Circular Reference Detection**: Maintain graph integrity
+- **Shortest Path Analysis**: Navigate knowledge networks efficiently
 
-## 🚀 Quick Installation
+### 🛠 **Universal AO Integration**
 
-### NPM Installation (Recommended)
+- **Natural Language Interface**: Talk to any AO process in plain English
+- **Markdown Documentation**: Simple process documentation format
+- **Token Operations**: Advanced minting strategies and credit notice system
+- **Smart Templates**: Auto-detect common process types (tokens, NFTs, DAOs)
 
-Install Permamind globally via NPM for easy access:
+### 🎯 **Developer Experience**
 
-```bash
-npm install -g permamind
+- **MCP Native**: Works with Claude, VS Code, Cursor, and more
+- **TypeScript First**: Full type safety and excellent DX
+- **Zero Config**: Automatic wallet generation and hub deployment
+- **Comprehensive Testing**: 95%+ test coverage with Vitest
+
+---
+
+## 📚 Documentation
+
+### 📖 **Core Guides**
+
+- **[🚀 Installation & Quick Start](docs/installation.md)** - Get up and running in 5 minutes
+- **[🛠 MCP Tools Reference](docs/tools-reference.md)** - Complete API documentation
+- **[💡 Usage Examples](docs/examples.md)** - Practical code examples and patterns
+- **[🏗 Architecture & Configuration](docs/architecture.md)** - Technical deep dive and advanced setup
+
+### 🔧 **Support & Development**
+
+- **[🚨 Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
+- **[🤝 Contributing Guide](docs/contributing.md)** - Join the development community
+- **[🧪 Testing Guide](docs/testing.md)** - Quality assurance and testing patterns
+
+### 🌐 **Integration Guides**
+
+- **[AO Process Integration](docs/ao-integration.md)** - Connect any AO process
+- **[Token Development](docs/token-development.md)** - Build token systems
+- **[Knowledge Graphs](docs/knowledge-graphs.md)** - Memory relationships
+- **[MCP Client Setup](docs/mcp-setup.md)** - Configure Claude, VS Code, etc.
+
+### 📊 **Advanced Topics**
+
+- **[Custom Process Templates](docs/custom-templates.md)** - Extend functionality
+- **[Performance Optimization](docs/performance.md)** - Scale your implementation
+- **[Security Considerations](docs/security.md)** - Best practices and hardening
+- **[Deployment Strategies](docs/deployment.md)** - Production deployment
+
+---
+
+## 🏗 Architecture Overview
+
+```mermaid
+graph TD
+    A[AI Agent/Claude] --> B[Permamind MCP Server]
+    B --> C[AO Process Layer]
+    B --> D[Arweave Storage]
+
+    C --> E[Memory Hub]
+    C --> F[Token Processes]
+    C --> G[Custom AO Processes]
+
+    E --> H[Enhanced Memory Service]
+    E --> I[Knowledge Graph Service]
+    E --> J[Analytics Service]
+
+    D --> K[Permanent Memory Storage]
+    D --> L[Hub Registry]
+    D --> M[Process Templates]
 ```
 
-### Setup and Configuration
+**Core Components:**
 
-Run the setup wizard to configure Permamind with your preferred MCP clients:
+- **MCP Server**: FastMCP-based server exposing AI memory tools
+- **AO Integration**: Direct communication with AO processes
+- **Memory Services**: Enhanced AI memory with metadata and relationships
+- **Token System**: Advanced minting strategies with credit notice detection
+- **Velocity Protocol**: Decentralized hub discovery and event routing
 
-```bash
-permamind --setup
-```
+---
 
-The setup wizard will:
+## 🌐 Ecosystem & Links
 
-- Generate or import a seed phrase for your Arweave wallet
-- Configure Claude Desktop, VS Code, or Cursor automatically
-- Test your server connection
-- Set up environment variables
+### Core Technologies
 
-### Manual Installation
+- **[AO Cookbook](https://cookbook_ao.g8way.io/)** - AO development guide and compute layer
+- **[Arweave](https://arweave.org/)** - Permanent data storage
+- **[Model Context Protocol](https://modelcontextprotocol.io/)** - AI tool standard
+- **[FastMCP](https://github.com/jlowin/fastmcp)** - TypeScript MCP framework
+- **[Velocity Protocol](https://github.com/SpaceTurtle-Dao/velocity-protocol)** - Decentralized social protocol
 
-For development or manual setup:
+### Community & Support
 
-```bash
-# Clone the repository
-git clone https://github.com/ALLiDoizCode/Permamind.git
-cd Permamind
+- **GitHub**: https://github.com/ALLiDoizCode/Permamind
+- **Documentation**: https://permamind.ai/docs (coming soon)
+- **Community**: [Discord](https://discord.gg/permamind) (coming soon)
+- **Updates**: [@ALLiDoizCode](https://twitter.com/ALLiDoizCode)
 
-# Install dependencies
-npm install
+### Related Projects
 
-# Build the project
-npm run build
+- **[AO Cookbook](https://cookbook_ao.g8way.io/)** - AO development guide
+- **[Arweave Cookbook](https://cookbook.arweave.dev/)** - Arweave development
+- **[Claude Desktop](https://claude.ai/download)** - Primary MCP client
 
-# Start the server
-npm start
-```
-
-### Platform-Specific Installers
-
-**Unix/Linux/macOS:**
-
-```bash
-curl -sSL https://raw.githubusercontent.com/ALLiDoizCode/Permamind/main/scripts/install.sh | bash
-```
-
-**Windows PowerShell:**
-
-```powershell
-Invoke-WebRequest -Uri "https://raw.githubusercontent.com/ALLiDoizCode/Permamind/main/scripts/install.ps1" -OutFile "install.ps1"; .\install.ps1
-```
-
-### Verification
-
-Verify your installation:
-
-```bash
-# Check version
-permamind --version
-
-# Test configuration
-permamind --test
-
-# Get help
-permamind --help
-```
-
-### Seed Phrase Management
-
-Permamind uses a 12-word seed phrase to generate your Arweave wallet identity. This ensures persistent access to your stored memories across sessions.
-
-**Generate a new seed phrase:**
-
-```bash
-permamind --generate-seed
-```
-
-**Import an existing seed phrase:**
-
-```bash
-permamind --import-seed
-```
-
-**Export your current seed phrase:**
-
-```bash
-permamind --export-seed
-```
-
-**Important Notes:**
-
-- 🔑 **Seed phrases are critical** - without them, you lose access to your memories
-- 💾 **Multiple storage options** - environment variables or secure config files
-- 🔄 **Automatic loading** - server checks for saved seed phrases on startup
-- ⚠️ **Backup essential** - store your seed phrase securely and separately
-
-### Environment Variables
-
-Set your seed phrase for persistent wallet usage:
-
-```bash
-# Bash/Zsh
-export SEED_PHRASE="your twelve word mnemonic phrase here"
-
-# Fish
-set -x SEED_PHRASE "your twelve word mnemonic phrase here"
-
-# Windows CMD
-set SEED_PHRASE=your twelve word mnemonic phrase here
-
-# Windows PowerShell
-$env:SEED_PHRASE="your twelve word mnemonic phrase here"
-```
-
-### Client Integration
-
-**Claude Desktop:** The setup wizard automatically configures `claude_desktop_config.json`
-
-**VS Code/Cursor:** Install the MCP extension and run `permamind --setup`
-
-**Manual Configuration:** Use `permamind-setup` or edit your MCP client configuration:
-
-```json
-{
-  "mcpServers": {
-    "permamind": {
-      "command": "permamind",
-      "env": {
-        "SEED_PHRASE": "your_seed_phrase_here"
-      }
-    }
-  }
-}
-```
-
-## 📋 MCP Tools
-
-### Basic Memory Operations
-
-- **`addMemory`** - Store basic conversation memories
-- **`getAllMemories`** - Retrieve all stored memories
-- **`getAllMemoriesForConversation`** - Get memories for specific conversations
-- **`searchMemories`** - Keyword-based memory search
-- **`getServerInfo`** - Get server identity and hub information
-
-### Enhanced AI Memory Operations
-
-- **`addMemoryEnhanced`** - Store memories with AI-specific metadata
-- **`searchMemoriesAdvanced`** - Advanced search with filters and ranking
-- **`linkMemories`** - Create relationships between memories
-- **`addReasoningChain`** - Store AI reasoning processes and decision paths
-- **`getMemoryAnalytics`** - Get memory usage analytics and patterns
-- **`addMemoriesBatch`** - Efficient batch memory operations
-
-### Natural Language Process Integration
-
-- **`executeProcessAction`** - Interact with any AO process using natural language and markdown documentation
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**"permamind command not found"**
-
-- Ensure NPM global bin directory is in your PATH
-- Try `npm install -g permamind` again
-- Check `npm config get prefix` and ensure that path is in your system PATH
-
-**"SEED_PHRASE not set" warning**
-
-- Generate a seed phrase: `permamind --generate-seed`
-- Set it as environment variable or use the setup wizard
-- Seed phrase is optional - server will generate temporary one if missing
-
-**Claude Desktop not detecting Permamind**
-
-- Run `permamind --setup` to configure automatically
-- Restart Claude Desktop after configuration
-- Verify config at: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-**Server startup errors**
-
-- Check Node.js version: `node --version` (requires 20+)
-- Build the project: `npm run build`
-- Test configuration: `permamind --test`
-
-**Permission errors on installation**
-
-- Use `sudo npm install -g permamind` on Unix systems if needed
-- Or configure npm to use a different global directory
-- On Windows, run PowerShell as Administrator
-
-**Seed phrase issues**
-
-- Generate new seed: `permamind --generate-seed`
-- Import existing seed: `permamind --import-seed`
-- Export current seed: `permamind --export-seed`
-- Check saved seeds: Look in `~/.config/permamind/seed.json`
-- Lost seed phrase: Unfortunately unrecoverable, you'll need to generate a new one
-
-**Security audit warnings**
-
-- Known vulnerabilities in `node-forge` dependency (used by Arweave crypto libraries)
-- These are required for Arweave wallet functionality
-- No fixes available from upstream dependencies yet
-- Does not affect application security for normal usage
-
-### Getting Help
-
-- Check the help: `permamind --help`
-- Test server: `permamind --test`
-- Generate seed: `permamind --generate-seed`
-- View server info: Use the `getServerInfo` MCP tool
-- File issues: [GitHub Issues](https://github.com/ALLiDoizCode/Permamind/issues)
-
-### Configuration Validation
-
-Use the configuration helper to validate your setup:
-
-```bash
-# List all configurations
-node scripts/configure.js list
-
-# Validate specific client
-node scripts/configure.js validate claude
-
-# Show environment setup
-node scripts/configure.js env "your-seed-phrase"
-```
-
-## 🛠 Development
-
-### Quick Start
-
-```bash
-git clone https://github.com/ALLiDoizCode/Permamind.git
-cd Permamind
-npm install
-npm run build
-npm run dev
-```
-
-### Environment Setup
-
-Create a `.env` file with your seed phrase (optional):
-
-```
-SEED_PHRASE=your_mnemonic_seed_phrase_here
-```
-
-If no seed phrase is provided, the server will generate one automatically (not persistent across restarts).
-
-### Available Scripts
-
-- **`npm run build`** - Build TypeScript to JavaScript
-- **`npm run start`** - Start the production server
-- **`npm run dev`** - Start development server with hot reload
-- **`npm run lint`** - Run linting and type checking
-- **`npm run format`** - Format code with Prettier
-- **`npm test`** - Run tests
-
-### Server Setup
-
-The server will automatically:
-
-1. Generate or load wallet keys
-2. Register with the hub registry
-3. Deploy hub infrastructure on AO
-4. Start the MCP server on stdio
-
-To fund your server for AO operations:
-
-1. Get your server's public key: use the `getServerInfo` tool
-2. Transfer AO tokens to that address
-3. The default environment uses Marshal testnet (currently **FREE**)
-
-## 🧠 AI Memory Architecture
-
-### Memory Types
-
-- **`conversation`** - Dialog and interaction memories
-- **`reasoning`** - AI decision-making processes and logic chains
-- **`knowledge`** - Factual information and learned concepts
-- **`procedure`** - Step-by-step processes and methodologies
-
-### Memory Metadata
-
-Each enhanced memory includes:
-
-- **Importance Score** (0-1): Relevance and priority weighting
-- **Context Information**: Session ID, topic, domain, related memories
-- **Access Patterns**: Usage tracking and optimization data
-- **Custom Tags**: Flexible categorization and labeling
-- **Relationships**: Links to related memories with typed connections
-
-### Relationship Types
-
-- **`causes`** - Causal relationships (A leads to B)
-- **`supports`** - Evidence or reinforcement relationships
-- **`contradicts`** - Conflicting or opposing information
-- **`extends`** - Elaboration or expansion relationships
-- **`references`** - Citation or mention relationships
-
-## 🔧 Configuration
-
-### Velocity Protocol Integration
-
-Permamind uses the Velocity Protocol for:
-
-- **Hub Registry**: Decentralized hub discovery at `g_eSbkmD4LzfZtXaCLmeMcLIBQrqxnY-oFQJJNMIn4w`
-- **Event Storage**: Structured event-based memory storage
-- **Message Routing**: Efficient memory access and synchronization
-- **Protocol Compliance**: Standard Kind system with AI extensions
-
-### AO Network Configuration
-
-Default network endpoints (Marshal testnet):
-
-- **Compute Unit**: `https://cu.velocity.cloudnet.marshal.ao`
-- **Message Unit**: `https://mu.velocity.cloudnet.marshal.ao`
-- **Gateway**: `https://gateway.velocity.cloudnet.marshal.ao`
-- **Scheduler**: `Tm7v2ddwSr_5UxjmuCmhkMSZpzhtKJkkpLMZK_p6mQU`
-
-## 📖 Usage Examples
-
-### Basic Memory Storage
-
-```javascript
-// Store a simple conversation memory
-await mcp.addMemory({
-  content: "User prefers TypeScript over JavaScript",
-  role: "system",
-  p: "user_public_key",
-});
-```
-
-### Enhanced Memory with AI Metadata
-
-```javascript
-// Store memory with AI-specific features
-await mcp.addMemoryEnhanced({
-  content: "Implemented authentication using JWT tokens",
-  role: "system",
-  p: "user_public_key",
-  importance: 0.8,
-  memoryType: "knowledge",
-  sessionId: "project_setup_session",
-  topic: "authentication",
-  domain: "web_development",
-  tags: "security,jwt,implementation",
-});
-```
-
-### Advanced Memory Search
-
-```javascript
-// Search with filters and ranking
-const memories = await mcp.searchMemoriesAdvanced({
-  query: "authentication security",
-  memoryType: "knowledge",
-  importanceThreshold: 0.5,
-  domain: "web_development",
-  startDate: "2024-01-01T00:00:00Z",
-});
-```
-
-### Knowledge Graph Building
-
-```javascript
-// Link related memories
-await mcp.linkMemories({
-  sourceMemoryId: "auth_implementation_memory",
-  targetMemoryId: "security_best_practices_memory",
-  relationshipType: "supports",
-  strength: 0.9,
-});
-```
-
-### Reasoning Chain Documentation
-
-```javascript
-// Store AI reasoning process
-await mcp.addReasoningChain({
-  chainId: "auth_decision_chain",
-  steps: JSON.stringify([
-    {
-      stepType: "observation",
-      content: "User needs secure authentication",
-      confidence: 0.95,
-      timestamp: "2024-01-01T10:00:00Z",
-    },
-    {
-      stepType: "thought",
-      content: "JWT tokens provide stateless authentication",
-      confidence: 0.8,
-      timestamp: "2024-01-01T10:01:00Z",
-    },
-    {
-      stepType: "action",
-      content: "Implement JWT-based authentication system",
-      confidence: 0.9,
-      timestamp: "2024-01-01T10:02:00Z",
-    },
-  ]),
-  outcome: "Successfully implemented JWT authentication",
-  p: "user_public_key",
-});
-```
-
-### Natural Language Process Communication
-
-```javascript
-// Interact with any AO process using natural language
-await mcp.executeProcessAction({
-  processId: "token-process-id",
-  processMarkdown: `
-# Token Process
-
-## transfer
-Transfer tokens to another user
-- recipient: wallet address (required)
-- amount: number of tokens (required)
-- memo: optional message (optional)
-
-## balance
-Get current balance
-- account: wallet address to check (optional)
-`,
-  request: "Send 100 tokens to alice with memo 'payment for services'",
-});
-
-// Query process data
-await mcp.executeProcessAction({
-  processId: "nft-marketplace-id",
-  processMarkdown: "...", // marketplace documentation
-  request: "Show me all NFTs under 50 tokens in the art category",
-});
-
-// DAO governance interaction
-await mcp.executeProcessAction({
-  processId: "dao-process-id",
-  processMarkdown: "...", // DAO documentation
-  request: "Vote yes on proposal #5 with reason 'Good for project growth'",
-});
-```
-
-## 🌐 Velocity Protocol Extensions
-
-Permamind implements AI-specific extensions to the Velocity Protocol:
-
-### New Kind Types (Proposed VIP)
-
-- **Kind "10"** - Enhanced AI Memory (extends basic memory with metadata)
-- **Kind "11"** - Memory Relationships (links between memories)
-- **Kind "23"** - Reasoning Chains (AI decision processes)
-- **Kind "40"** - Memory Contexts (grouped memory spaces)
-
-### AI-Specific Event Tags
-
-- **`ai_importance`** - Memory importance score (0-1)
-- **`ai_type`** - Memory type classification
-- **`ai_context`** - Rich contextual metadata (JSON)
-- **`ai_session`** - Session/conversation identifier
-- **`ai_topic`** - Memory topic or subject
-- **`ai_domain`** - Domain or category
-- **`ai_tag`** - Custom memory tags
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines and:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+---
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔗 Links
-
-### Core Project
-
-- **Repository**: https://github.com/ALLiDoizCode/Permamind
-- **Velocity Protocol**: https://github.com/SpaceTurtle-Dao/velocity-protocol
-- **AO Cookbook**: https://github.com/permaweb/ao-cookbook
-- **Arweave**: https://arweave.org
-- **Marshal AO Testnet**: https://x.com/Marshal_AO
-
-### Documentation
-
-- **[Quick Start Guide](docs/QUICK_START.md)** - Get started with process integration in 5 minutes
-- **[Process Integration Guide](docs/PROCESS_INTEGRATION.md)** - Comprehensive guide for AO process developers
-- **[Process Template](docs/process-template.md)** - Markdown template for documenting processes
-- **[Token Process Example](examples/token-process.md)** - Example token contract documentation
-- **[NFT Marketplace Example](examples/nft-marketplace.md)** - Example marketplace documentation
-- **[DAO Governance Example](examples/dao-governance.md)** - Example governance system documentation
-
 ## 🙏 Acknowledgments
 
-- AO and Arweave teams for the permanent compute and storage layers
-- MCP community for the standardized AI tool interface
-- Contributors and early adopters of Permamind
+- **AO & Arweave Teams** - For building the permanent compute and storage layers
+- **Anthropic** - For creating the Model Context Protocol standard
+- **FastMCP Contributors** - For the excellent TypeScript MCP framework
+- **Community Contributors** - For feedback, testing, and contributions
 
 ---
 
-**Building the future of AI memory with permanent, decentralized storage** 🧠⚡️
+<div align="center">
+
+**🧠 Building the Future of AI Memory 🧠**
+
+_Permanent • Decentralized • Immortal_
+
+[🚀 Get Started](docs/installation.md) • [📚 Documentation](docs/) • [💡 Examples](docs/examples.md) • [🤝 Community](https://discord.gg/permamind)
+
+</div>
