@@ -31,6 +31,7 @@ const aiService = () => {
             try {
                 await event(signer, hubId, tags);
                 return JSON.stringify(tags);
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             }
             catch (error) {
                 // Error adding enhanced memory - silent for MCP compatibility
@@ -142,6 +143,7 @@ const aiService = () => {
                     }
                 });
                 return cycles;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             }
             catch (error) {
                 // Error detecting circular references - silent for MCP compatibility
@@ -190,6 +192,7 @@ const aiService = () => {
                     });
                 }
                 return []; // No path found
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             }
             catch (error) {
                 // Error finding shortest path - silent for MCP compatibility
@@ -276,6 +279,7 @@ const aiService = () => {
                             "references"),
                     };
                 });
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             }
             catch (error) {
                 // Error getting memory relationships - silent for MCP compatibility
@@ -342,6 +346,7 @@ const aiService = () => {
                     topRelationshipTypes,
                     totalLinks,
                 };
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
             }
             catch (error) {
                 // Error getting relationship analytics - silent for MCP compatibility

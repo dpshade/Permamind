@@ -1,10 +1,19 @@
-# Ship - Complete Pre-GitHub Push Workflow
+# Ship - Enhanced CI-Guaranteed Pre-GitHub Push Workflow
 
-Orchestrates the complete development workflow before pushing to GitHub by running cleanup → tdd → prepush in sequence. This command ensures maximum code quality and prevents CI/CD failures.
+Orchestrates a comprehensive 6-phase development workflow with auto-fix capabilities before pushing to GitHub. **Guarantees CI success** by running exact CI commands locally, automatically fixing common issues, and providing complete validation with recovery mechanisms.
 
 ## Workflow Overview
 
-Executes a comprehensive 3-phase approach to prepare code for GitHub push:
+Executes a comprehensive 6-phase approach to prepare code for GitHub push with automatic fixing:
+
+### Phase 0: 🔧 PRE-FLIGHT AUTO-FIX
+
+**Automatic resolution of common issues**
+
+- Stage untracked files that should be included
+- Run `npm run format` to auto-fix formatting and basic ESLint issues
+- Remove common debug logging patterns
+- Validate git state and suggest corrections
 
 ### Phase 1: 🧹 CLEANUP
 
@@ -44,13 +53,31 @@ Executes `/prepush` command to:
 
 - Validate git state and branch readiness
 - Ensure clean dependency installation (npm ci)
-- Run code quality checks (prettier, eslint, typescript)
+- Run **EXACT CI COMMANDS**: `npm run format:check && npm run type-check && npm test && npm run audit`
 - Remove debug logging statements
 - Execute build verification
 - Run complete test suite with coverage
 - Perform security audit and dependency scanning
 - Validate performance metrics
 - Generate final push readiness assessment
+
+### Phase 4: 🔄 AUTO-RECOVERY
+
+**Automatic issue resolution where possible**
+
+- Auto-fix formatting issues: `npm run format`
+- Stage corrected files automatically
+- Retry failed validations after fixes
+- Report unfixable issues with specific guidance
+
+### Phase 5: ✅ FINAL VALIDATION
+
+**CI-identical verification and push confidence**
+
+- Run complete CI simulation: `npm run ci:quality`
+- Generate confidence score (0-100%)
+- Provide specific fix commands for any remaining issues
+- Create ready-to-execute push commands
 
 ## Command Usage
 
@@ -77,7 +104,17 @@ Executes `/prepush` command to:
 ⏰ Estimated time: 8-15 minutes
 ```
 
-### 2. Phase 1: Cleanup Execution
+### 2. Phase 0: Pre-Flight Auto-Fix
+
+```
+🔧 Phase 0: PRE-FLIGHT AUTO-FIX
+Auto-fixing common issues...
+✅ Formatted 4 files
+✅ Staged 2 untracked files
+⚠️ Manual fix needed: TypeScript errors
+```
+
+### 3. Phase 1: Cleanup Execution
 
 ```
 🧹 Phase 1: CLEANUP
@@ -86,7 +123,7 @@ Running comprehensive codebase analysis...
 ✅ Cleanup completed - 15 improvements identified
 ```
 
-### 3. Phase 2: TDD Execution
+### 4. Phase 2: TDD Execution
 
 ```
 🧪 Phase 2: TDD
@@ -95,37 +132,62 @@ Running test-driven development validation...
 ✅ TDD completed - Coverage: 89% → 93%
 ```
 
-### 4. Phase 3: Prepush Execution
+### 5. Phase 3: Prepush Execution
 
 ```
 🚀 Phase 3: PREPUSH
-Running pre-push validation and CI simulation...
+Running EXACT CI validation...
 [Detailed prepush workflow output]
-✅ Prepush completed - Confidence: 95%
+✅ Prepush completed - CI commands pass ✅
 ```
 
-### 5. Final Assessment
+### 6. Phase 4: Auto-Recovery
+
+```
+🔄 Phase 4: AUTO-RECOVERY
+Attempting automatic fixes...
+✅ Auto-fixed 3 ESLint issues
+🔄 Re-running validation...
+✅ All issues resolved
+```
+
+### 7. Phase 5: Final Validation
+
+```
+✅ Phase 5: FINAL VALIDATION
+Running complete CI simulation...
+✅ npm run ci:quality - PASSED
+🎯 Confidence Score: 98%
+```
+
+### 8. Final Assessment
 
 ```
 🎉 SHIP WORKFLOW COMPLETED
 
 📊 Summary:
+  🔧 Pre-flight: 6 issues auto-fixed
   🧹 Cleanup: 15 improvements applied
   🧪 TDD: Coverage improved 89% → 93%
-  🚀 Prepush: Confidence score 95%
+  🚀 Prepush: CI commands pass ✅
+  🔄 Auto-recovery: 3 additional fixes applied
+  ✅ Final validation: CI simulation passed
 
 ⚡ Performance:
   Total execution time: 12m 34s
+  Auto-fix time: 1m 45s
   Build time: 2m 18s
   Test time: 4m 12s
+  CI simulation: 3m 21s
 
-✅ READY TO PUSH TO GITHUB
+🎯 CONFIDENCE SCORE: 98% - READY TO PUSH
 
 💡 Next steps:
-  1. Review changes: git status && git diff
-  2. Stage changes: git add .
-  3. Commit: git commit -m "feat: your commit message"
-  4. Push: git push origin your-branch
+  1. Review auto-applied changes: git diff
+  2. Commit staged changes: git commit -m "feat: your commit message"
+  3. Push with confidence: git push origin your-branch
+
+🔮 CI Prediction: ✅ WILL PASS (exact command validation completed)
 ```
 
 ## Mode-Specific Behavior
@@ -133,22 +195,25 @@ Running pre-push validation and CI simulation...
 ### Quick Mode (`/ship quick`)
 
 - **Duration**: ~3-5 minutes
-- **Focus**: Essential validation only
-- **Phases**: Prepush only (git, deps, quality, build, tests)
+- **Focus**: Essential validation with auto-fix
+- **Phases**: Pre-flight auto-fix + Prepush + Auto-recovery
+- **Auto-Fix**: ✅ Formatting, basic ESLint, git staging
 - **Use Case**: Rapid iteration, small changes, hotfixes
 
 ### Full Mode (`/ship` or `/ship full`)
 
 - **Duration**: ~8-15 minutes
-- **Focus**: Comprehensive quality assurance
-- **Phases**: All three (cleanup → tdd → prepush)
+- **Focus**: Comprehensive quality assurance with auto-fix
+- **Phases**: All six phases (pre-flight → cleanup → tdd → prepush → auto-recovery → final validation)
+- **Auto-Fix**: ✅ All automatic fixes + comprehensive validation
 - **Use Case**: Feature completion, major changes, releases
 
 ### Analysis Mode (`/ship analysis`)
 
 - **Duration**: ~5-8 minutes
-- **Focus**: Code quality and test analysis
-- **Phases**: Cleanup + TDD (no build/push validation)
+- **Focus**: Code quality and test analysis with suggestions
+- **Phases**: Pre-flight + Cleanup + TDD (no build/push validation)
+- **Auto-Fix**: ✅ Basic fixes + detailed analysis reports
 - **Use Case**: Code review preparation, quality assessment
 
 ## Integration Points
@@ -252,20 +317,25 @@ Running pre-push validation and CI simulation...
 
 ### Confidence Score Calculation
 
+- **Pre-flight**: Auto-fixes applied successfully
 - **Cleanup**: Improvements identified and prioritized
 - **TDD**: Coverage thresholds met (90%+ functions, 85%+ lines)
-- **Prepush**: All validations pass (95%+ confidence)
+- **Prepush**: EXACT CI commands pass (npm run lint)
+- **Auto-recovery**: All fixable issues resolved
+- **Final validation**: Complete CI simulation passes
 
 ### Ready to Ship Indicators
 
-- ✅ All lint and format checks pass
+- ✅ All lint and format checks pass (EXACT CI COMMANDS)
 - ✅ TypeScript compilation successful
 - ✅ Complete test suite passes
 - ✅ Security audit clean
 - ✅ Performance metrics acceptable
 - ✅ No debug logging in production code
 - ✅ Git state ready for push
+- ✅ Auto-fixes applied and validated
+- 🎯 **CI GUARANTEE**: Local validation matches CI exactly
 
-This comprehensive workflow ensures maximum code quality and confidence before pushing to GitHub, preventing CI failures and maintaining high development standards.
+This enhanced workflow **guarantees CI success** by running exact CI commands locally, with automatic fixing of common issues. Prevents CI failures through comprehensive validation, auto-recovery mechanisms, and final CI simulation. The ultimate solution for confident, failure-free GitHub pushes.
 
 $ARGUMENTS
