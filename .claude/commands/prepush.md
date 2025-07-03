@@ -50,7 +50,7 @@ Execute comprehensive pre-push validation using this 9-phase approach that simul
   - Must pass WITHOUT any formatting changes needed
   - Matches CI exactly - prevents discrepancies
   - On failure: STOP and run manual fixes before retrying
-- **Type Check**: `npm run type-check` (EXACT CI COMMAND)  
+- **Type Check**: `npm run type-check` (EXACT CI COMMAND)
 - **Test Suite**: `npm test` (EXACT CI COMMAND)
 - **Security Audit**: `npm run audit` (EXACT CI COMMAND)
 
@@ -60,7 +60,7 @@ Execute comprehensive pre-push validation using this 9-phase approach that simul
 - On failure, **STOP and fix manually** before retrying
 - Suggested manual fixes:
   - Format: `npm run format` then commit changes
-  - Lint: `npm run lint:fix` then commit changes  
+  - Lint: `npm run lint:fix` then commit changes
   - Tests: Fix failing tests and commit changes
 - **Re-run `/prepush` after manual fixes to verify**
 

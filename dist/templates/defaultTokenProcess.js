@@ -9,9 +9,9 @@ export const DEFAULT_TOKEN_PROCESS = {
             action: "Transfer",
             description: "Transfer tokens from your account to another user",
             examples: [
-                "Send 100 tokens to alice with memo 'payment for services'",
+                "Transfer 100 tokens to alice with memo 'payment for services'",
                 "Transfer 50 tokens to xyz789",
-                "Send 25 tokens to bob",
+                "Send tokens to bob via transfer",
             ],
             isWrite: true,
             parameters: [
@@ -55,11 +55,35 @@ export const DEFAULT_TOKEN_PROCESS = {
             ],
         },
         {
+            action: "Info",
+            description: "Get comprehensive token information including name, symbol, and metadata",
+            examples: [
+                "Get token info",
+                "Show token info",
+                "Token info details",
+                "Info about this token",
+            ],
+            isWrite: false,
+            parameters: [],
+        },
+        {
+            action: "Balances",
+            description: "Get all token balances for all accounts",
+            examples: [
+                "Show all balances",
+                "Get all token balances",
+                "List all balances",
+                "All account balances",
+            ],
+            isWrite: false,
+            parameters: [],
+        },
+        {
             action: "Mint",
             description: "Create new tokens (admin only)",
             examples: [
                 "Mint 1000 tokens for alice",
-                "Create 500 new tokens for bob",
+                "Mint 500 new tokens for bob",
                 "Mint 100 tokens to xyz789",
             ],
             isWrite: true,
@@ -83,8 +107,8 @@ export const DEFAULT_TOKEN_PROCESS = {
             description: "Destroy tokens from your account",
             examples: [
                 "Burn 100 tokens",
-                "Destroy 50 tokens from my account",
-                "Remove 25 tokens",
+                "Burn 50 tokens from my account",
+                "Burn 25 tokens to remove them",
             ],
             isWrite: true,
             parameters: [
@@ -100,10 +124,10 @@ export const DEFAULT_TOKEN_PROCESS = {
             action: "TotalSupply",
             description: "Get the total supply of tokens",
             examples: [
-                "Get total supply",
-                "What's the total token supply?",
-                "Show total tokens",
-                "Total supply",
+                "Get totalsupply",
+                "What's the totalsupply?",
+                "Show totalsupply",
+                "Check totalsupply",
             ],
             isWrite: false,
             parameters: [],
@@ -124,7 +148,7 @@ export const DEFAULT_TOKEN_PROCESS = {
             description: "Get the token symbol/ticker",
             examples: [
                 "What's the token symbol?",
-                "Get token ticker",
+                "Get token symbol",
                 "Show symbol",
             ],
             isWrite: false,
@@ -135,7 +159,7 @@ export const DEFAULT_TOKEN_PROCESS = {
             description: "Get the number of decimal places",
             examples: [
                 "How many decimals?",
-                "Get decimal places",
+                "Get decimals",
                 "Show decimals",
             ],
             isWrite: false,
@@ -147,7 +171,7 @@ export const DEFAULT_TOKEN_PROCESS = {
             examples: [
                 "Who is the owner?",
                 "Get contract owner",
-                "Show admin address",
+                "Show owner address",
             ],
             isWrite: false,
             parameters: [],
@@ -156,9 +180,9 @@ export const DEFAULT_TOKEN_PROCESS = {
             action: "Transfer-Ownership",
             description: "Transfer ownership of the contract to another address (owner only)",
             examples: [
-                "Transfer ownership to alice",
-                "Make bob the new owner",
-                "Change owner to xyz789",
+                "Transfer-ownership to alice",
+                "Transfer-ownership to bob",
+                "Transfer-ownership to xyz789",
             ],
             isWrite: true,
             parameters: [
@@ -175,7 +199,7 @@ export const DEFAULT_TOKEN_PROCESS = {
             description: "Approve another address to spend tokens on your behalf",
             examples: [
                 "Approve alice to spend 100 tokens",
-                "Allow bob to use 50 tokens",
+                "Approve bob to use 50 tokens",
                 "Approve xyz789 for 25 tokens",
             ],
             isWrite: true,
@@ -199,8 +223,8 @@ export const DEFAULT_TOKEN_PROCESS = {
             description: "Check how many tokens an address is approved to spend",
             examples: [
                 "Check allowance from alice to bob",
-                "How much can xyz789 spend from my account?",
-                "Get spending allowance",
+                "Get spending allowance from xyz789",
+                "Show allowance details",
             ],
             isWrite: false,
             parameters: [
@@ -222,9 +246,9 @@ export const DEFAULT_TOKEN_PROCESS = {
             action: "TransferFrom",
             description: "Transfer tokens from one address to another using allowance",
             examples: [
-                "Transfer 100 tokens from alice to bob",
-                "Move 50 tokens from xyz789 to charlie",
-                "Transfer from alice to bob amount 25",
+                "TransferFrom 100 tokens from alice to bob",
+                "TransferFrom 50 tokens from xyz789 to charlie",
+                "TransferFrom alice to bob amount 25",
             ],
             isWrite: true,
             parameters: [

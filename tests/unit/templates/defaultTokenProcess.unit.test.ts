@@ -198,7 +198,7 @@ describe("DefaultTokenProcess", () => {
       );
       
       writeHandlers.forEach((handler) => {
-        expect(["Transfer", "Mint", "Burn"]).toContain(handler.action);
+        expect(["Transfer", "Mint", "Burn", "Transfer-Ownership", "Approve", "TransferFrom"]).toContain(handler.action);
       });
     });
 
@@ -208,7 +208,7 @@ describe("DefaultTokenProcess", () => {
       );
       
       readHandlers.forEach((handler) => {
-        expect(["Balance", "Info", "Balances", "TotalSupply"]).toContain(
+        expect(["Balance", "Info", "Balances", "TotalSupply", "Name", "Symbol", "Decimals", "Owner", "Allowance"]).toContain(
           handler.action
         );
       });

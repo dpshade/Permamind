@@ -348,6 +348,7 @@ function getBasicMintTemplate(config) {
     const { buyToken, maxMint, multiplier } = config;
     return `
 
+-- Basic Minting Strategy
 -- Basic Minting Configuration
 BuyToken = "${buyToken}"
 Multiplier = ${multiplier}
@@ -429,6 +430,7 @@ function getCascadeMintTemplate(config) {
     const { baseMintLimit, buyToken, incrementBlocks, maxCascadeLimit, maxMint, multiplier, } = config;
     return `
 
+-- Cascade Minting Strategy
 -- Cascade Minting Configuration
 BuyToken = "${buyToken}"
 Multiplier = ${multiplier}
@@ -551,6 +553,7 @@ function getDoubleMintTemplate(config) {
         .join(",\n");
     return `
 
+-- Double Mint Strategy
 -- Double Mint Configuration
 MaxMint = "${maxMint}"
 BuyTokenMultipliers = {
