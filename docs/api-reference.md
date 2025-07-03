@@ -23,11 +23,13 @@ Store basic conversation memories with minimal metadata.
 **Purpose**: Simple memory storage for chat history and basic interactions.
 
 **Parameters**:
+
 - `content` (string, required): The memory content to store
 - `role` (string, required): Message role - "user", "assistant", or "system"
 - `p` (string, required): Public key of the memory owner
 
 **Example**:
+
 ```json
 {
   "content": "User prefers dark mode in all applications",
@@ -37,6 +39,7 @@ Store basic conversation memories with minimal metadata.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -54,11 +57,13 @@ Retrieve all stored memories, optionally filtered by conversation.
 **Purpose**: Bulk memory retrieval for analysis or migration.
 
 **Parameters**:
+
 - `conversationId` (string, optional): Filter by specific conversation
 - `limit` (number, optional): Maximum memories to return (default: 100)
 - `offset` (number, optional): Skip this many memories (pagination)
 
 **Example**:
+
 ```json
 {
   "conversationId": "conv_123",
@@ -67,6 +72,7 @@ Retrieve all stored memories, optionally filtered by conversation.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -93,9 +99,11 @@ Get all memories associated with a specific conversation.
 **Purpose**: Retrieve conversation-specific memory context.
 
 **Parameters**:
+
 - `conversationId` (string, required): Target conversation ID
 
 **Example**:
+
 ```json
 {
   "conversationId": "conv_456"
@@ -103,6 +111,7 @@ Get all memories associated with a specific conversation.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -121,11 +130,13 @@ Basic keyword-based memory search.
 **Purpose**: Simple text search across memory content.
 
 **Parameters**:
+
 - `query` (string, required): Search keywords
 - `conversationId` (string, optional): Limit search to specific conversation
 - `limit` (number, optional): Maximum results (default: 20)
 
 **Example**:
+
 ```json
 {
   "query": "authentication security",
@@ -134,6 +145,7 @@ Basic keyword-based memory search.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -154,6 +166,7 @@ Store AI memories with rich metadata, importance scoring, and context.
 **Purpose**: Advanced memory storage with AI-specific features.
 
 **Parameters**:
+
 - `content` (string, required): Memory content
 - `role` (string, optional): Message role (default: "user")
 - `p` (string, required): Owner's public key
@@ -163,8 +176,9 @@ Store AI memories with rich metadata, importance scoring, and context.
 - `metadata` (object, optional): Additional metadata
 
 **Memory Types**:
+
 - `conversation` - Dialog interactions
-- `reasoning` - AI decision processes  
+- `reasoning` - AI decision processes
 - `knowledge` - Factual information
 - `procedure` - Step-by-step processes
 - `enhancement` - Code improvements
@@ -172,17 +186,20 @@ Store AI memories with rich metadata, importance scoring, and context.
 - `workflow` - Business processes
 
 **Context Fields**:
+
 - `sessionId` (string): Session identifier
 - `topic` (string): Memory topic/subject
 - `domain` (string): Domain or category
 - `relatedMemories` (string[]): Related memory IDs
 
 **Metadata Fields**:
+
 - `tags` (string[]): Custom tags for categorization
 - `source` (string): Source of the information
 - `confidence` (number): Confidence in the information (0-1)
 
 **Example**:
+
 ```json
 {
   "content": "Implemented JWT authentication with refresh tokens and proper security headers",
@@ -203,6 +220,7 @@ Store AI memories with rich metadata, importance scoring, and context.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -222,12 +240,14 @@ Advanced memory search with filters, ranking, and faceted search.
 **Purpose**: Sophisticated memory retrieval with multiple search criteria.
 
 **Parameters**:
+
 - `query` (string, required): Search query
 - `filters` (object, optional): Search filters
 - `ranking` (string, optional): Ranking strategy
 - `limit` (number, optional): Maximum results (default: 20)
 
 **Filter Options**:
+
 - `memoryType` (string): Filter by memory type
 - `importanceThreshold` (number): Minimum importance score
 - `domain` (string): Filter by domain
@@ -238,12 +258,14 @@ Advanced memory search with filters, ranking, and faceted search.
   - `end` (string): End date (ISO 8601)
 
 **Ranking Strategies**:
+
 - `relevance` (default): Sort by search relevance
 - `importance`: Sort by importance score
 - `recency`: Sort by creation time
 - `access`: Sort by access frequency
 
 **Example**:
+
 ```json
 {
   "query": "authentication security",
@@ -263,6 +285,7 @@ Advanced memory search with filters, ranking, and faceted search.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -296,12 +319,14 @@ Efficiently add multiple memories in a single operation.
 **Purpose**: Bulk memory creation for data imports or batch processing.
 
 **Parameters**:
+
 - `memories` (array, required): Array of memory objects
 - `p` (string, required): Owner's public key for all memories
 
 **Memory Object Structure**: Same as `addMemoryEnhanced`
 
 **Example**:
+
 ```json
 {
   "memories": [
@@ -311,7 +336,7 @@ Efficiently add multiple memories in a single operation.
       "memoryType": "knowledge"
     },
     {
-      "content": "Second memory", 
+      "content": "Second memory",
       "importance": 0.6,
       "memoryType": "conversation"
     }
@@ -321,6 +346,7 @@ Efficiently add multiple memories in a single operation.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -342,6 +368,7 @@ Create typed relationships between memories to build knowledge graphs.
 **Purpose**: Connect related memories with semantic relationships.
 
 **Parameters**:
+
 - `sourceMemoryId` (string, required): Source memory ID
 - `targetMemoryId` (string, required): Target memory ID
 - `relationshipType` (string, required): Type of relationship
@@ -350,6 +377,7 @@ Create typed relationships between memories to build knowledge graphs.
 - `p` (string, required): Owner's public key
 
 **Relationship Types**:
+
 - `causes` - Causal relationships (A leads to B)
 - `supports` - Evidence or reinforcement
 - `contradicts` - Conflicting or opposing information
@@ -360,6 +388,7 @@ Create typed relationships between memories to build knowledge graphs.
 - `implementation` - Concrete implementation of concept
 
 **Example**:
+
 ```json
 {
   "sourceMemoryId": "mem_jwt_auth",
@@ -372,6 +401,7 @@ Create typed relationships between memories to build knowledge graphs.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -392,6 +422,7 @@ Explore memory relationships and knowledge graph connections.
 **Purpose**: Analyze knowledge graph structure and find related memories.
 
 **Parameters**:
+
 - `memoryId` (string, optional): Focus on specific memory's relationships
 - `relationshipType` (string, optional): Filter by relationship type
 - `minStrength` (number, optional): Minimum connection strength
@@ -399,6 +430,7 @@ Explore memory relationships and knowledge graph connections.
 - `includeReverse` (boolean, optional): Include reverse relationships (default: true)
 
 **Example**:
+
 ```json
 {
   "memoryId": "mem_auth_concept",
@@ -408,6 +440,7 @@ Explore memory relationships and knowledge graph connections.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -439,6 +472,7 @@ Document AI reasoning processes and decision-making chains.
 **Purpose**: Store and track AI decision-making processes for transparency and learning.
 
 **Parameters**:
+
 - `chainId` (string, required): Unique chain identifier
 - `steps` (string, required): JSON string of reasoning steps
 - `outcome` (string, required): Final decision or result
@@ -447,9 +481,10 @@ Document AI reasoning processes and decision-making chains.
 - `context` (object, optional): Contextual information
 
 **Reasoning Step Structure**:
+
 ```typescript
 interface ReasoningStep {
-  stepType: 'observation' | 'thought' | 'action' | 'reflection';
+  stepType: "observation" | "thought" | "action" | "reflection";
   content: string;
   confidence: number;
   timestamp: string;
@@ -459,6 +494,7 @@ interface ReasoningStep {
 ```
 
 **Example**:
+
 ```json
 {
   "chainId": "auth_decision_chain_001",
@@ -491,6 +527,7 @@ interface ReasoningStep {
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -512,27 +549,34 @@ Universal natural language interface for any AO process.
 **Purpose**: Interact with AO processes using natural language and markdown documentation.
 
 **Parameters**:
+
 - `processId` (string, required): Target AO process ID
 - `request` (string, required): Natural language request
 - `processMarkdown` (string, required): Process documentation in markdown format
 
 **Markdown Documentation Format**:
+
 ```markdown
 # Process Name
 
 Brief process description.
 
 ## handler1
+
 Description of what this handler does
+
 - parameter1: Description (required/optional)
 - parameter2: Description (required/optional)
 
 ## handler2
+
 Another handler description
+
 - param1: Description (required)
 ```
 
 **Example**:
+
 ```json
 {
   "processId": "token_process_xyz789",
@@ -542,6 +586,7 @@ Another handler description
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -569,16 +614,19 @@ Simplified interface for common token operations without requiring documentation
 **Purpose**: Quick token operations using auto-detected templates.
 
 **Parameters**:
+
 - `processId` (string, required): Token process ID
 - `request` (string, required): Natural language token request
 
 **Supported Operations** (auto-detected):
+
 - Balance queries: "What's my balance?", "Check balance for alice"
 - Transfers: "Send 100 tokens to bob", "Transfer 50 tokens to alice with memo 'payment'"
 - Token info: "Get token details", "What's the token name and supply?"
 - Minting: "Mint 1000 tokens for alice" (if authorized)
 
 **Example**:
+
 ```json
 {
   "processId": "token_abc123",
@@ -587,6 +635,7 @@ Simplified interface for common token operations without requiring documentation
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -613,16 +662,18 @@ Deploy a basic AO token contract with standard functionality.
 **Purpose**: Quick token creation for simple use cases.
 
 **Parameters**:
+
 - `name` (string, required): Token name
 - `ticker` (string, required): Token symbol/ticker
 - `description` (string, optional): Token description
 - `initialSupply` (number, optional): Initial token supply (default: 0)
 - `mintable` (boolean, optional): Can mint new tokens (default: true)
-- `transferable` (boolean, optional): Can transfer tokens (default: true)  
+- `transferable` (boolean, optional): Can transfer tokens (default: true)
 - `burnable` (boolean, optional): Can burn tokens (default: false)
 - `denomination` (number, optional): Decimal places (default: 12)
 
 **Example**:
+
 ```json
 {
   "name": "My Project Token",
@@ -637,6 +688,7 @@ Deploy a basic AO token contract with standard functionality.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -658,6 +710,7 @@ Deploy tokens with sophisticated minting strategies and advanced features.
 **Purpose**: Create tokens with complex economic models and minting behaviors.
 
 **Parameters**:
+
 - `name` (string, required): Token name
 - `ticker` (string, required): Token symbol
 - `description` (string, optional): Token description
@@ -668,6 +721,7 @@ Deploy tokens with sophisticated minting strategies and advanced features.
 **Minting Strategies**:
 
 #### Basic Strategy
+
 ```json
 {
   "mintingStrategy": "Basic",
@@ -678,7 +732,8 @@ Deploy tokens with sophisticated minting strategies and advanced features.
 }
 ```
 
-#### Cascade Strategy  
+#### Cascade Strategy
+
 ```json
 {
   "mintingStrategy": "Cascade",
@@ -691,6 +746,7 @@ Deploy tokens with sophisticated minting strategies and advanced features.
 ```
 
 #### DoubleMint Strategy
+
 ```json
 {
   "mintingStrategy": "DoubleMint",
@@ -702,6 +758,7 @@ Deploy tokens with sophisticated minting strategies and advanced features.
 ```
 
 **Example**:
+
 ```json
 {
   "name": "Rewards Token",
@@ -718,6 +775,7 @@ Deploy tokens with sophisticated minting strategies and advanced features.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -745,11 +803,13 @@ Comprehensive analytics about memory usage patterns and trends.
 **Purpose**: Understand memory usage, identify patterns, and optimize memory management.
 
 **Parameters**:
+
 - `p` (string, optional): Filter by specific user's memories
 - `timeRange` (object, optional): Date range for analysis
 - `includeGraph` (boolean, optional): Include knowledge graph analytics (default: false)
 
 **Example**:
+
 ```json
 {
   "timeRange": {
@@ -761,6 +821,7 @@ Comprehensive analytics about memory usage patterns and trends.
 ```
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -797,9 +858,9 @@ Comprehensive analytics about memory usage patterns and trends.
       }
     ],
     "topRelationshipTypes": [
-      {"type": "supports", "count": 234},
-      {"type": "extends", "count": 187},
-      {"type": "references", "count": 156}
+      { "type": "supports", "count": 234 },
+      { "type": "extends", "count": 187 },
+      { "type": "references", "count": 156 }
     ]
   },
   "growthTrends": {
@@ -823,6 +884,7 @@ Get comprehensive information about the Permamind server status and configuratio
 **Parameters**: None
 
 **Response**:
+
 ```json
 {
   "success": true,
@@ -858,10 +920,10 @@ Get comprehensive information about the Permamind server status and configuratio
   },
   "tools": [
     "addMemory",
-    "addMemoryEnhanced", 
+    "addMemoryEnhanced",
     "searchMemoriesAdvanced",
     "executeProcessAction",
-    "createAdvancedToken",
+    "createAdvancedToken"
     // ... all available tools
   ]
 }
@@ -900,12 +962,14 @@ All tools follow a consistent error response format:
 ### Rate Limiting
 
 Most tools are subject to rate limiting:
+
 - **Memory operations**: 60 requests per minute
-- **Search operations**: 30 requests per minute  
+- **Search operations**: 30 requests per minute
 - **Process operations**: 20 requests per minute
 - **Token creation**: 5 requests per minute
 
 Rate limit headers are included in error responses:
+
 ```json
 {
   "error": {

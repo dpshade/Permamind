@@ -345,8 +345,8 @@ const extractParameters = (request, handler) => {
 const extractParameterValue = (request, paramName, paramType) => {
     // Parameter-specific patterns first
     const specificPatterns = [
-        new RegExp(`${paramName}\\s*[=:]\\s*["']?([^"'\\s]+)["']?`, "i"),
-        new RegExp(`${paramName}\\s+([^\\s]+)`, "i"),
+        new RegExp(`${paramName}\s*[=:]\s*["']?([^"'\s]+)["']?`, "i"),
+        new RegExp(`${paramName}\s+([^\s]+)`, "i"),
     ];
     // Check parameter-specific patterns first
     for (const pattern of specificPatterns) {
@@ -360,13 +360,16 @@ const extractParameterValue = (request, paramName, paramType) => {
             return value;
         }
     }
-    // Type-specific fallback patterns
+    // Type-specific fallback patterns based on parameter type and common patterns
     if (paramType === "number") {
+        // Look for numbers in various contexts
         const numberPatterns = [
-            new RegExp(`send\\s+([0-9.]+)`, "i"),
-            new RegExp(`amount\\s*[=:]?\\s*([0-9.]+)`, "i"),
-            new RegExp(`([0-9.]+)\\s+tokens?`, "i"),
-            new RegExp(`([0-9.]+)`), // Last resort: any number (removed global flag)
+            new RegExp(`send\s+([0-9.]+)`, "i"),
+            new RegExp(`transfer\s+([0-9.]+)`, "i"),
+            new RegExp(`amount\s*[=:]?\s*([0-9.]+)`, "i"),
+            new RegExp(`([0-9.]+)\s+tokens?`, "i"),
+            new RegExp(`([0-9.]+)\s+to`, "i"), // amount before "to"
+            new RegExp(`([0-9.]+)`), // Last resort: any number
         ];
         for (const pattern of numberPatterns) {
             const match = request.match(pattern);
@@ -378,17 +381,36 @@ const extractParameterValue = (request, paramName, paramType) => {
             }
         }
     }
-    else if (paramType === "string" &&
-        (paramName === "recipient" || paramName === "to")) {
-        // Address/recipient patterns
-        const addressPatterns = [
-            new RegExp(`to\\s+([^\\s]+)`, "i"),
-            new RegExp(`recipient\\s+([^\\s]+)`, "i"),
-        ];
-        for (const pattern of addressPatterns) {
-            const match = request.match(pattern);
-            if (match && match[1]) {
-                return match[1];
+    else if (paramType === "string") {
+        // Handle different string parameter types
+        if (paramName === "recipient" || paramName === "to") {
+            // Address/recipient patterns
+            const addressPatterns = [
+                /to\s+([^\s]+)/i,
+                /recipient\s+([^\s]+)/i,
+                /send\s+[0-9.]+\s+(?:tokens?\s+)?to\s+([^\s]+)/i, // "send X tokens to alice"
+                /transfer\s+[0-9.]+\s+(?:tokens?\s+)?to\s+([^\s]+)/i, // "transfer X tokens to alice"
+            ];
+            for (const pattern of addressPatterns) {
+                const match = request.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
+            }
+        }
+        else if (paramName === "account" || paramName === "address") {
+            // Account/address patterns for balance checks etc.
+            const accountPatterns = [
+                new RegExp(`account\s+([^\s]+)`, "i"),
+                new RegExp(`address\s+([^\s]+)`, "i"),
+                new RegExp(`for\s+([^\s]+)`, "i"), // "balance for alice"
+                new RegExp(`of\s+([^\s]+)`, "i"), // "balance of alice"
+            ];
+            for (const pattern of accountPatterns) {
+                const match = request.match(pattern);
+                if (match && match[1]) {
+                    return match[1];
+                }
             }
         }
     }

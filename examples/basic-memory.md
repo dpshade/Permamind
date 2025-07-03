@@ -11,6 +11,7 @@ Learn how to store, retrieve, and manage AI memories using Permamind's core memo
 ## Tutorial Overview
 
 This tutorial covers:
+
 1. Storing your first memory
 2. Retrieving stored memories
 3. Searching memories by content
@@ -26,15 +27,17 @@ Let's start by storing a simple conversation memory.
 **Prompt**: "Use the addMemory tool to store a memory that I prefer TypeScript over JavaScript for all new projects"
 
 **Expected Tool Call**:
+
 ```json
 {
   "content": "User prefers TypeScript over JavaScript for all new projects",
-  "role": "system", 
+  "role": "system",
   "p": "your_wallet_address"
 }
 ```
 
 **What This Does**:
+
 - Stores the preference as a basic memory
 - Automatically timestamps the memory
 - Associates it with your wallet address
@@ -43,6 +46,7 @@ Let's start by storing a simple conversation memory.
 ### Understanding the Response
 
 You should see a response like:
+
 ```json
 {
   "success": true,
@@ -58,6 +62,7 @@ The `memoryId` is a unique identifier you can use to reference this specific mem
 Let's add a few more memories to work with:
 
 **Prompt**: "Add these memories using the addMemory tool:
+
 1. I work primarily with Node.js and Express for backend development
 2. I prefer VS Code as my primary editor
 3. I'm currently learning about AI memory systems"
@@ -71,6 +76,7 @@ Now let's see all the memories we've stored.
 **Prompt**: "Use the getAllMemories tool to show me all my stored memories"
 
 **What You'll See**:
+
 - All memories you've created
 - Timestamps showing when each was created
 - Memory IDs for future reference
@@ -85,6 +91,7 @@ Let's try searching for memories by content.
 **Prompt**: "Use the searchMemories tool to find memories about TypeScript"
 
 **Expected Results**:
+
 - Should return the TypeScript preference memory
 - May include other TypeScript-related memories if you have them
 - Results ranked by relevance
@@ -112,6 +119,7 @@ When you retrieve memories, you'll see they have this basic structure:
 ```
 
 **Field Explanations**:
+
 - `id`: Unique identifier for the memory
 - `content`: The actual memory content
 - `role`: Who created the memory ("user", "assistant", "system")
@@ -125,6 +133,7 @@ You can group memories by conversation for better organization.
 **Prompt**: "Use addMemory to store 'Working on authentication feature for e-commerce project' with conversationId 'ecommerce_auth_2024'"
 
 **Tool Parameters**:
+
 ```json
 {
   "content": "Working on authentication feature for e-commerce project",
@@ -147,6 +156,7 @@ You can limit searches to specific conversations:
 **Prompt**: "Search for memories about 'authentication' within conversation 'ecommerce_auth_2024'"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "authentication",
@@ -171,6 +181,7 @@ You can limit searches to specific conversations:
 ### 3. Conversation Organization
 
 Group related memories:
+
 - Project-based: `"project_auth_feature"`
 - Session-based: `"learning_session_2024_01_15"`
 - Topic-based: `"typescript_preferences"`
@@ -180,6 +191,7 @@ Group related memories:
 Store focused, atomic information:
 
 ✅ **Good**: Separate memories for:
+
 - "Prefers TypeScript for type safety"
 - "Uses VS Code as primary editor"
 - "Works with Node.js and Express"
@@ -193,6 +205,7 @@ Try this complete workflow:
 ### Exercise: Personal Development Preferences
 
 1. **Store your tech stack preferences**:
+
    ```
    Add memories for:
    - Your preferred programming language
@@ -202,11 +215,13 @@ Try this complete workflow:
    ```
 
 2. **Organize with conversation ID**:
+
    ```
    Use conversationId: "dev_preferences_2024"
    ```
 
 3. **Search and verify**:
+
    ```
    - Search for "preferred" across all memories
    - Get all memories for "dev_preferences_2024"
@@ -225,19 +240,25 @@ Try this complete workflow:
 ## Common Issues and Solutions
 
 ### Issue: "Memory not found in search"
-**Solution**: 
+
+**Solution**:
+
 - Check spelling in your search query
 - Try broader keywords
 - Verify the memory was actually stored (check with getAllMemories)
 
 ### Issue: "Too many irrelevant results"
+
 **Solution**:
+
 - Use more specific keywords
 - Organize memories with conversation IDs
 - Consider using enhanced memory operations for better filtering
 
 ### Issue: "Can't remember conversation ID"
+
 **Solution**:
+
 - Use getAllMemories to see all memories and their conversation IDs
 - Use consistent naming patterns like "project_feature_date"
 
@@ -257,6 +278,7 @@ Try the [Advanced Search Patterns](./advanced-search.md) tutorial to learn sophi
 ## Summary
 
 You've learned to:
+
 - ✅ Store basic memories with `addMemory`
 - ✅ Retrieve all memories with `getAllMemories`
 - ✅ Search memories by content with `searchMemories`

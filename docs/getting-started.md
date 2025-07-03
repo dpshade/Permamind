@@ -43,6 +43,7 @@ npm install
 ```
 
 This will install all required dependencies including:
+
 - TypeScript compiler and types
 - FastMCP framework
 - AO Connect libraries
@@ -76,6 +77,7 @@ npm run dev
 ```
 
 This will:
+
 - Generate a temporary wallet identity
 - Create a memory hub on AO
 - Start the MCP server
@@ -177,6 +179,7 @@ EOF
 1. **Open Settings** (`Cmd/Ctrl + ,`)
 2. **Search for**: "MCP"
 3. **Add server configuration**:
+
 ```json
 {
   "mcp.servers": {
@@ -305,21 +308,25 @@ Get current token balance
 ### Common Issues
 
 **"Command not found" errors**
+
 - Ensure Node.js 20+ is installed
 - Verify TypeScript is available: `npx tsx --version`
 - Use full paths in MCP configuration
 
 **"SEED_PHRASE not set" warnings**
+
 - Generate a seed phrase with the command above
 - Set it as an environment variable or in .env file
 - The server will work without it but memories won't persist
 
 **MCP client connection issues**
+
 - Verify JSON syntax in configuration files
 - Check file paths are absolute, not relative
 - Restart your MCP client after configuration changes
 
 **Memory operations fail**
+
 - Check internet connection (requires access to AO network)
 - Wait 30-60 seconds for AO message propagation
 - Use `getServerInfo` to verify hub deployment
@@ -333,6 +340,7 @@ DEBUG=true npm run dev
 ```
 
 This will show detailed logs about:
+
 - Wallet generation and loading
 - Hub creation and registration
 - AO message sending and receiving

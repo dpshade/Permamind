@@ -11,6 +11,7 @@ Master sophisticated memory retrieval techniques using Permamind's advanced sear
 ## Tutorial Overview
 
 This tutorial covers:
+
 1. Enhanced memory storage with metadata
 2. Advanced filtering techniques
 3. Search ranking strategies
@@ -31,6 +32,7 @@ First, let's create some enhanced memories with rich metadata to search against.
 3. A reasoning memory about choosing React over Vue with your decision process"
 
 **Example Enhanced Memory**:
+
 ```json
 {
   "content": "JWT (JSON Web Tokens) provide stateless authentication by encoding user information in a cryptographically signed token. Key benefits: no server-side session storage, scalable across microservices, mobile-friendly. Security considerations: use HTTPS, short expiration times, secure secret management.",
@@ -55,16 +57,19 @@ First, let's create some enhanced memories with rich metadata to search against.
 Create memories of different types to see how filtering works:
 
 **Knowledge Memory**:
+
 - Topic: Database indexing strategies
 - Importance: 0.8
 - Tags: ["database", "performance", "indexing"]
 
 **Procedure Memory**:
+
 - Topic: Code review process
 - Importance: 0.7
 - Tags: ["process", "code-quality", "team"]
 
 **Reasoning Memory**:
+
 - Topic: Architecture decision for microservices
 - Importance: 0.8
 - Tags: ["architecture", "microservices", "decision"]
@@ -76,6 +81,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Use searchMemoriesAdvanced to find all knowledge-type memories"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "*",
@@ -86,6 +92,7 @@ Create memories of different types to see how filtering works:
 ```
 
 **What This Does**:
+
 - Searches all memories (`"*"` query)
 - Filters to only show knowledge-type memories
 - Returns structured results with metadata
@@ -95,6 +102,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find all memories with importance above 0.8"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "*",
@@ -111,6 +119,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Search for security-related knowledge with high importance"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "security authentication",
@@ -127,6 +136,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find all web development memories about authentication"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "authentication",
@@ -144,6 +154,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Search for 'database' memories ranked by importance"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "database",
@@ -161,6 +172,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Search for recent memories about development practices"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "development practices",
@@ -175,6 +187,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find frequently accessed memories about performance"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "performance",
@@ -191,6 +204,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find memories created in the last week"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "*",
@@ -208,6 +222,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find all memories from my authentication research session"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "*",
@@ -224,6 +239,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find all memories tagged with 'security'"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "*",
@@ -238,6 +254,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find memories tagged with both 'security' AND 'web'"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "*",
@@ -252,6 +269,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Find high-importance security or performance memories"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "security OR performance",
@@ -269,6 +287,7 @@ Create memories of different types to see how filtering works:
 **Prompt**: "Search for authentication concepts using related terms"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "authentication login signin jwt oauth",
@@ -286,6 +305,7 @@ Find memories that match criteria but exclude certain types:
 **Prompt**: "Find development memories but exclude conversation type"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "development",
@@ -294,13 +314,15 @@ Find memories that match criteria but exclude certain types:
   }
 }
 ```
-*Note: Then manually filter out conversation types from results*
+
+_Note: Then manually filter out conversation types from results_
 
 ### Context-Aware Search
 
 **Prompt**: "Find memories related to current project architecture decisions"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "architecture decision microservices",
@@ -345,6 +367,7 @@ Advanced search returns rich information:
 ```
 
 **Facets Help You**:
+
 - Understand result distribution
 - Refine searches with additional filters
 - Identify knowledge gaps
@@ -352,6 +375,7 @@ Advanced search returns rich information:
 ### Using Facets for Refinement
 
 If facets show:
+
 - Many low-importance results → Increase `importanceThreshold`
 - Mixed domains → Add domain filter
 - Mostly one memory type → Expand or narrow type filter
@@ -365,6 +389,7 @@ If facets show:
 **Prompt**: "Find comprehensive knowledge about React development patterns"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "React patterns components hooks state",
@@ -383,6 +408,7 @@ If facets show:
 "I need all memories related to my current authentication project"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "authentication jwt security",
@@ -400,6 +426,7 @@ If facets show:
 "I'm debugging a performance issue and need relevant memories"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "performance optimization database slow",
@@ -417,6 +444,7 @@ If facets show:
 "I need to review best practices before a code review"
 
 **Tool Parameters**:
+
 ```json
 {
   "query": "best practices code quality standards",
@@ -467,6 +495,7 @@ If facets show:
 ## Common Search Patterns
 
 ### Pattern 1: Expert Knowledge Lookup
+
 ```json
 {
   "query": "topic_keywords",
@@ -479,6 +508,7 @@ If facets show:
 ```
 
 ### Pattern 2: How-To Procedures
+
 ```json
 {
   "query": "implementation_keywords",
@@ -491,6 +521,7 @@ If facets show:
 ```
 
 ### Pattern 3: Recent Context
+
 ```json
 {
   "query": "project_keywords",
@@ -505,6 +536,7 @@ If facets show:
 ```
 
 ### Pattern 4: Cross-Reference Research
+
 ```json
 {
   "query": "broad_topic",
@@ -520,28 +552,36 @@ If facets show:
 ## Troubleshooting Search Issues
 
 ### Issue: Too Many Results
+
 **Solutions**:
+
 - Increase `importanceThreshold`
 - Add more specific filters
 - Use more specific keywords
 - Limit to specific memory types
 
 ### Issue: Too Few Results
+
 **Solutions**:
+
 - Lower `importanceThreshold`
 - Remove restrictive filters
 - Use broader keywords
 - Check memory type filters
 
 ### Issue: Irrelevant Results
+
 **Solutions**:
+
 - Use more specific queries
 - Add domain filters
 - Use tag filters
 - Improve memory tagging
 
 ### Issue: Missing Expected Results
+
 **Solutions**:
+
 - Check if memories actually exist
 - Verify filter criteria
 - Try broader search terms
@@ -550,21 +590,25 @@ If facets show:
 ## Best Practices
 
 ### 1. Consistent Tagging Strategy
+
 - Use standardized tag vocabularies
 - Tag memories when creating them
 - Create tag hierarchies (general → specific)
 
 ### 2. Meaningful Memory Types
+
 - Choose appropriate memory types
 - Be consistent in type assignment
 - Use type filters effectively
 
 ### 3. Importance Calibration
+
 - Regularly review importance scores
 - Align importance with actual value
 - Use importance for quality filtering
 
 ### 4. Rich Context Information
+
 - Include domain information
 - Use descriptive session IDs
 - Add topic classification
@@ -572,18 +616,21 @@ If facets show:
 ## Practice Exercises
 
 ### Exercise 1: Multi-Stage Search
+
 1. Search broadly for "authentication"
 2. Analyze facets to understand result distribution
 3. Refine with specific filters based on facets
 4. Use different ranking strategies on the same query
 
 ### Exercise 2: Comparative Analysis
+
 1. Search for memories about two competing technologies
 2. Use filters to compare by memory type
 3. Analyze importance distributions
 4. Look for reasoning memories about choices
 
 ### Exercise 3: Project Memory Audit
+
 1. Search for all memories from a recent project
 2. Analyze memory type distribution
 3. Identify knowledge gaps
@@ -600,6 +647,7 @@ Now that you've mastered advanced search, explore:
 ## Summary
 
 You've learned to:
+
 - ✅ Use complex filters for precise memory retrieval
 - ✅ Apply different ranking strategies for various needs
 - ✅ Combine multiple search criteria effectively

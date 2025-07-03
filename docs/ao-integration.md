@@ -19,15 +19,15 @@ AO processes communicate through tagged messages:
 
 ```typescript
 interface AOMessage {
-  processId: string;        // Target process identifier
-  tags: Tag[];             // Message metadata and parameters
-  data?: string;           // Optional message body
-  isWrite?: boolean;       // Read vs write operation
+  processId: string; // Target process identifier
+  tags: Tag[]; // Message metadata and parameters
+  data?: string; // Optional message body
+  isWrite?: boolean; // Read vs write operation
 }
 
 interface Tag {
-  name: string;            // Tag name (e.g., "Action", "Recipient")
-  value: string;           // Tag value
+  name: string; // Tag name (e.g., "Action", "Recipient")
+  value: string; // Tag value
 }
 ```
 
@@ -41,12 +41,16 @@ Permamind uses markdown to document AO processes:
 Brief description of what this process does.
 
 ## handlerName
+
 Description of what this handler does
+
 - parameter1: Description of parameter (required/optional)
 - parameter2: Description of parameter (required/optional)
 
 ## anotherHandler
+
 Another handler description
+
 - param: Parameter description (required)
 ```
 
@@ -62,30 +66,42 @@ Create markdown documentation for your AO process. Here's a comprehensive token 
 A standard AO token implementing ERC20-like functionality with additional features.
 
 ## Balance
+
 Get token balance for an account
+
 - Target: Wallet address to check balance for (optional, defaults to sender)
 
 ## Transfer
+
 Transfer tokens to another account
+
 - Recipient: Destination wallet address (required)
 - Quantity: Amount of tokens to transfer (required)
 - Note: Optional transfer memo (optional)
 
 ## Mint
+
 Create new tokens (owner only)
+
 - Recipient: Address to mint tokens to (required)
 - Quantity: Amount of tokens to mint (required)
 
 ## Burn
+
 Destroy tokens from sender's balance
+
 - Quantity: Amount of tokens to burn (required)
 
 ## Info
+
 Get detailed token information
+
 - No parameters required
 
 ## Balances
+
 Get all token balances
+
 - No parameters required
 ```
 
@@ -100,21 +116,21 @@ With your process documented, you can use natural language:
 await executeProcessAction({
   processId: "your_token_process_id",
   processMarkdown: "...", // Your documentation
-  request: "What's my current balance?"
+  request: "What's my current balance?",
 });
 
 // Transfer tokens
 await executeProcessAction({
-  processId: "your_token_process_id", 
+  processId: "your_token_process_id",
   processMarkdown: "...",
-  request: "Send 100 tokens to alice with note 'payment for services'"
+  request: "Send 100 tokens to alice with note 'payment for services'",
 });
 
 // Get token information
 await executeProcessAction({
   processId: "your_token_process_id",
-  processMarkdown: "...", 
-  request: "Show me the token details and total supply"
+  processMarkdown: "...",
+  request: "Show me the token details and total supply",
 });
 ```
 
@@ -126,7 +142,9 @@ Permamind can extract complex parameters from natural language:
 
 ```markdown
 ## CreateProposal
+
 Create a new governance proposal
+
 - Title: Proposal title (required)
 - Description: Detailed proposal description (required)
 - VotingPeriod: Voting duration in days (optional, default 7)
@@ -137,6 +155,7 @@ Create a new governance proposal
 **Natural Language**: "Create a proposal titled 'Increase staking rewards' with description 'Proposal to increase staking rewards from 5% to 7% APY to attract more validators and improve network security' for 10 days voting period with 30% quorum threshold in the rewards category"
 
 **Extracted Parameters**:
+
 ```json
 {
   "Title": "Increase staking rewards",
@@ -152,10 +171,12 @@ Create a new governance proposal
 Permamind automatically detects read vs write operations:
 
 **Write Operations** (detected keywords):
+
 - transfer, send, create, update, delete, set, add, remove
 - mint, burn, stake, withdraw, deposit, register, vote
 
 **Read Operations**:
+
 - get, fetch, read, check, balance, info, status, list, query, view, show
 
 ### Process Type Auto-Detection
@@ -166,11 +187,12 @@ For common process types, Permamind can auto-detect without documentation:
 // Token operations without markdown docs
 await executeTokenRequest({
   processId: "token_process_id",
-  request: "Send 50 tokens to bob"
+  request: "Send 50 tokens to bob",
 });
 ```
 
 Supported auto-detection:
+
 - **Token processes**: ERC20-like functionality
 - **NFT processes**: (coming soon)
 - **DAO processes**: (coming soon)
@@ -185,43 +207,54 @@ Supported auto-detection:
 Decentralized marketplace for trading NFTs with auction and fixed-price sales.
 
 ## ListNFT
+
 List an NFT for sale
+
 - TokenId: NFT token identifier (required)
 - Price: Sale price in tokens (required)
 - SaleType: 'auction' or 'fixed' (required)
 - Duration: Sale duration in hours (optional, default 168)
 
 ## BuyNFT
+
 Purchase an NFT at fixed price
+
 - TokenId: NFT token identifier (required)
 - MaxPrice: Maximum price willing to pay (required)
 
 ## PlaceBid
+
 Place bid on auction NFT
+
 - TokenId: NFT token identifier (required)
 - BidAmount: Bid amount in tokens (required)
 
 ## GetListing
+
 Get details of an NFT listing
+
 - TokenId: NFT token identifier (required)
 
 ## GetMarketStats
+
 Get marketplace statistics
+
 - No parameters required
 ```
 
 **Usage**:
+
 ```javascript
 await executeProcessAction({
   processId: "nft_marketplace_id",
   processMarkdown: marketplaceDoc,
-  request: "List my NFT #1234 for fixed price sale at 100 tokens for 7 days"
+  request: "List my NFT #1234 for fixed price sale at 100 tokens for 7 days",
 });
 
 await executeProcessAction({
   processId: "nft_marketplace_id",
-  processMarkdown: marketplaceDoc, 
-  request: "Show me the current listing for NFT #5678"
+  processMarkdown: marketplaceDoc,
+  request: "Show me the current listing for NFT #5678",
 });
 ```
 
@@ -233,7 +266,9 @@ await executeProcessAction({
 Decentralized governance system for community decision making.
 
 ## CreateProposal
+
 Submit a new governance proposal
+
 - Title: Proposal title (required)
 - Description: Detailed description (required)
 - ProposalType: 'funding', 'parameter', 'upgrade' (required)
@@ -241,37 +276,48 @@ Submit a new governance proposal
 - VotingPeriod: Days for voting (optional, default 7)
 
 ## Vote
+
 Cast vote on a proposal
+
 - ProposalId: Proposal identifier (required)
 - VoteChoice: 'yes', 'no', 'abstain' (required)
 - Reason: Voting rationale (optional)
 - VotingPower: Tokens to use for voting (optional)
 
 ## ExecuteProposal
+
 Execute a passed proposal
+
 - ProposalId: Proposal identifier (required)
 
 ## GetProposal
+
 Get proposal details
+
 - ProposalId: Proposal identifier (required)
 
 ## GetActiveProposals
+
 List all active proposals
+
 - No parameters required
 ```
 
 **Usage**:
+
 ```javascript
 await executeProcessAction({
   processId: "dao_governance_id",
   processMarkdown: daoDoc,
-  request: "Create a funding proposal titled 'Community Event Sponsorship' requesting 5000 tokens for organizing a blockchain conference with 10 days voting period"
+  request:
+    "Create a funding proposal titled 'Community Event Sponsorship' requesting 5000 tokens for organizing a blockchain conference with 10 days voting period",
 });
 
 await executeProcessAction({
   processId: "dao_governance_id",
   processMarkdown: daoDoc,
-  request: "Vote yes on proposal #42 with reason 'This initiative will increase community engagement and adoption'"
+  request:
+    "Vote yes on proposal #42 with reason 'This initiative will increase community engagement and adoption'",
 });
 ```
 
@@ -283,43 +329,56 @@ await executeProcessAction({
 Decentralized staking pool with rewards distribution.
 
 ## Stake
+
 Stake tokens to earn rewards
+
 - Amount: Amount of tokens to stake (required)
 - LockPeriod: Lock period in days (optional, default 30)
 
 ## Unstake
+
 Withdraw staked tokens
+
 - Amount: Amount to unstake (required)
 
 ## ClaimRewards
+
 Claim accumulated staking rewards
+
 - No parameters required
 
 ## GetStakeInfo
+
 Get staking information for user
+
 - User: User address (optional, defaults to sender)
 
 ## GetPoolStats
+
 Get pool statistics
+
 - No parameters required
 
 ## UpdateRewardRate
+
 Update reward rate (admin only)
+
 - NewRate: New reward rate percentage (required)
 ```
 
 **Usage**:
+
 ```javascript
 await executeProcessAction({
   processId: "staking_pool_id",
   processMarkdown: stakingDoc,
-  request: "Stake 1000 tokens with 60 day lock period"
+  request: "Stake 1000 tokens with 60 day lock period",
 });
 
 await executeProcessAction({
   processId: "staking_pool_id",
   processMarkdown: stakingDoc,
-  request: "What are my current staking details and pending rewards?"
+  request: "What are my current staking details and pending rewards?",
 });
 ```
 
@@ -328,18 +387,24 @@ await executeProcessAction({
 ### 1. Clear Handler Documentation
 
 ✅ **Good**:
+
 ```markdown
 ## Transfer
+
 Transfer tokens to another account
+
 - Recipient: Destination wallet address (required)
 - Quantity: Amount of tokens to transfer as integer (required)
 - Memo: Optional message attached to transfer (optional)
 ```
 
 ❌ **Avoid**:
+
 ```markdown
 ## Transfer
+
 Sends tokens
+
 - to: address
 - amt: number
 ```
@@ -347,6 +412,7 @@ Sends tokens
 ### 2. Consistent Parameter Naming
 
 Use consistent naming across your process:
+
 - `Recipient` vs `Target` vs `To` - pick one
 - `Quantity` vs `Amount` vs `Value` - be consistent
 - `TokenId` vs `TokenID` vs `Id` - standardize
@@ -354,6 +420,7 @@ Use consistent naming across your process:
 ### 3. Required vs Optional Parameters
 
 Clearly mark parameter requirements:
+
 - `(required)` - Must be provided
 - `(optional)` - Can be omitted
 - `(optional, default X)` - Default value if omitted
@@ -361,6 +428,7 @@ Clearly mark parameter requirements:
 ### 4. Parameter Type Hints
 
 Include type information when helpful:
+
 - `Amount: Number of tokens as integer (required)`
 - `Duration: Time period in hours (optional, default 24)`
 - `Address: Valid Arweave wallet address (required)`
@@ -368,20 +436,30 @@ Include type information when helpful:
 ### 5. Handler Grouping
 
 Group related handlers logically:
+
 ```markdown
 # Token Operations
+
 ## Balance
+
 ## Transfer
+
 ## Approve
 
-# Administrative Functions  
+# Administrative Functions
+
 ## Mint
+
 ## Burn
+
 ## SetOwner
 
 # Information Queries
+
 ## Info
+
 ## Balances
+
 ## Allowances
 ```
 
@@ -393,13 +471,15 @@ You can define custom parameter extraction patterns:
 
 ```markdown
 ## ComplexOperation
+
 Perform complex operation with structured data
+
 - Config: JSON configuration object (required)
   Example: {"setting1": "value1", "setting2": 123}
 - Recipients: Comma-separated list of addresses (required)
-  Example: "addr1,addr2,addr3"  
+  Example: "addr1,addr2,addr3"
 - Schedule: Cron-like schedule expression (optional)
-  Example: "0 0 * * 0" for weekly
+  Example: "0 0 \* \* 0" for weekly
 ```
 
 ### Conditional Parameters
@@ -408,7 +488,9 @@ Document parameter dependencies:
 
 ```markdown
 ## CreateSale
+
 Create NFT sale listing
+
 - TokenId: NFT identifier (required)
 - SaleType: 'auction' or 'fixed' (required)
 - Price: Starting/fixed price (required if fixed sale)
@@ -434,12 +516,13 @@ return {
 ```
 
 **Interpreted Response**:
+
 ```json
 {
   "success": true,
   "handlerUsed": "Transfer",
   "data": {
-    "transactionId": "tx_123", 
+    "transactionId": "tx_123",
     "newBalance": 500,
     "recipient": "alice_address",
     "message": "Transfer completed"
@@ -466,6 +549,7 @@ return {
 ```
 
 **Interpreted Error**:
+
 ```json
 {
   "success": false,
@@ -501,22 +585,24 @@ return {
 ### 1. Start with Simple Operations
 
 Test basic read operations first:
+
 ```javascript
 await executeProcessAction({
   processId: "your_process",
   processMarkdown: docs,
-  request: "Get current status"
+  request: "Get current status",
 });
 ```
 
 ### 2. Test Parameter Extraction
 
 Verify parameter extraction works:
+
 ```javascript
 await executeProcessAction({
   processId: "your_process",
   processMarkdown: docs,
-  request: "Transfer 100 tokens to alice with memo 'test payment'"
+  request: "Transfer 100 tokens to alice with memo 'test payment'",
 });
 ```
 
@@ -530,6 +616,7 @@ await executeProcessAction({
 ### 4. Validate Responses
 
 Check that responses are properly interpreted:
+
 - Success/error status
 - Data extraction
 - Message formatting
@@ -543,6 +630,7 @@ Permamind caches process documentation for better performance. Update documentat
 ### 2. Batch Operations
 
 For multiple operations, consider batching:
+
 ```javascript
 // Instead of multiple calls
 for (const recipient of recipients) {
@@ -567,13 +655,14 @@ await executeProcessAction({
 ### 1. Input Validation
 
 Always validate inputs in your AO process:
+
 ```lua
 -- AO Process Handler
 function Transfer(msg)
   assert(msg.Recipient, "Recipient is required")
   assert(tonumber(msg.Quantity), "Quantity must be a number")
   assert(tonumber(msg.Quantity) > 0, "Quantity must be positive")
-  
+
   -- Process transfer
 end
 ```
@@ -581,6 +670,7 @@ end
 ### 2. Permission Checks
 
 Implement proper authorization:
+
 ```lua
 function Mint(msg)
   assert(msg.From == Owner, "Only owner can mint")
@@ -591,13 +681,14 @@ end
 ### 3. Rate Limiting
 
 Consider rate limiting in your process:
+
 ```lua
 local rateLimitRegistry = {}
 
 function Transfer(msg)
   local now = os.time()
   local userLimits = rateLimitRegistry[msg.From] or {}
-  
+
   -- Check rate limit
   if #userLimits >= 10 then
     local oldestRequest = userLimits[1]
@@ -605,14 +696,14 @@ function Transfer(msg)
       return { Error = "Rate limit exceeded" }
     end
   end
-  
+
   -- Update rate limit tracking
   table.insert(userLimits, now)
   if #userLimits > 10 then
     table.remove(userLimits, 1)
   end
   rateLimitRegistry[msg.From] = userLimits
-  
+
   -- Process transfer
 end
 ```
@@ -620,6 +711,7 @@ end
 ## Migration from Manual AO Integration
 
 ### Before (Manual Tags)
+
 ```javascript
 await aoConnect.message({
   process: processId,
@@ -627,18 +719,19 @@ await aoConnect.message({
     { name: "Action", value: "Transfer" },
     { name: "Recipient", value: "alice_address" },
     { name: "Quantity", value: "100" },
-    { name: "Note", value: "Payment for services" }
+    { name: "Note", value: "Payment for services" },
   ],
-  signer: wallet
+  signer: wallet,
 });
 ```
 
 ### After (Natural Language)
+
 ```javascript
 await executeProcessAction({
   processId: processId,
   processMarkdown: processDocumentation,
-  request: "Send 100 tokens to alice with note 'Payment for services'"
+  request: "Send 100 tokens to alice with note 'Payment for services'",
 });
 ```
 
@@ -655,18 +748,21 @@ await executeProcessAction({
 Permamind includes templates for common process types:
 
 ### Token Template
+
 - Standard ERC20-like functionality
 - Balance, Transfer, Mint, Burn operations
 - Credit notice handling
 - Minting strategies (Basic, Cascade, DoubleMint)
 
 ### NFT Template (Coming Soon)
+
 - NFT minting and transfer
 - Metadata management
 - Marketplace integration
 - Royalty handling
 
 ### DAO Template (Coming Soon)
+
 - Proposal creation and voting
 - Treasury management
 - Member management
@@ -686,6 +782,7 @@ This enables the entire AO ecosystem to benefit from natural language interfaces
 ## Summary
 
 AO process integration with Permamind provides:
+
 - ✅ Natural language interfaces for any AO process
 - ✅ Automatic parameter extraction and validation
 - ✅ Intelligent read/write operation detection
