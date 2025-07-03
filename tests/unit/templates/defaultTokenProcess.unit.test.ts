@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_TOKEN_PROCESS } from "../../../src/templates/defaultTokenProcess.js";
 import type { ProcessDefinition } from "../../../src/services/ProcessCommunicationService.js";
+
+import { DEFAULT_TOKEN_PROCESS } from "../../../src/templates/defaultTokenProcess.js";
 
 describe("DefaultTokenProcess", () => {
   describe("process definition structure", () => {
@@ -13,7 +14,7 @@ describe("DefaultTokenProcess", () => {
     });
 
     it("should have all required handler properties", () => {
-      DEFAULT_TOKEN_PROCESS.handlers.forEach((handler, index) => {
+      DEFAULT_TOKEN_PROCESS.handlers.forEach((handler) => {
         expect(handler.action).toBeDefined();
         expect(typeof handler.action).toBe("string");
         expect(handler.description).toBeDefined();
@@ -28,7 +29,7 @@ describe("DefaultTokenProcess", () => {
 
     it("should have proper parameter definitions", () => {
       DEFAULT_TOKEN_PROCESS.handlers.forEach((handler) => {
-        handler.parameters.forEach((param, paramIndex) => {
+        handler.parameters.forEach((param) => {
           expect(param.name).toBeDefined();
           expect(typeof param.name).toBe("string");
           expect(param.description).toBeDefined();

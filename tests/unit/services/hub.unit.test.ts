@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { JWKInterface } from "arweave/node/lib/wallet.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Tag } from "../../../src/models/Tag.js";
 import { hubService } from "../../../src/services/hub.js";
@@ -82,8 +82,8 @@ describe("HubService", () => {
   describe("fetch", () => {
     it("should fetch events for hub", async () => {
       const mockEvents = [
-        { id: "event1", data: "test1" },
-        { id: "event2", data: "test2" },
+        { data: "test1", id: "event1" },
+        { data: "test2", id: "event2" },
       ];
       vi.mocked(fetchEvents).mockResolvedValue(mockEvents);
 
@@ -134,7 +134,7 @@ describe("HubService", () => {
 
   describe("get", () => {
     it("should get specific event by ID", async () => {
-      const mockEvent = { id: "event1", data: "test data" };
+      const mockEvent = { data: "test data", id: "event1" };
       vi.mocked(fetchEvents).mockResolvedValue([mockEvent]);
 
       const result = await hubService.get(mockHubId, "event1");
@@ -247,8 +247,8 @@ describe("HubService", () => {
   describe("search", () => {
     it("should search events by value and kind", async () => {
       const mockResults = [
-        { id: "result1", value: "test", kind: "memory" },
-        { id: "result2", value: "test data", kind: "memory" },
+        { id: "result1", kind: "memory", value: "test" },
+        { id: "result2", kind: "memory", value: "test data" },
       ];
       vi.mocked(fetchEvents).mockResolvedValue(mockResults);
 
