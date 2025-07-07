@@ -370,8 +370,8 @@ This section has nothing to do with the query.
       await permawebDocs.preload(["arweave"]);
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      // Second query should use cache
-      await permawebDocs.query("arweave");
+      // Second query should use cache (specify domains to avoid auto-detection)
+      await permawebDocs.query("arweave", ["arweave"]);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -379,9 +379,9 @@ This section has nothing to do with the query.
       await permawebDocs.preload(["arweave"]);
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      // Simulate cache expiry by clearing and checking
+      // Simulate cache expiry by clearing and checking (specify domains to avoid auto-detection)
       permawebDocs.clearCache("arweave");
-      await permawebDocs.query("arweave");
+      await permawebDocs.query("arweave", ["arweave"]);
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
