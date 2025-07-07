@@ -439,8 +439,8 @@ server.addTool({
                         permawebResults = docsResults.map((result) => ({
                             content: result.content,
                             domain: result.domain,
-                            relevanceScore: result.relevanceScore,
                             isFullDocument: true,
+                            relevanceScore: result.relevanceScore,
                             type: "permaweb_docs",
                             url: result.url,
                         }));
@@ -2397,8 +2397,8 @@ server.addTool({
                 const permawebResults = docsResults.map((result) => ({
                     content: result.content,
                     domain: result.domain,
-                    relevanceScore: result.relevanceScore,
                     isFullDocument: true,
+                    relevanceScore: result.relevanceScore,
                     type: "permaweb_docs",
                     url: result.url,
                 }));

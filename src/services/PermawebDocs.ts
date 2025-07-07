@@ -216,6 +216,8 @@ const DOC_SOURCES: DocSource[] = [
 export class PermawebDocs {
   private cache = new Map<PermawebDomain, CachedDoc>();
   private readonly cacheMaxAge = 24 * 60 * 60 * 1000; // 24 hours
+  private readonly debugMode = process.env.DEBUG === "true";
+  private readonly fetchTimeoutMs = 30000; // 30 seconds
   private readonly relevanceThreshold = 2;
 
   /**
@@ -501,8 +503,23 @@ export class PermawebDocs {
       throw new Error(`Unknown domain: ${domain}`);
     }
 
+    // Create AbortController for timeout
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortController.abort();
+    }, this.fetchTimeoutMs);
+
     try {
-      const response = await fetch(source.url);
+      if (this.debugMode) {
+        console.log(
+          `[PermawebDocs] Fetching ${domain} documentation from ${source.url}`,
+        );
+      }
+
+      const response = await fetch(source.url, {
+        signal: abortController.signal,
+      });
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
@@ -516,10 +533,23 @@ export class PermawebDocs {
         content,
         fetchedAt: new Date(),
       });
+
+      if (this.debugMode) {
+        console.log(
+          `[PermawebDocs] Successfully loaded ${domain} documentation (${content.length} chars)`,
+        );
+      }
     } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(
+          `Failed to load ${domain} documentation: Request timed out after ${this.fetchTimeoutMs}ms`,
+        );
+      }
       throw new Error(
         `Failed to load ${domain} documentation: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
@@ -539,10 +569,28 @@ export class PermawebDocs {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        if (attempt < maxRetries) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, Math.pow(2, attempt) * 1000),
+        if (this.debugMode) {
+          console.log(
+            `[PermawebDocs] Attempt ${attempt + 1}/${maxRetries + 1} failed for ${domain}: ${lastError.message}`,
           );
+        }
+
+        // Don't retry on timeout errors - they're likely to timeout again
+        const isTimeout = lastError.message.includes("timed out after");
+        if (isTimeout && this.debugMode) {
+          console.log(
+            `[PermawebDocs] Skipping retry for ${domain} due to timeout`,
+          );
+        }
+
+        if (attempt < maxRetries && !isTimeout) {
+          const delayMs = Math.pow(2, attempt) * 1000;
+          if (this.debugMode) {
+            console.log(`[PermawebDocs] Retrying ${domain} in ${delayMs}ms...`);
+          }
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        } else {
+          break;
         }
       }
     }
