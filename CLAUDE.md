@@ -385,10 +385,9 @@ Permamind automatically loads comprehensive Permaweb ecosystem documentation int
 
 ### Context Management Tools
 
-- `getContextStatus` - Check loading status and statistics
-- `refreshContext` - Manually refresh context from sources
-- `searchContext` - Search specifically within context documentation
-- `searchMemoriesAdvanced` - Includes context in general memory searches
+- `queryPermawebDocs` - Query live Permaweb documentation across all domains
+- `managePermawebDocsCache` - Manage documentation cache (status, preload, clear)
+- `searchMemoriesAdvanced` - Includes live Permaweb documentation in general memory searches
 
 ### Technical Implementation
 

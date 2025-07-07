@@ -535,7 +535,7 @@ server.addTool({
           const docsResults = await permawebDocs.query(args.query);
 
           if (docsResults.length > 0) {
-            permawebResults = docsResults.map((result: any) => ({
+            permawebResults = docsResults.map((result) => ({
               content: result.content,
               domain: result.domain,
               isFullDocument: true,
@@ -2723,7 +2723,7 @@ server.addTool({
       const docsResults = await permawebDocs.query(args.query);
 
       if (docsResults.length > 0) {
-        const permawebResults = docsResults.map((result: any) => ({
+        const permawebResults = docsResults.map((result) => ({
           content: result.content,
           domain: result.domain,
           isFullDocument: true,

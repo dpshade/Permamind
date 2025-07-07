@@ -310,10 +310,7 @@ export class PermawebDocs {
       ) {
         domains.push("permaweb-glossary");
       }
-      // Fallback: if no domains detected, search all
-      if (domains.length === 0) {
-        domains = this.getAvailableDomains();
-      }
+      // No longer need fallback - detectRelevantDomains now handles low confidence cases
     }
     // Ensure docs are loaded (throws if any fail)
     await this.ensureDocsLoaded(domains);
@@ -423,12 +420,13 @@ export class PermawebDocs {
   }
 
   /**
-   * Enhanced domain detection with better fallback scoring
+   * Enhanced domain detection with robust ranking and fallback
    */
   private detectRelevantDomains(query: string): PermawebDomain[] {
     const domainScores = new Map<PermawebDomain, number>();
     const words = query.toLowerCase().split(/\s+/);
 
+    // Score all domains - never filter to zero
     for (const source of DOC_SOURCES) {
       let score = 0;
       const allKeywords = [
@@ -437,8 +435,8 @@ export class PermawebDocs {
         ...source.keywords.technical.map((k) => ({ keyword: k, weight: 2 })),
       ];
 
+      // Exact keyword matching
       for (const { keyword, weight } of allKeywords) {
-        // Flexible: match if keyword is in query or any query word is in keyword
         if (
           query.toLowerCase().includes(keyword.toLowerCase()) ||
           words.some((word) => keyword.toLowerCase().includes(word))
@@ -447,15 +445,38 @@ export class PermawebDocs {
         }
       }
 
-      if (score > 0) {
-        domainScores.set(source.domain, score);
+      // Fuzzy matching for partial word overlap
+      for (const word of words) {
+        if (word.length >= 3) {
+          for (const { keyword, weight } of allKeywords) {
+            if (keyword.toLowerCase().includes(word.substring(0, 3))) {
+              score += weight * 0.3; // Reduced weight for fuzzy matches
+            }
+          }
+        }
       }
+
+      // Always give a base score to ensure no domain is completely excluded
+      score += 0.1;
+      domainScores.set(source.domain, score);
     }
 
-    return Array.from(domainScores.entries())
+    // Sort by score and return top domains
+    const sortedDomains = Array.from(domainScores.entries())
       .sort(([, a], [, b]) => b - a)
-      .map(([domain]) => domain)
-      .slice(0, 5);
+      .map(([domain]) => domain);
+
+    // Adaptive domain count based on confidence
+    const maxScore = Math.max(...domainScores.values());
+    const confidenceThreshold = 3; // Require at least primary keyword match for confidence
+
+    if (maxScore >= confidenceThreshold) {
+      // High confidence: return top 3 domains
+      return sortedDomains.slice(0, 3);
+    } else {
+      // Low confidence: search more domains to avoid missing results
+      return sortedDomains; // Search all domains
+    }
   }
 
   /**
