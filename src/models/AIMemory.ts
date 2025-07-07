@@ -15,11 +15,18 @@ export interface ContextChunk {
   content: string;
   importance: number;
   section?: string;
-  sourceType: "ao" | "ario" | "arweave" | "hyperbeam" | "permaweb-glossary";
+  sourceType: ContextSourceType;
   sourceUrl: string;
   tags: string[];
   totalChunks: number;
 }
+
+export type ContextSourceType =
+  | "ao"
+  | "ario"
+  | "arweave"
+  | "hyperbeam"
+  | "permaweb-glossary";
 
 export interface ContextStatus {
   lastUpdated?: string;
@@ -57,7 +64,7 @@ export interface MemoryContext {
   relatedMemories?: string[];
   section?: string;
   sessionId?: string;
-  sourceType?: "ao" | "ario" | "arweave" | "hyperbeam" | "permaweb-glossary";
+  sourceType?: ContextSourceType;
   // Context-specific properties
   sourceUrl?: string;
   topic?: string;
