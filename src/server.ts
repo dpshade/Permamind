@@ -28,6 +28,7 @@ import { aiMemoryService, MEMORY_KINDS } from "./services/aiMemoryService.js";
 import { arweaveGraphQLService } from "./services/ArweaveGraphQLService.js";
 import { defaultProcessService } from "./services/DefaultProcessService.js";
 import { hubService } from "./services/hub.js";
+import { PermawebDeployService } from "./services/PermawebDeployService.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
 import { hubRegistryService } from "./services/registry.js";
 import {
@@ -3385,6 +3386,143 @@ server.addTool({
       .string()
       .optional()
       .describe("JSON string of GraphQL variables (optional)"),
+  }),
+});
+
+// Tool to deploy a directory to the Permaweb with ArNS support
+server.addTool({
+  annotations: {
+    openWorldHint: true,
+    readOnlyHint: false,
+    title: "Deploy Directory to Permaweb",
+  },
+  description: `Deploy a directory to the Permaweb using permaweb-deploy CLI with ArNS and undername support.
+    This tool handles wallet management, directory validation, and deployment execution.
+    
+    Wallet options:
+    - Use current wallet: Generated from SEED_PHRASE environment variable
+    - Use custom wallet: Provide path to Arweave wallet JSON file
+    
+    The tool automatically handles base64 encoding of wallet JSON and sets DEPLOY_KEY environment variable.
+    
+    Prerequisites:
+    - permaweb-deploy CLI tool must be installed
+    - Wallet must have Turbo credits for deployment
+    - Wallet must have ownership/controller privileges for the ArNS name`,
+  execute: async (args) => {
+    try {
+      const permawebDeployService = new PermawebDeployService();
+      const result = await permawebDeployService.deployDirectory({
+        arnsName: args.arnsName,
+        directoryPath: args.directoryPath,
+        network: args.network,
+        undername: args.undername,
+        useCurrentWallet: args.useCurrentWallet ?? true,
+        walletPath: args.walletPath,
+      });
+
+      return JSON.stringify(result);
+    } catch (error) {
+      return JSON.stringify({
+        error: {
+          code: "DEPLOYMENT_ERROR",
+          details: error,
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+        },
+        success: false,
+      });
+    }
+  },
+  name: "deployPermawebDirectory",
+  parameters: z.object({
+    arnsName: z.string().describe("Top-level ArNS name for deployment"),
+    directoryPath: z.string().describe("Path to the build directory to deploy"),
+    network: z
+      .enum(["mainnet", "testnet"])
+      .optional()
+      .default("mainnet")
+      .describe("Network to deploy to (default: mainnet)"),
+    undername: z
+      .string()
+      .optional()
+      .describe("Optional undername/subdomain for deployment"),
+    useCurrentWallet: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Use wallet generated from SEED_PHRASE (default: true)"),
+    walletPath: z
+      .string()
+      .optional()
+      .describe(
+        "Path to custom Arweave wallet JSON file (if not using current wallet)",
+      ),
+  }),
+});
+
+// Tool to check permaweb deployment prerequisites
+server.addTool({
+  annotations: {
+    openWorldHint: true,
+    readOnlyHint: true,
+    title: "Check Permaweb Deploy Prerequisites",
+  },
+  description: `Check all prerequisites for permaweb deployment without attempting to deploy.
+    This tool validates:
+    - permaweb-deploy CLI installation
+    - Directory existence and content
+    - Wallet configuration and validation
+    
+    Returns detailed status of each check with helpful solutions for any issues found.
+    Use this tool to verify your setup before attempting deployment.`,
+  execute: async (args) => {
+    try {
+      const permawebDeployService = new PermawebDeployService();
+      const result = await permawebDeployService.checkPrerequisites({
+        arnsName: args.arnsName,
+        directoryPath: args.directoryPath,
+        network: args.network,
+        undername: args.undername,
+        useCurrentWallet: args.useCurrentWallet ?? true,
+        walletPath: args.walletPath,
+      });
+
+      return JSON.stringify(result);
+    } catch (error) {
+      return JSON.stringify({
+        allPassed: false,
+        checks: [],
+        error: {
+          code: "PREREQUISITE_CHECK_ERROR",
+          message:
+            error instanceof Error ? error.message : "Unknown error occurred",
+          solutions: ["Check your parameters and try again"],
+        },
+      });
+    }
+  },
+  name: "checkPermawebDeployPrerequisites",
+  parameters: z.object({
+    arnsName: z.string().describe("ArNS name (for validation context)"),
+    directoryPath: z.string().describe("Path to the build directory to check"),
+    network: z
+      .enum(["mainnet", "testnet"])
+      .optional()
+      .default("mainnet")
+      .describe("Network context (default: mainnet)"),
+    undername: z.string().optional().describe("Optional undername/subdomain"),
+    useCurrentWallet: z
+      .boolean()
+      .optional()
+      .default(true)
+      .describe("Use wallet generated from SEED_PHRASE (default: true)"),
+    walletPath: z
+      .string()
+      .optional()
+      .describe(
+        "Path to custom Arweave wallet JSON file (if not using current wallet)",
+      ),
   }),
 });
 
