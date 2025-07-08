@@ -217,8 +217,10 @@ export class PermawebDocs {
   private cache = new Map<PermawebDomain, CachedDoc>();
   private readonly cacheMaxAge = 24 * 60 * 60 * 1000; // 24 hours
   private readonly debugMode = process.env.DEBUG === "true";
+  private readonly defaultMaxResults = 20;
   private readonly fetchTimeoutMs = 30000; // 30 seconds
   private readonly relevanceThreshold = 2;
+  private readonly tokensPerChar = 0.25; // Rough estimate: 4 chars ≈ 1 token
 
   /**
    * Helper for tests: extract unique domains from results
@@ -236,6 +238,22 @@ export class PermawebDocs {
     } else {
       this.cache.clear();
     }
+  }
+
+  /**
+   * Estimate total response size in tokens for results
+   */
+  estimateResponseTokens(results: PermawebDocsResult[]): number {
+    return results.reduce((total, result) => {
+      return total + this.estimateTokens(result.content);
+    }, 0);
+  }
+
+  /**
+   * Estimate token count for text content
+   */
+  estimateTokens(text: string): number {
+    return Math.ceil(text.length * this.tokensPerChar);
   }
 
   /**
@@ -287,13 +305,14 @@ export class PermawebDocs {
   }
 
   /**
-   * Query Permaweb documentation and return up to 20 most relevant chunks.
+   * Query Permaweb documentation and return most relevant chunks.
    * If requestedDomains is not provided, use domain detection to select relevant domains.
    * Throws if any domain fails to load.
    */
   async query(
     query: string,
     requestedDomains?: string[],
+    maxResults: number = this.defaultMaxResults,
   ): Promise<PermawebDocsResult[]> {
     // Use domain detection if no domains specified
     let domains: PermawebDomain[];
@@ -344,10 +363,10 @@ export class PermawebDocs {
         }
       }
     }
-    // Sort by relevance and return only the top 20
+    // Sort by relevance and return only the top maxResults
     return results
       .sort((a, b) => b.relevanceScore - a.relevanceScore)
-      .slice(0, 20);
+      .slice(0, maxResults);
   }
 
   /**

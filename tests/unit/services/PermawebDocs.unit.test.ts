@@ -154,17 +154,18 @@ describe("PermawebDocs", () => {
     });
 
     it("should use specified domains", async () => {
-      const results = await permawebDocs.query("general question", [
-        "ao",
-        "ario",
-      ]);
+      const results = await permawebDocs.query(
+        "general question",
+        ["ao", "ario"],
+        10,
+      );
       // Should only return results from ao or ario
       expect(results.every((r) => ["ao", "ario"].includes(r.domain))).toBe(
         true,
       );
     });
 
-    it("should limit results based on maxResults", async () => {
+    it("should limit results based on maxResults parameter", async () => {
       // Mock multiple sections to test limiting
       mockFetch.mockResolvedValue({
         ok: true,
@@ -181,9 +182,8 @@ Even more arweave information.
           `),
       });
 
-      const results = await permawebDocs.query("arweave");
-      // Simulate limiting to 2 (manually, since query no longer takes maxResults)
-      expect(results.length).toBeGreaterThanOrEqual(2);
+      const results = await permawebDocs.query("arweave", undefined, 2);
+      expect(results.length).toBeLessThanOrEqual(2);
     });
 
     it("should return empty results for no matches", async () => {
@@ -371,7 +371,7 @@ This section has nothing to do with the query.
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       // Second query should use cache (specify domains to avoid auto-detection)
-      await permawebDocs.query("arweave", ["arweave"]);
+      await permawebDocs.query("arweave", ["arweave"], 10);
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
@@ -381,7 +381,7 @@ This section has nothing to do with the query.
 
       // Simulate cache expiry by clearing and checking (specify domains to avoid auto-detection)
       permawebDocs.clearCache("arweave");
-      await permawebDocs.query("arweave", ["arweave"]);
+      await permawebDocs.query("arweave", ["arweave"], 10);
       expect(mockFetch).toHaveBeenCalledTimes(2);
     });
   });
@@ -455,6 +455,99 @@ This section has nothing to do with the query.
         expect(res.content).toMatch(/blockchain|storage/);
         expect(res.isFullDocument).toBe(false);
       }
+    });
+  });
+
+  describe("token estimation", () => {
+    it("should estimate tokens for text content", () => {
+      const shortText = "Hello world"; // 11 chars
+      const longText =
+        "This is a much longer piece of text that should have more tokens"; // 64 chars
+
+      const shortTokens = permawebDocs.estimateTokens(shortText);
+      const longTokens = permawebDocs.estimateTokens(longText);
+
+      expect(shortTokens).toBeGreaterThan(0);
+      expect(longTokens).toBeGreaterThan(shortTokens);
+      expect(shortTokens).toBe(Math.ceil(11 * 0.25)); // Should be 3
+      expect(longTokens).toBe(Math.ceil(64 * 0.25)); // Should be 16
+    });
+
+    it("should estimate response tokens for multiple results", () => {
+      const results = [
+        {
+          content: "Short content",
+          domain: "arweave" as PermawebDomain,
+          isFullDocument: false,
+          relevanceScore: 5,
+          url: "test-url",
+        },
+        {
+          content: "This is longer content with more text",
+          domain: "ao" as PermawebDomain,
+          isFullDocument: false,
+          relevanceScore: 4,
+          url: "test-url-2",
+        },
+      ];
+
+      const totalTokens = permawebDocs.estimateResponseTokens(results);
+      const expectedTokens =
+        Math.ceil("Short content".length * 0.25) +
+        Math.ceil("This is longer content with more text".length * 0.25);
+
+      expect(totalTokens).toBe(expectedTokens);
+      expect(totalTokens).toBeGreaterThan(0);
+    });
+  });
+
+  describe("maxResults parameter", () => {
+    beforeEach(() => {
+      // Mock content with multiple chunks
+      mockFetch.mockResolvedValue({
+        ok: true,
+        text: () =>
+          Promise.resolve(`
+# Section 1
+Content with arweave keyword.
+---
+# Section 2
+More arweave content here.
+---
+# Section 3
+Even more arweave information.
+---
+# Section 4
+Additional arweave details.
+---
+# Section 5
+Final arweave section.
+          `),
+      });
+    });
+
+    it("should respect maxResults parameter when limiting results", async () => {
+      const results1 = await permawebDocs.query("arweave", undefined, 1);
+      const results3 = await permawebDocs.query("arweave", undefined, 3);
+      const results10 = await permawebDocs.query("arweave", undefined, 10);
+
+      expect(results1.length).toBeLessThanOrEqual(1);
+      expect(results3.length).toBeLessThanOrEqual(3);
+      expect(results10.length).toBeLessThanOrEqual(10);
+
+      // More restrictive limits should return fewer or equal results
+      expect(results1.length).toBeLessThanOrEqual(results3.length);
+      expect(results3.length).toBeLessThanOrEqual(results10.length);
+    });
+
+    it("should default to 20 results when maxResults not specified", async () => {
+      const results = await permawebDocs.query("arweave");
+      expect(results.length).toBeLessThanOrEqual(20);
+    });
+
+    it("should handle maxResults of 0 by returning empty array", async () => {
+      const results = await permawebDocs.query("arweave", undefined, 0);
+      expect(results).toEqual([]);
     });
   });
 });
