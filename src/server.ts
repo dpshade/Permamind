@@ -6,7 +6,10 @@ import dotenv from "dotenv";
 import { FastMCP } from "fastmcp";
 import { z } from "zod";
 
-import type { PermawebDomain } from "./services/PermawebDocs.js";
+import type {
+  PermawebDocsResult,
+  PermawebDomain,
+} from "./services/PermawebDocs.js";
 
 import { HUB_REGISTRY_ID, ProcessHub } from "./constants.js";
 import { getKeyFromMnemonic } from "./mnemonic.js";
@@ -111,8 +114,7 @@ async function init() {
   // Verify default process templates are loaded (silently for MCP compatibility)
   defaultProcessService.getDefaultProcesses();
 
-  // Context initialization is now user-triggered via "Hello AO" greeting
-  // No automatic loading on startup for better performance and user control
+  // No automatic context loading on startup for better performance
 }
 
 // Check if input looks like a processId (43-character base64-like string)
@@ -609,83 +611,6 @@ server.addTool({
       .string()
       .optional()
       .describe("Start date for time range filter (ISO string)"),
-  }),
-});
-
-// Greeting Detection and Context Loading
-
-// Tool to detect AO greetings and trigger context loading
-server.addTool({
-  annotations: {
-    openWorldHint: false,
-    readOnlyHint: false,
-    title: "Hello AO - Initialize Context",
-  },
-  description: `Detect when a user greets with "Hello AO", "Hey AO", or similar and automatically trigger 
-    comprehensive Permaweb ecosystem knowledge loading. Provides friendly, conversational responses throughout 
-    the initialization process with progress updates and completion status.`,
-  execute: async (args) => {
-    try {
-      // Check if the message contains an AO greeting
-      const message = args.message.toLowerCase();
-      const aoGreetings = [
-        "hello ao",
-        "hey ao",
-        "hi ao",
-        "good morning ao",
-        "good afternoon ao",
-        "good evening ao",
-        "greetings ao",
-        "howdy ao",
-        "what's up ao",
-        "sup ao",
-      ];
-
-      const isAoGreeting = aoGreetings.some(
-        (greeting) =>
-          message.includes(greeting) ||
-          message
-            .replace(/[^\w\s]/g, "")
-            .includes(greeting.replace(/[^\w\s]/g, "")),
-      );
-
-      if (!isAoGreeting) {
-        return JSON.stringify({
-          isGreeting: false,
-          message:
-            "This doesn't appear to be an AO greeting. Try saying 'Hello AO' to load my comprehensive knowledge!",
-          success: true,
-        });
-      }
-
-      // Trigger context loading with friendly messaging
-      // Instead, respond with a static message or use PermawebDocs preload if needed
-      return JSON.stringify({
-        contextLoaded: true,
-        isGreeting: true,
-        messages: [
-          "👋 Hello! Permaweb documentation is now loaded via PermawebDocs service.",
-          "🚀 Ready to answer your questions about Arweave, AO, AR.IO, HyperBEAM, and more!",
-        ],
-        success: true,
-      });
-    } catch (error) {
-      return JSON.stringify({
-        error: `Greeting processing failed: ${error}`,
-        isGreeting: true,
-        messages: [
-          "👋 Hello! I recognized your greeting but had trouble loading my knowledge base.",
-          "🤔 I'm still here to help though! You can try greeting me again later.",
-        ],
-        success: false,
-      });
-    }
-  },
-  name: "helloAO",
-  parameters: z.object({
-    message: z
-      .string()
-      .describe("The user's message to check for AO greetings"),
   }),
 });
 
@@ -2714,29 +2639,91 @@ server.addTool({
   },
   description: `Query comprehensive Permaweb ecosystem documentation with intelligent domain detection. 
     Automatically searches through Arweave, AO, AR.IO, HyperBEAM, and Permaweb glossary based on your query. 
-    Returns relevant documentation sections with high accuracy scoring.`,
+    Returns relevant documentation sections with high accuracy scoring. Includes automatic backoff 
+    mechanism to reduce results if response size approaches context limits.`,
   execute: async (args) => {
     try {
       const { permawebDocs } = await import("./services/PermawebDocs.js");
 
-      // Use new BFS-powered query signature, more generous with results
-      const docsResults = await permawebDocs.query(args.query);
+      // Progressive backoff strategy for context limit management
+      const backoffLevels = [
+        { label: "standard", maxResults: args.maxResults || 10 },
+        { label: "reduced", maxResults: 5 },
+        { label: "minimal", maxResults: 3 },
+        { label: "single", maxResults: 1 },
+      ];
+
+      const maxContextTokens = 8000; // Conservative estimate for context limits
+      let backoffLevel = 0;
+      let docsResults: PermawebDocsResult[] = [];
+      let estimatedTokens = 0;
+
+      // Try each backoff level until we get a manageable response size
+      for (const level of backoffLevels) {
+        try {
+          const domains = args.domains
+            ? args.domains.split(",").map((d) => d.trim())
+            : undefined;
+          docsResults = await permawebDocs.query(
+            args.query,
+            domains,
+            level.maxResults,
+          );
+
+          if (docsResults.length === 0) {
+            break; // No results to process
+          }
+
+          // Estimate token count for the response
+          estimatedTokens = permawebDocs.estimateResponseTokens(docsResults);
+
+          // Add some overhead for JSON structure and metadata
+          const responseOverhead = 1000;
+          const totalEstimatedTokens = estimatedTokens + responseOverhead;
+
+          if (
+            totalEstimatedTokens <= maxContextTokens ||
+            backoffLevel === backoffLevels.length - 1
+          ) {
+            break; // Response size is acceptable or this is our last attempt
+          }
+
+          backoffLevel++;
+        } catch (queryError) {
+          // If query fails at this level, try the next backoff level
+          if (backoffLevel === backoffLevels.length - 1) {
+            throw queryError; // This was our last attempt
+          }
+          backoffLevel++;
+        }
+      }
 
       if (docsResults.length > 0) {
         const permawebResults = docsResults.map((result) => ({
           content: result.content,
           domain: result.domain,
-          isFullDocument: true,
+          isFullDocument: false, // These are chunked results
           relevanceScore: result.relevanceScore,
           type: "permaweb_docs",
           url: result.url,
         }));
-        return JSON.stringify({
+
+        const response = {
           query: args.query,
           results: permawebResults,
           success: true,
           totalResults: permawebResults.length,
-        });
+          ...(backoffLevel > 0 && {
+            backoff: {
+              estimatedTokens: estimatedTokens,
+              level: backoffLevel,
+              message: `Results limited to ${backoffLevels[backoffLevel].maxResults} to stay within context limits`,
+              strategy: backoffLevels[backoffLevel].label,
+            },
+          }),
+        };
+
+        return JSON.stringify(response);
       }
 
       return JSON.stringify({
@@ -2764,9 +2751,11 @@ server.addTool({
     maxResults: z
       .number()
       .min(1)
-      .max(50)
+      .max(20)
       .optional()
-      .describe("Maximum number of results to return (default: 10)"),
+      .describe(
+        "Maximum number of results to return (default: 10). May be automatically reduced to prevent context limits.",
+      ),
     query: z
       .string()
       .describe("Your question or search query about the Permaweb ecosystem"),

@@ -1,118 +1,38 @@
-# Permamind Dashboard
+# sv
 
-A comprehensive dashboard for monitoring and managing Permamind hubs, workflows, and the decentralized AI memory ecosystem.
+Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
 
-## Features
+## Creating a project
 
-- **Hub Management**: Connect to and manage the dedicated Permamind workflow hub
-- **Workflow Management**: Monitor workflow performance, stages, and enhancements
-- **Workflow Discovery**: Find and learn from workflows in the hub
-- **Analytics**: Performance insights and hub health metrics
-- **Documentation**: Integrated documentation for Permamind features and APIs
-- **Real-time Monitoring**: Live status updates and performance tracking
+If you're seeing this, you've probably already done this step. Congrats!
 
-## Tech Stack
+```bash
+# create a new project in the current directory
+npx sv create
 
-- **Frontend**: SvelteKit 5
-- **Styling**: CSS with dark theme
-- **Build**: Vite
-- **Language**: TypeScript
+# create a new project in my-app
+npx sv create my-app
+```
 
-## Getting Started
+## Developing
 
-1. Install dependencies:
+Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
 
-   ```bash
-   npm install
-   ```
+```bash
+npm run dev
 
-2. Start development server:
+# or start the server and open the app in a new browser tab
+npm run dev -- --open
+```
 
-   ```bash
-   npm run dev
-   ```
+## Building
 
-3. Open browser to `http://localhost:5173`
+To create a production version of your app:
 
-## Available Scripts
+```bash
+npm run build
+```
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run check` - Type checking
-- `npm run lint` - Lint code
-- `npm run format` - Format code
+You can preview the production build with `npm run preview`.
 
-## Dashboard Sections
-
-### Dashboard Home
-
-- Hub overview statistics
-- Hub connection status
-- Workflow performance summary
-- Quick action buttons
-
-### Hub
-
-- View the dedicated workflow hub details and status
-- Monitor hub activity and performance
-- Track hub statistics and metrics
-- Manage hub connections
-
-### Workflows
-
-- List all workflows with filtering
-- View workflow performance metrics
-- Monitor execution status and stages
-- Track enhancements and improvements
-
-### Discovery
-
-- Search workflows in the hub
-- Find workflows by capability or requirements
-- View popular capabilities and trends
-- Request enhancement patterns
-
-### Analytics
-
-- Performance trend analysis
-- Workflow comparison metrics
-- Enhancement effectiveness tracking
-- Hub health scoring
-
-### Documentation
-
-- Complete API reference
-- Getting started guides
-- Memory types and workflow system
-- Workflow discovery documentation
-
-## Integration with Permamind
-
-This dashboard is designed to work with the Permamind MCP server and can:
-
-- Connect to the dedicated Permamind workflow hub
-- Display real-time data from the Arweave-based memory system
-- Facilitate workflow discovery and collaboration
-- Provide insights into the AI memory ecosystem
-
-## Development
-
-The dashboard is built with modularity in mind:
-
-- `/src/routes/` - SvelteKit pages and routing
-- `/src/lib/components/` - Reusable Svelte components
-- `/src/app.css` - Global styles and theme
-- `/static/` - Static assets
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run `npm run lint` and `npm run check`
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
+> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
