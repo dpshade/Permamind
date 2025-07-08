@@ -7,6 +7,13 @@ import { FastMCP } from "fastmcp";
 import { z } from "zod";
 
 import type {
+  AOProcessQuery,
+  BlockQuery,
+  SortOrder,
+  TagOperator,
+  TransactionQuery,
+} from "./models/ArweaveGraphQL.js";
+import type {
   PermawebDocsResult,
   PermawebDomain,
 } from "./services/PermawebDocs.js";
@@ -18,6 +25,7 @@ import { ProfileCreateData } from "./models/Profile.js";
 import { Tag } from "./models/Tag.js";
 import { event, fetchEvents } from "./relay.js";
 import { aiMemoryService, MEMORY_KINDS } from "./services/aiMemoryService.js";
+import { arweaveGraphQLService } from "./services/ArweaveGraphQLService.js";
 import { defaultProcessService } from "./services/DefaultProcessService.js";
 import { hubService } from "./services/hub.js";
 import { processCommunicationService } from "./services/ProcessCommunicationService.js";
@@ -2843,6 +2851,540 @@ server.addTool({
       .describe(
         "Comma-separated list of domains for preload/clear actions (arweave,ao,ario,hyperbeam,permaweb-glossary)",
       ),
+  }),
+});
+
+// Arweave GraphQL Query Tools
+
+// Tool to query Arweave transactions with comprehensive filtering
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Query Arweave Transactions",
+  },
+  description: `Query Arweave transactions using GraphQL with comprehensive filtering options. 
+    Supports filtering by owners, recipients, tags, blocks, and more. Uses Goldsky primary endpoint 
+    with arweave.net fallback. Includes pagination support for large result sets.
+    
+    DISPLAY FORMAT: When presenting results, use this consistent format:
+    
+    For individual transactions:
+    Transaction: abc123...def789
+    Time: 2024-01-01 12:00:00 UTC (Block #1234567)
+    Owner: 7oqF5r...LbpfT7
+    Size: 1.2 MB (application/json)
+    App: PublicSquare (ALWAYS include if found in tags)
+    Action: Transfer (ALWAYS include if found in tags)
+    Fee: 0.001 AR
+    
+    For transaction lists:
+    Found X transactions:
+    1. abc123...def789 | 2024-01-01 12:00 UTC | 1.2 MB | App: PublicSquare | Action: Transfer
+    2. def456...ghi012 | 2024-01-01 11:30 UTC | 0.8 MB | App: ArDrive | Action: Upload
+    
+    REQUIREMENTS:
+    - Truncate transaction IDs to first 6 + last 6 characters
+    - Use timestampFormatted field for human-readable time
+    - ALWAYS show App and Action if found in transaction tags
+    - Show data size in human-readable format (MB, KB)
+    - Use clean markdown formatting for clarity`,
+  execute: async (args) => {
+    try {
+      const query: TransactionQuery = {
+        first: args.first || 10,
+        sort: (args.sort as SortOrder) || "HEIGHT_DESC",
+      };
+
+      if (args.ids) {
+        query.ids = args.ids;
+      }
+
+      if (args.owners) {
+        query.owners = args.owners;
+      }
+
+      if (args.recipients) {
+        query.recipients = args.recipients;
+      }
+
+      if (args.tags) {
+        query.tags = args.tags.map((tag) => ({
+          name: tag.name,
+          op: (tag.op as TagOperator) || "EQ",
+          values: tag.values,
+        }));
+      }
+
+      if (args.blockHeight) {
+        query.block = {
+          max: args.blockHeight.max,
+          min: args.blockHeight.min,
+        };
+      }
+
+      if (args.ingestedAt) {
+        query.ingested_at = {
+          max: args.ingestedAt.max,
+          min: args.ingestedAt.min,
+        };
+      }
+
+      if (args.after) {
+        query.after = args.after;
+      }
+
+      const result = await arweaveGraphQLService.queryTransactions(query);
+
+      return JSON.stringify({
+        query: args,
+        result: {
+          count: result.transactions.length,
+          pageInfo: result.pageInfo,
+          transactions: result.transactions,
+        },
+        success: true,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        error: `Failed to query transactions: ${error instanceof Error ? error.message : "Unknown error"}`,
+        query: args,
+        success: false,
+      });
+    }
+  },
+  name: "queryArweaveTransactions",
+  parameters: z.object({
+    after: z.string().optional().describe("Cursor for pagination"),
+    blockHeight: z
+      .object({
+        max: z.number().optional().describe("Maximum block height"),
+        min: z.number().optional().describe("Minimum block height"),
+      })
+      .optional()
+      .describe("Block height filter"),
+    first: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of results to return (max 100, default 10)"),
+    ids: z
+      .array(z.string())
+      .optional()
+      .describe("Array of transaction IDs to query"),
+    ingestedAt: z
+      .object({
+        max: z.number().optional().describe("Maximum ingested timestamp"),
+        min: z.number().optional().describe("Minimum ingested timestamp"),
+      })
+      .optional()
+      .describe("Ingested at filter"),
+    owners: z
+      .array(z.string())
+      .optional()
+      .describe("Array of owner wallet addresses"),
+    recipients: z
+      .array(z.string())
+      .optional()
+      .describe("Array of recipient wallet addresses"),
+    sort: z
+      .enum([
+        "HEIGHT_ASC",
+        "HEIGHT_DESC",
+        "INGESTED_AT_ASC",
+        "INGESTED_AT_DESC",
+      ])
+      .optional()
+      .describe("Sort order (default: HEIGHT_DESC)"),
+    tags: z
+      .array(
+        z.object({
+          name: z.string().describe("Tag name"),
+          op: z
+            .enum(["EQ", "NEQ"])
+            .optional()
+            .describe("Tag operator (default: EQ)"),
+          values: z.array(z.string()).describe("Array of tag values to match"),
+        }),
+      )
+      .optional()
+      .describe("Array of tag filters"),
+  }),
+});
+
+// Tool to query AO process messages
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Query AO Process Messages",
+  },
+  description: `Query AO (Autonomous Objects) process messages and interactions. 
+    Filter by process IDs, message references, actions, and other AO-specific parameters. 
+    Useful for tracking process communications and state changes.
+    
+    DISPLAY FORMAT: When presenting AO process messages, use this consistent format:
+    
+    For individual messages:
+    Message: abc123...def789
+    Time: 2024-01-01 12:00:00 UTC (Block #1234567)
+    From: ProcessA...123 → To: ProcessB...456
+    Size: 1.2 MB (application/json)
+    App: AO-Process (ALWAYS include if found in tags)
+    Action: Transfer (ALWAYS include if found in tags)
+    Reference: msg_ref_123
+    
+    For message lists:
+    Found X AO messages:
+    1. abc123...def789 | 2024-01-01 12:00 UTC | ProcessA...123 → ProcessB...456 | Action: Transfer
+    2. def456...ghi012 | 2024-01-01 11:30 UTC | ProcessA...123 → ProcessC...789 | Action: Mint
+    
+    REQUIREMENTS:
+    - Truncate transaction and process IDs to first 6 + last 6 characters
+    - Use timestampFormatted field for human-readable time
+    - ALWAYS show App and Action if found in transaction tags
+    - Show process communication flow (From → To)
+    - Include message references when available`,
+  execute: async (args) => {
+    try {
+      const query: AOProcessQuery = {
+        first: args.first || 10,
+        sort: (args.sort as SortOrder) || "INGESTED_AT_DESC",
+      };
+
+      if (args.fromProcessId) {
+        query.fromProcessId = args.fromProcessId;
+      }
+
+      if (args.toProcessId) {
+        query.toProcessId = args.toProcessId;
+      }
+
+      if (args.msgRefs) {
+        query.msgRefs = args.msgRefs;
+      }
+
+      if (args.action) {
+        query.action = args.action;
+      }
+
+      if (args.after) {
+        query.after = args.after;
+      }
+
+      const result = await arweaveGraphQLService.queryAOProcessMessages(query);
+
+      return JSON.stringify({
+        query: args,
+        result: {
+          count: result.transactions.length,
+          pageInfo: result.pageInfo,
+          transactions: result.transactions,
+        },
+        success: true,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        error: `Failed to query AO process messages: ${error instanceof Error ? error.message : "Unknown error"}`,
+        query: args,
+        success: false,
+      });
+    }
+  },
+  name: "queryAOProcessMessages",
+  parameters: z.object({
+    action: z
+      .string()
+      .optional()
+      .describe("Filter by action type (e.g., 'Transfer', 'Mint')"),
+    after: z.string().optional().describe("Cursor for pagination"),
+    first: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of results to return (max 100, default 10)"),
+    fromProcessId: z
+      .string()
+      .optional()
+      .describe("Filter by sender process ID"),
+    msgRefs: z
+      .array(z.string())
+      .optional()
+      .describe("Array of message reference IDs"),
+    sort: z
+      .enum([
+        "HEIGHT_ASC",
+        "HEIGHT_DESC",
+        "INGESTED_AT_ASC",
+        "INGESTED_AT_DESC",
+      ])
+      .optional()
+      .describe("Sort order (default: INGESTED_AT_DESC)"),
+    toProcessId: z
+      .string()
+      .optional()
+      .describe("Filter by recipient process ID"),
+  }),
+});
+
+// Tool to get specific transaction details
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Get Transaction Details",
+  },
+  description: `Get detailed information for a specific Arweave transaction by ID. 
+    Returns comprehensive transaction data including tags, block information, 
+    data size, and bundle information if applicable.
+    
+    DISPLAY FORMAT: When presenting transaction details, use this comprehensive format:
+    
+    Transaction Details: abc123...def789
+    Time: 2024-01-01 12:00:00 UTC (Block #1234567)
+    Owner: 7oqF5r...LbpfT7
+    Size: 1.2 MB (application/json)
+    App: PublicSquare (ALWAYS include if found in tags)
+    Action: Transfer (ALWAYS include if found in tags)
+    Fee: 0.001 AR
+    Tags: Show important tags like App-Name, Action, Content-Type
+    Parent: parent123...def789 (if applicable)
+    
+    REQUIREMENTS:
+    - Truncate transaction IDs to first 6 + last 6 characters
+    - Use timestampFormatted field for human-readable time
+    - ALWAYS show App and Action if found in transaction tags
+    - Display all relevant tags in a readable format
+    - Show parent transaction if available
+    - Include comprehensive transaction metadata`,
+  execute: async (args) => {
+    try {
+      const transaction = await arweaveGraphQLService.getTransactionData(
+        args.transactionId,
+      );
+
+      if (!transaction) {
+        return JSON.stringify({
+          error: `Transaction not found: ${args.transactionId}`,
+          success: false,
+          transactionId: args.transactionId,
+        });
+      }
+
+      return JSON.stringify({
+        success: true,
+        transaction: transaction,
+        transactionId: args.transactionId,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        error: `Failed to get transaction details: ${error instanceof Error ? error.message : "Unknown error"}`,
+        success: false,
+        transactionId: args.transactionId,
+      });
+    }
+  },
+  name: "getTransactionDetails",
+  parameters: z.object({
+    transactionId: z.string().describe("The Arweave transaction ID to query"),
+  }),
+});
+
+// Tool to query block information
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Query Block Information",
+  },
+  description: `Query Arweave block information with filtering by height ranges or specific block IDs. 
+    Includes pagination support for querying multiple blocks efficiently.
+    
+    DISPLAY FORMAT: When presenting block information, use this consistent format:
+    
+    For individual blocks:
+    Block: block123...def789
+    Time: 2024-01-01 12:00:00 UTC
+    Height: #1234567
+    Previous: prev123...abc456
+    
+    For block lists:
+    Found X blocks:
+    1. block123...def789 | 2024-01-01 12:00 UTC | Height: #1234567
+    2. block456...ghi012 | 2024-01-01 11:30 UTC | Height: #1234566
+    
+    REQUIREMENTS:
+    - Truncate block IDs to first 6 + last 6 characters
+    - Use timestampFormatted field for human-readable time
+    - Always show block height prominently
+    - Show previous block relationship when available
+    - Use clean markdown formatting for clarity`,
+  execute: async (args) => {
+    try {
+      if (args.blockId) {
+        // Single block query
+        const block = await arweaveGraphQLService.getBlockData(args.blockId);
+
+        if (!block) {
+          return JSON.stringify({
+            blockId: args.blockId,
+            error: `Block not found: ${args.blockId}`,
+            success: false,
+          });
+        }
+
+        return JSON.stringify({
+          block: block,
+          blockId: args.blockId,
+          success: true,
+        });
+      } else {
+        // Multiple blocks query
+        const query: BlockQuery = {
+          first: args.first || 10,
+          sort: (args.sort as SortOrder) || "HEIGHT_DESC",
+        };
+
+        if (args.ids) {
+          query.ids = args.ids;
+        }
+
+        if (args.heightRange) {
+          query.height = {
+            max: args.heightRange.max,
+            min: args.heightRange.min,
+          };
+        }
+
+        if (args.after) {
+          query.after = args.after;
+        }
+
+        const result = await arweaveGraphQLService.queryBlocks(query);
+
+        return JSON.stringify({
+          query: args,
+          result: {
+            blocks: result.blocks,
+            count: result.blocks.length,
+            pageInfo: result.pageInfo,
+          },
+          success: true,
+        });
+      }
+    } catch (error) {
+      return JSON.stringify({
+        error: `Failed to query block information: ${error instanceof Error ? error.message : "Unknown error"}`,
+        query: args,
+        success: false,
+      });
+    }
+  },
+  name: "queryBlockInfo",
+  parameters: z.object({
+    after: z.string().optional().describe("Cursor for pagination"),
+    blockId: z
+      .string()
+      .optional()
+      .describe("Specific block ID to query (for single block)"),
+    first: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of results to return (max 100, default 10)"),
+    heightRange: z
+      .object({
+        max: z.number().optional().describe("Maximum block height"),
+        min: z.number().optional().describe("Minimum block height"),
+      })
+      .optional()
+      .describe("Block height range filter"),
+    ids: z
+      .array(z.string())
+      .optional()
+      .describe("Array of block IDs to query (for multiple blocks)"),
+    sort: z
+      .enum(["HEIGHT_ASC", "HEIGHT_DESC"])
+      .optional()
+      .describe("Sort order (default: HEIGHT_DESC)"),
+  }),
+});
+
+// Tool to execute custom GraphQL queries
+server.addTool({
+  annotations: {
+    openWorldHint: false,
+    readOnlyHint: true,
+    title: "Execute Custom GraphQL Query",
+  },
+  description: `Execute a custom GraphQL query against Arweave's GraphQL API. 
+    Supports full GraphQL syntax with variables. Use this for advanced queries 
+    not covered by the specialized tools. Includes automatic endpoint fallback.
+
+    DISPLAY FORMAT: When presenting GraphQL results, use consistent formatting:
+    
+    For transactions in results:
+    Transaction: abc123...def789
+    Time: 2024-01-01 12:00:00 UTC (Block #1234567)
+    Owner: 7oqF5r...LbpfT7
+    Size: 1.2 MB (application/json)
+    App: PublicSquare (ALWAYS include if found in tags)
+    Action: Transfer (ALWAYS include if found in tags)
+    Fee: 0.001 AR
+    
+    For blocks in results:
+    Block: #1234567 (abc123...def789)
+    Time: 2024-01-01 12:00:00 UTC
+    Previous: #1234566
+    
+    REQUIREMENTS:
+    - Truncate long IDs to first 6 + last 6 characters
+    - Use timestampFormatted field for human-readable time
+    - ALWAYS show App and Action if found in transaction tags
+    - Present data in structured, readable format
+    - Group related information logically`,
+  execute: async (args) => {
+    try {
+      const variables = args.variables ? JSON.parse(args.variables) : undefined;
+      const result = await arweaveGraphQLService.executeCustomQuery(
+        args.query,
+        variables,
+      );
+
+      if (result.errors && result.errors.length > 0) {
+        return JSON.stringify({
+          data: result.data,
+          errors: result.errors,
+          query: args.query,
+          success: false,
+          variables: variables,
+        });
+      }
+
+      return JSON.stringify({
+        data: result.data,
+        query: args.query,
+        success: true,
+        variables: variables,
+      });
+    } catch (error) {
+      return JSON.stringify({
+        error: `Failed to execute GraphQL query: ${error instanceof Error ? error.message : "Unknown error"}`,
+        query: args.query,
+        success: false,
+      });
+    }
+  },
+  name: "executeGraphQLQuery",
+  parameters: z.object({
+    query: z.string().describe("The GraphQL query string to execute"),
+    variables: z
+      .string()
+      .optional()
+      .describe("JSON string of GraphQL variables (optional)"),
   }),
 });
 
