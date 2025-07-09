@@ -509,6 +509,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
       `;
 
       if (this.debugMode) {
+        console.log(`[ArweaveGraphQL] Executing paginated query:`, query);
       }
 
       const response = await this.executeGraphQLRequest<{
@@ -558,6 +559,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
       for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
         try {
           if (this.debugMode) {
+            console.log(
               `[ArweaveGraphQL] Attempting ${endpoint.name} (${endpoint.url}) - attempt ${attempt + 1}/${this.maxRetries + 1}`,
             );
           }
@@ -569,6 +571,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
           );
 
           if (this.debugMode) {
+            console.log(`[ArweaveGraphQL] ${endpoint.name} request successful`);
           }
 
           return response;
@@ -576,6 +579,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
           lastError = error instanceof Error ? error : new Error(String(error));
 
           if (this.debugMode) {
+            console.log(
               `[ArweaveGraphQL] ${endpoint.name} attempt ${attempt + 1} failed: ${lastError.message}`,
             );
           }
@@ -588,6 +592,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
 
           if (isTimeout || isGraphQLError) {
             if (this.debugMode) {
+              console.log(
                 `[ArweaveGraphQL] Skipping retry for ${endpoint.name} due to ${isTimeout ? "timeout" : "GraphQL error"}`,
               );
             }
@@ -597,6 +602,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
           if (attempt < this.maxRetries) {
             const delayMs = Math.pow(2, attempt) * 1000;
             if (this.debugMode) {
+              console.log(
                 `[ArweaveGraphQL] Retrying ${endpoint.name} in ${delayMs}ms...`,
               );
             }
@@ -650,6 +656,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
       // Check for GraphQL errors but don't throw immediately - let caller handle
       if (result.errors && result.errors.length > 0) {
         if (this.debugMode) {
+          console.log(
             `[ArweaveGraphQL] GraphQL errors received:`,
             result.errors,
           );
