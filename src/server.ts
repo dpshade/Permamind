@@ -167,17 +167,17 @@ function registerToolsFromRegistry() {
 
 // All tools are now registered via the tool registry (see setupToolRegistry and registerToolsFromRegistry)
 // Start server with stdio transport (matches Claude Desktop expectation)
-server.start({
-  transportType: "stdio",
-});
 
 // Initialize in background (silent for stdio transport)
 init()
-  .then(() => {
-    // After initialization, set up the tool registry
-    setupToolRegistry();
-    registerToolsFromRegistry();
-  })
-  .catch(() => {
-    // Silent error handling for stdio transport compatibility
+.then(() => {
+  // After initialization, set up the tool registry
+  setupToolRegistry();
+  registerToolsFromRegistry();
+  server.start({
+    transportType: "stdio",
   });
+})
+.catch(() => {
+  // Silent error handling for stdio transport compatibility
+});
