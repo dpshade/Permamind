@@ -89,4 +89,3 @@ export class ManagePermawebDocsCacheCommand extends ToolCommand<any, any> {
       });
     }
   }
-}

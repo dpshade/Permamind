@@ -122,4 +122,3 @@ export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
       });
     }
   }
-}

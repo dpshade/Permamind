@@ -25,4 +25,3 @@ export class MemoryToolFactory extends BaseToolFactory {
       LinkMemoriesCommand,
     ];
   }
-}

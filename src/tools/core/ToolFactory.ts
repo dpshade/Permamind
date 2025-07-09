@@ -64,4 +64,3 @@ export abstract class BaseToolFactory extends ToolFactory {
     const ToolClasses = this.getToolClasses();
     return ToolClasses.map((ToolClass) => new ToolClass(this.config.context));
   }
-}

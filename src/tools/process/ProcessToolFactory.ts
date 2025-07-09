@@ -19,4 +19,3 @@ export class ProcessToolFactory extends BaseToolFactory {
       ExecuteGraphQLQueryCommand,
     ];
   }
-}

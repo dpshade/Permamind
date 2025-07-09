@@ -24,4 +24,3 @@ export class CreateConfigurableTokenCommand extends ToolCommand<any, any> {
     // Implementation would be moved from server.ts
     throw new Error("CreateConfigurableTokenCommand implementation pending migration from server.ts");
   }
-}

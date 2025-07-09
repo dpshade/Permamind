@@ -127,4 +127,3 @@ export class QueryBlockInfoCommand extends ToolCommand<any, any> {
       });
     }
   }
-}

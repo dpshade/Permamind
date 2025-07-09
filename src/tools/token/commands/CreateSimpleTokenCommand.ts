@@ -81,4 +81,3 @@ export class CreateSimpleTokenCommand extends ToolCommand<CreateSimpleTokenArgs,
       throw new Error(`Failed to create simple token: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-}

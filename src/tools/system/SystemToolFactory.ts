@@ -6,4 +6,3 @@ export class SystemToolFactory extends BaseToolFactory {
       // System tools will be added here as they are identified and migrated
     ];
   }
-}

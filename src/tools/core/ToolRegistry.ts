@@ -143,4 +143,3 @@ export class ToolRegistry {
 }
 
 // Global registry instance
-export const toolRegistry = new ToolRegistry();

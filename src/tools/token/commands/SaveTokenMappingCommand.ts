@@ -63,4 +63,3 @@ export class SaveTokenMappingCommand extends ToolCommand<SaveTokenMappingArgs, a
       });
     }
   }
-}

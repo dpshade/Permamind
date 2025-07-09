@@ -149,4 +149,3 @@ export class MintTokensCommand extends ToolCommand<MintTokensArgs, any> {
       throw new Error(`Failed to mint tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-}

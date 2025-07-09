@@ -35,4 +35,3 @@ export class ListContactsCommand extends ToolCommand<{}, any> {
       });
     }
   }
-}

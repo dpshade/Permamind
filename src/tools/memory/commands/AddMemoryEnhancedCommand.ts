@@ -87,4 +87,3 @@ export class AddMemoryEnhancedCommand extends ToolCommand<AddMemoryEnhancedArgs,
       throw new Error(`Failed to add enhanced memory: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-}

@@ -25,4 +25,3 @@ export class GetTokenExamplesCommand extends ToolCommand<any, any> {
     // Implementation would be moved from server.ts
     throw new Error("GetTokenExamplesCommand implementation pending migration from server.ts");
   }
-}

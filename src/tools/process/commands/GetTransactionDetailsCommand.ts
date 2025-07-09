@@ -68,4 +68,3 @@ export class GetTransactionDetailsCommand extends ToolCommand<any, any> {
       });
     }
   }
-}

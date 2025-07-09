@@ -35,4 +35,3 @@ export class ListTokensCommand extends ToolCommand<{}, any> {
       });
     }
   }
-}

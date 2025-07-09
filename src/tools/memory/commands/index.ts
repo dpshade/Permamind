@@ -7,4 +7,3 @@ export * from "./GetAllMemoriesForConversationCommand.js";
 export * from "./GetMemoryAnalyticsCommand.js";
 export * from "./SearchMemoriesCommand.js";
 export * from "./SearchMemoriesAdvancedCommand.js";
-export * from "./LinkMemoriesCommand.js";

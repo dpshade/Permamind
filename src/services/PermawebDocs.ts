@@ -324,7 +324,7 @@ export class PermawebDocs {
       domains = this.detectRelevantDomains(query);
       // Always include glossary for definition/what is queries
       if (
-        /\bwhat is\b|\bdefine\b|\bdefinition\b|\bglossary\b|\bmeaning\b|\bexplain\b/i.test(
+        /what is|define|definition|glossary|meaning|explain/i.test(
           query,
         ) &&
         !domains.includes("permaweb-glossary")
@@ -429,7 +429,8 @@ export class PermawebDocs {
     if (domain === "permaweb-glossary") {
       // Split by double newlines (glossary entries)
       return content
-        .split(/\n{2,}/)
+        .split(/
+{2,}/)
         .map((s) => s.trim())
         .filter(Boolean);
     }
@@ -530,7 +531,6 @@ export class PermawebDocs {
 
     try {
       if (this.debugMode) {
-        console.log(
           `[PermawebDocs] Fetching ${domain} documentation from ${source.url}`,
         );
       }
@@ -554,7 +554,6 @@ export class PermawebDocs {
       });
 
       if (this.debugMode) {
-        console.log(
           `[PermawebDocs] Successfully loaded ${domain} documentation (${content.length} chars)`,
         );
       }
@@ -589,7 +588,6 @@ export class PermawebDocs {
         lastError = error instanceof Error ? error : new Error(String(error));
 
         if (this.debugMode) {
-          console.log(
             `[PermawebDocs] Attempt ${attempt + 1}/${maxRetries + 1} failed for ${domain}: ${lastError.message}`,
           );
         }
@@ -597,7 +595,6 @@ export class PermawebDocs {
         // Don't retry on timeout errors - they're likely to timeout again
         const isTimeout = lastError.message.includes("timed out after");
         if (isTimeout && this.debugMode) {
-          console.log(
             `[PermawebDocs] Skipping retry for ${domain} due to timeout`,
           );
         }
@@ -605,7 +602,6 @@ export class PermawebDocs {
         if (attempt < maxRetries && !isTimeout) {
           const delayMs = Math.pow(2, attempt) * 1000;
           if (this.debugMode) {
-            console.log(`[PermawebDocs] Retrying ${domain} in ${delayMs}ms...`);
           }
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         } else {

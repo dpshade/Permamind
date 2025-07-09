@@ -13,4 +13,3 @@ export class DocumentationToolFactory extends BaseToolFactory {
       CheckPermawebDeployPrerequisitesCommand,
     ];
   }
-}

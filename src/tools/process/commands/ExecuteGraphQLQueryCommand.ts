@@ -80,4 +80,3 @@ export class ExecuteGraphQLQueryCommand extends ToolCommand<any, any> {
       });
     }
   }
-}

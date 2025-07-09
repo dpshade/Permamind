@@ -51,4 +51,3 @@ export class ExecuteProcessActionCommand extends ToolCommand<ExecuteProcessActio
       return `Error: ${error}`;
     }
   }
-}

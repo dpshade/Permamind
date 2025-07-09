@@ -13,4 +13,3 @@ export * from "./ValidateTokenConfigurationCommand.js";
 export * from "./CreateSimpleTokenCommand.js";
 export * from "./GenerateTokenLuaCommand.js";
 export * from "./GetTokenExamplesCommand.js";
-export * from "./QueryTokenInfoCommand.js";

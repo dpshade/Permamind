@@ -38,4 +38,3 @@ export class GetMemoryAnalyticsCommand extends ToolCommand<GetMemoryAnalyticsArg
       throw new Error(`Failed to get memory analytics: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-}

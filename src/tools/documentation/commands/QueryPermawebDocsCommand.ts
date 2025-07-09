@@ -137,4 +137,3 @@ export class QueryPermawebDocsCommand extends ToolCommand<any, any> {
       });
     }
   }
-}

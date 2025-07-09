@@ -125,4 +125,3 @@ export class BurnTokensCommand extends ToolCommand<BurnTokensArgs, any> {
       throw new Error(`Failed to burn tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
-}
