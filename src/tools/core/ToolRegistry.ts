@@ -1,18 +1,82 @@
-import { ToolCommand, ToolDefinition, ToolContext } from "./ToolCommand.js";
+import { ToolCommand, ToolContext, ToolDefinition } from "./ToolCommand.js";
 
 export interface ToolCategory {
-  name: string;
   description: string;
+  name: string;
   tools: ToolCommand[];
 }
 
 export class ToolRegistry {
-  private tools: Map<string, ToolCommand> = new Map();
   private categories: Map<string, ToolCategory> = new Map();
+  private tools: Map<string, ToolCommand> = new Map();
+
+  clear(): void {
+    this.tools.clear();
+    this.categories.clear();
+  }
+
+  getAllTools(): ToolCommand[] {
+    return Array.from(this.tools.values());
+  }
+
+  getCategories(): ToolCategory[] {
+    return Array.from(this.categories.values());
+  }
+
+  getCategoryCount(): number {
+    return this.categories.size;
+  }
+
+  getCategoryNames(): string[] {
+    return Array.from(this.categories.keys());
+  }
+
+  getStats(): {
+    toolsByCategory: Record<string, number>;
+    totalCategories: number;
+    totalTools: number;
+  } {
+    const toolsByCategory: Record<string, number> = {};
+
+    for (const [categoryName, category] of this.categories) {
+      toolsByCategory[categoryName] = category.tools.length;
+    }
+
+    return {
+      toolsByCategory,
+      totalCategories: this.categories.size,
+      totalTools: this.tools.size,
+    };
+  }
+
+  getTool(name: string): ToolCommand | undefined {
+    return this.tools.get(name);
+  }
+
+  getToolCount(): number {
+    return this.tools.size;
+  }
+
+  getToolDefinitions(context: ToolContext): ToolDefinition[] {
+    return this.getAllTools().map((tool) => tool.toToolDefinition(context));
+  }
+
+  getToolsByCategory(categoryName: string): ToolCommand[] {
+    const category = this.categories.get(categoryName);
+    return category ? category.tools : [];
+  }
+
+  hasCategory(categoryName: string): boolean {
+    return this.categories.has(categoryName);
+  }
+
+  hasTool(toolName: string): boolean {
+    return this.tools.has(toolName);
+  }
 
   register(tool: ToolCommand, categoryName?: string): void {
     const metadata = tool.getMetadata();
-    
+
     if (this.tools.has(metadata.name)) {
       throw new Error(`Tool '${metadata.name}' is already registered`);
     }
@@ -24,14 +88,18 @@ export class ToolRegistry {
     }
   }
 
-  registerCategory(name: string, description: string, tools: ToolCommand[]): void {
+  registerCategory(
+    name: string,
+    description: string,
+    tools: ToolCommand[],
+  ): void {
     if (this.categories.has(name)) {
       throw new Error(`Category '${name}' is already registered`);
     }
 
     const category: ToolCategory = {
-      name,
       description,
+      name,
       tools: [],
     };
 
@@ -41,62 +109,6 @@ export class ToolRegistry {
     for (const tool of tools) {
       this.register(tool, name);
     }
-  }
-
-  private addToCategory(categoryName: string, tool: ToolCommand): void {
-    let category = this.categories.get(categoryName);
-    
-    if (!category) {
-      category = {
-        name: categoryName,
-        description: `${categoryName} tools`,
-        tools: [],
-      };
-      this.categories.set(categoryName, category);
-    }
-
-    category.tools.push(tool);
-  }
-
-  getTool(name: string): ToolCommand | undefined {
-    return this.tools.get(name);
-  }
-
-  getAllTools(): ToolCommand[] {
-    return Array.from(this.tools.values());
-  }
-
-  getToolsByCategory(categoryName: string): ToolCommand[] {
-    const category = this.categories.get(categoryName);
-    return category ? category.tools : [];
-  }
-
-  getCategories(): ToolCategory[] {
-    return Array.from(this.categories.values());
-  }
-
-  getCategoryNames(): string[] {
-    return Array.from(this.categories.keys());
-  }
-
-  getToolDefinitions(context: ToolContext): ToolDefinition[] {
-    return this.getAllTools().map((tool) => tool.toToolDefinition(context));
-  }
-
-  getToolCount(): number {
-    return this.tools.size;
-  }
-
-  getCategoryCount(): number {
-    return this.categories.size;
-  }
-
-  hasCategory(categoryName: string): boolean {
-    return this.categories.has(categoryName);
-  }
-
-  hasTool(toolName: string): boolean {
-    return this.tools.has(toolName);
   }
 
   unregister(toolName: string): boolean {
@@ -118,27 +130,19 @@ export class ToolRegistry {
     return true;
   }
 
-  clear(): void {
-    this.tools.clear();
-    this.categories.clear();
-  }
+  private addToCategory(categoryName: string, tool: ToolCommand): void {
+    let category = this.categories.get(categoryName);
 
-  getStats(): {
-    totalTools: number;
-    totalCategories: number;
-    toolsByCategory: Record<string, number>;
-  } {
-    const toolsByCategory: Record<string, number> = {};
-    
-    for (const [categoryName, category] of this.categories) {
-      toolsByCategory[categoryName] = category.tools.length;
+    if (!category) {
+      category = {
+        description: `${categoryName} tools`,
+        name: categoryName,
+        tools: [],
+      };
+      this.categories.set(categoryName, category);
     }
 
-    return {
-      totalTools: this.tools.size,
-      totalCategories: this.categories.size,
-      toolsByCategory,
-    };
+    category.tools.push(tool);
   }
 }
 

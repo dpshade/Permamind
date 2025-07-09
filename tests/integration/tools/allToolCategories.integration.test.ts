@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { ToolRegistry } from "../../../src/tools/core/ToolRegistry.js";
-import { ToolContext } from "../../../src/tools/core/ToolCommand.js";
-import { MemoryToolFactory } from "../../../src/tools/memory/MemoryToolFactory.js";
-import { TokenToolFactory } from "../../../src/tools/token/TokenToolFactory.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { ContactToolFactory } from "../../../src/tools/contact/ContactToolFactory.js";
-import { ProcessToolFactory } from "../../../src/tools/process/ProcessToolFactory.js";
+import { ToolContext } from "../../../src/tools/core/ToolCommand.js";
+import { ToolRegistry } from "../../../src/tools/core/ToolRegistry.js";
 import { DocumentationToolFactory } from "../../../src/tools/documentation/DocumentationToolFactory.js";
+import { MemoryToolFactory } from "../../../src/tools/memory/MemoryToolFactory.js";
+import { ProcessToolFactory } from "../../../src/tools/process/ProcessToolFactory.js";
 import { SystemToolFactory } from "../../../src/tools/system/SystemToolFactory.js";
+import { TokenToolFactory } from "../../../src/tools/token/TokenToolFactory.js";
 
 // Mock all services
 vi.mock("../../../src/relay.js", () => ({
@@ -34,30 +35,30 @@ vi.mock("../../../src/services/ProcessCommunicationService.js", () => ({
 
 vi.mock("../../../src/services/ArweaveGraphQLService.js", () => ({
   arweaveGraphQLService: {
-    queryTransactions: vi.fn(),
-    queryAOProcessMessages: vi.fn(),
-    getTransactionData: vi.fn(),
-    queryBlocks: vi.fn(),
-    getBlockData: vi.fn(),
     executeCustomQuery: vi.fn(),
+    getBlockData: vi.fn(),
+    getTransactionData: vi.fn(),
+    queryAOProcessMessages: vi.fn(),
+    queryBlocks: vi.fn(),
+    queryTransactions: vi.fn(),
   },
 }));
 
 vi.mock("../../../src/services/PermawebDocs.js", () => ({
   permawebDocs: {
-    query: vi.fn(),
+    clearCache: vi.fn(),
     estimateResponseTokens: vi.fn(),
+    getAvailableDomains: vi.fn(),
     getCacheStatus: vi.fn(),
     preload: vi.fn(),
-    clearCache: vi.fn(),
-    getAvailableDomains: vi.fn(),
+    query: vi.fn(),
   },
 }));
 
 vi.mock("../../../src/services/PermawebDeployService.js", () => ({
   PermawebDeployService: vi.fn().mockImplementation(() => ({
-    deployDirectory: vi.fn(),
     checkPrerequisites: vi.fn(),
+    deployDirectory: vi.fn(),
   })),
 }));
 
@@ -67,11 +68,11 @@ describe("All Tool Categories Integration", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     context = {
-      keyPair: { kty: "RSA", n: "test" } as any,
-      publicKey: "test-public-key",
       hubId: "test-hub-id",
+      keyPair: { kty: "RSA", n: "test" } as unknown as CryptoKeyPair,
+      publicKey: "test-public-key",
     };
 
     registry = new ToolRegistry();
@@ -80,43 +81,43 @@ describe("All Tool Categories Integration", () => {
   it("should register all tool categories", () => {
     // Register all tool factories
     const memoryFactory = new MemoryToolFactory({
-      categoryName: "Memory",
       categoryDescription: "AI Memory management tools",
+      categoryName: "Memory",
       context,
     });
     memoryFactory.registerTools(registry);
 
     const tokenFactory = new TokenToolFactory({
-      categoryName: "Token",
       categoryDescription: "Token management tools",
+      categoryName: "Token",
       context,
     });
     tokenFactory.registerTools(registry);
 
     const contactFactory = new ContactToolFactory({
-      categoryName: "Contact",
       categoryDescription: "Contact management tools",
+      categoryName: "Contact",
       context,
     });
     contactFactory.registerTools(registry);
 
     const processFactory = new ProcessToolFactory({
-      categoryName: "Process",
       categoryDescription: "Process communication tools",
+      categoryName: "Process",
       context,
     });
     processFactory.registerTools(registry);
 
     const documentationFactory = new DocumentationToolFactory({
-      categoryName: "Documentation",
       categoryDescription: "Documentation tools",
+      categoryName: "Documentation",
       context,
     });
     documentationFactory.registerTools(registry);
 
     const systemFactory = new SystemToolFactory({
-      categoryName: "System",
       categoryDescription: "System tools",
+      categoryName: "System",
       context,
     });
     systemFactory.registerTools(registry);
@@ -145,43 +146,43 @@ describe("All Tool Categories Integration", () => {
   it("should provide comprehensive tool definitions", () => {
     // Register all tool factories
     const memoryFactory = new MemoryToolFactory({
-      categoryName: "Memory",
       categoryDescription: "AI Memory management tools",
+      categoryName: "Memory",
       context,
     });
     memoryFactory.registerTools(registry);
 
     const tokenFactory = new TokenToolFactory({
-      categoryName: "Token",
       categoryDescription: "Token management tools",
+      categoryName: "Token",
       context,
     });
     tokenFactory.registerTools(registry);
 
     const contactFactory = new ContactToolFactory({
-      categoryName: "Contact",
       categoryDescription: "Contact management tools",
+      categoryName: "Contact",
       context,
     });
     contactFactory.registerTools(registry);
 
     const processFactory = new ProcessToolFactory({
-      categoryName: "Process",
       categoryDescription: "Process communication tools",
+      categoryName: "Process",
       context,
     });
     processFactory.registerTools(registry);
 
     const documentationFactory = new DocumentationToolFactory({
-      categoryName: "Documentation",
       categoryDescription: "Documentation tools",
+      categoryName: "Documentation",
       context,
     });
     documentationFactory.registerTools(registry);
 
     const systemFactory = new SystemToolFactory({
-      categoryName: "System",
       categoryDescription: "System tools",
+      categoryName: "System",
       context,
     });
     systemFactory.registerTools(registry);
@@ -200,20 +201,20 @@ describe("All Tool Categories Integration", () => {
     }
 
     // Verify specific tools exist
-    const toolNames = toolDefinitions.map(def => def.name);
-    
+    const toolNames = toolDefinitions.map((def) => def.name);
+
     // Memory tools
     expect(toolNames).toContain("addMemory");
     expect(toolNames).toContain("searchMemories");
-    
+
     // Token tools
     expect(toolNames).toContain("saveTokenMapping");
     expect(toolNames).toContain("transferTokens");
-    
+
     // Contact tools
     expect(toolNames).toContain("saveAddressMapping");
     expect(toolNames).toContain("listContacts");
-    
+
     // Process tools
     expect(toolNames).toContain("executeProcessAction");
   });
@@ -221,45 +222,47 @@ describe("All Tool Categories Integration", () => {
   it("should provide registry statistics", () => {
     // Register a few tool factories
     const memoryFactory = new MemoryToolFactory({
-      categoryName: "Memory",
       categoryDescription: "AI Memory management tools",
+      categoryName: "Memory",
       context,
     });
     memoryFactory.registerTools(registry);
 
     const tokenFactory = new TokenToolFactory({
-      categoryName: "Token",
       categoryDescription: "Token management tools",
+      categoryName: "Token",
       context,
     });
     tokenFactory.registerTools(registry);
 
     const contactFactory = new ContactToolFactory({
-      categoryName: "Contact",
       categoryDescription: "Contact management tools",
+      categoryName: "Contact",
       context,
     });
     contactFactory.registerTools(registry);
 
     const stats = registry.getStats();
-    
+
     expect(stats.totalTools).toBe(28); // 10 + 16 + 2
     expect(stats.totalCategories).toBe(3);
     expect(stats.toolsByCategory).toEqual({
+      Contact: 2,
       Memory: 10,
       Token: 16,
-      Contact: 2,
     });
   });
 
   it("should execute contact tools successfully", async () => {
     const { event } = await import("../../../src/relay.js");
     const mockResult = { id: "test-contact-event", success: true };
-    (event as any).mockResolvedValue(mockResult);
+    (event as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(
+      mockResult,
+    );
 
     const contactFactory = new ContactToolFactory({
-      categoryName: "Contact",
       categoryDescription: "Contact management tools",
+      categoryName: "Contact",
       context,
     });
     contactFactory.registerTools(registry);
@@ -269,15 +272,17 @@ describe("All Tool Categories Integration", () => {
 
     const result = await saveAddressTool!.execute(
       {
-        name: "Alice",
         address: "abcdefghijklmnopqrstuvwxyz1234567890abcdefg",
+        name: "Alice",
       },
-      context
+      context,
     );
 
     const parsedResult = JSON.parse(result);
     expect(parsedResult.success).toBe(true);
     expect(parsedResult.mapping.name).toBe("Alice");
-    expect(parsedResult.mapping.address).toBe("abcdefghijklmnopqrstuvwxyz1234567890abcdefg");
+    expect(parsedResult.mapping.address).toBe(
+      "abcdefghijklmnopqrstuvwxyz1234567890abcdefg",
+    );
   });
 });

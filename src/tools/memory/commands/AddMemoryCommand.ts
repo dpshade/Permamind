@@ -1,7 +1,8 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { hubService } from "../../../services/hub.js";
+
 import { Tag } from "../../../models/Tag.js";
+import { hubService } from "../../../services/hub.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface AddMemoryArgs {
   content: string;
@@ -11,8 +12,8 @@ interface AddMemoryArgs {
 
 export class AddMemoryCommand extends ToolCommand<AddMemoryArgs, any> {
   protected metadata: ToolMetadata = {
-    name: "addMemory",
     description: "Add a memory to the hub",
+    name: "addMemory",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Add Memory",
@@ -51,11 +52,13 @@ export class AddMemoryCommand extends ToolCommand<AddMemoryArgs, any> {
       const result = await hubService.createEvent(
         this.context.keyPair,
         this.context.hubId,
-        tags
+        tags,
       );
       return JSON.stringify(result);
     } catch (error) {
-      throw new Error(`Failed to add memory: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to add memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

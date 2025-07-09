@@ -1,9 +1,15 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { aiMemoryService } from "../../../services/aiMemoryService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface LinkMemoriesArgs {
-  relationshipType: "causes" | "supports" | "contradicts" | "extends" | "references";
+  relationshipType:
+    | "causes"
+    | "contradicts"
+    | "extends"
+    | "references"
+    | "supports";
   sourceMemoryId: string;
   strength: number;
   targetMemoryId: string;
@@ -11,9 +17,9 @@ interface LinkMemoriesArgs {
 
 export class LinkMemoriesCommand extends ToolCommand<LinkMemoriesArgs, any> {
   protected metadata: ToolMetadata = {
-    name: "linkMemories",
     description: `Create relationships between memories to build knowledge graphs and reasoning chains. 
       Useful for connecting related concepts, cause-effect relationships, and building contextual understanding.`,
+    name: "linkMemories",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Link Memories",
@@ -53,7 +59,9 @@ export class LinkMemoriesCommand extends ToolCommand<LinkMemoriesArgs, any> {
       );
       return result;
     } catch (error) {
-      throw new Error(`Failed to link memories: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to link memories: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

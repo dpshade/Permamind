@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 import { resolveToken } from "../utils/TokenResolver.js";
 
@@ -7,10 +8,14 @@ interface GetAllTokenBalancesArgs {
   processId: string;
 }
 
-export class GetAllTokenBalancesCommand extends ToolCommand<GetAllTokenBalancesArgs, any> {
+export class GetAllTokenBalancesCommand extends ToolCommand<
+  GetAllTokenBalancesArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Get all token balances in the contract. Supports token names/tickers from registry.",
     name: "getAllTokenBalances",
-    description: "Get all token balances in the contract. Supports token names/tickers from registry.",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Get All Token Balances",
@@ -28,11 +33,14 @@ export class GetAllTokenBalancesCommand extends ToolCommand<GetAllTokenBalancesA
     super();
   }
 
-  async execute(args: GetAllTokenBalancesArgs): Promise<any> {
+  async execute(args: GetAllTokenBalancesArgs): Promise<string> {
     try {
       const { read } = await import("../../../process.js");
 
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
@@ -59,7 +67,9 @@ export class GetAllTokenBalancesCommand extends ToolCommand<GetAllTokenBalancesA
         success: true,
       });
     } catch (error) {
-      throw new Error(`Failed to get all token balances: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to get all token balances: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

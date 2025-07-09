@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
+
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
 import { resolveToken } from "../utils/TokenResolver.js";
 
 interface BurnTokensArgs {
@@ -9,10 +15,11 @@ interface BurnTokensArgs {
   rawAmount?: boolean;
 }
 
-export class BurnTokensCommand extends ToolCommand<BurnTokensArgs, any> {
+export class BurnTokensCommand extends ToolCommand<BurnTokensArgs, string> {
   protected metadata: ToolMetadata = {
+    description:
+      "Destroy tokens from your account. Supports token names/tickers from registry.",
     name: "burnTokens",
-    description: "Destroy tokens from your account. Supports token names/tickers from registry.",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Burn Tokens",
@@ -25,13 +32,13 @@ export class BurnTokensCommand extends ToolCommand<BurnTokensArgs, any> {
       .describe("Set to true to confirm resolved token"),
     processId: z.string().describe("The AO token process ID, name, or ticker"),
     quantity: CommonSchemas.quantity.describe(
-      "Amount of tokens to burn (will be converted based on token denomination unless rawAmount is true)"
+      "Amount of tokens to burn (will be converted based on token denomination unless rawAmount is true)",
     ),
     rawAmount: z
       .boolean()
       .optional()
       .describe(
-        "Set to true to burn exact amount without denomination conversion"
+        "Set to true to burn exact amount without denomination conversion",
       ),
   });
 
@@ -39,13 +46,16 @@ export class BurnTokensCommand extends ToolCommand<BurnTokensArgs, any> {
     super();
   }
 
-  async execute(args: BurnTokensArgs): Promise<any> {
+  async execute(args: BurnTokensArgs): Promise<string> {
     try {
       // Dynamic import to avoid circular dependencies
       const { read, send } = await import("../../../process.js");
 
       // Resolve token processId if needed
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
@@ -122,7 +132,9 @@ export class BurnTokensCommand extends ToolCommand<BurnTokensArgs, any> {
         success: true,
       });
     } catch (error) {
-      throw new Error(`Failed to burn tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to burn tokens: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

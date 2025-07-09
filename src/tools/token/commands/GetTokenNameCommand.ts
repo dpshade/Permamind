@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 import { resolveToken } from "../utils/TokenResolver.js";
 
@@ -7,10 +8,11 @@ interface GetTokenNameArgs {
   processId: string;
 }
 
-export class GetTokenNameCommand extends ToolCommand<GetTokenNameArgs, any> {
+export class GetTokenNameCommand extends ToolCommand<GetTokenNameArgs, string> {
   protected metadata: ToolMetadata = {
+    description:
+      "Get the name of a token. Supports token names/tickers from registry.",
     name: "getTokenName",
-    description: "Get the name of a token. Supports token names/tickers from registry.",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Get Token Name",
@@ -28,11 +30,14 @@ export class GetTokenNameCommand extends ToolCommand<GetTokenNameArgs, any> {
     super();
   }
 
-  async execute(args: GetTokenNameArgs): Promise<any> {
+  async execute(args: GetTokenNameArgs): Promise<string> {
     try {
       const { read } = await import("../../../process.js");
 
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
@@ -60,7 +65,9 @@ export class GetTokenNameCommand extends ToolCommand<GetTokenNameArgs, any> {
         success: true,
       });
     } catch (error) {
-      throw new Error(`Failed to get token name: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to get token name: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

@@ -324,9 +324,7 @@ export class PermawebDocs {
       domains = this.detectRelevantDomains(query);
       // Always include glossary for definition/what is queries
       if (
-        /what is|define|definition|glossary|meaning|explain/i.test(
-          query,
-        ) &&
+        /what is|define|definition|glossary|meaning|explain/i.test(query) &&
         !domains.includes("permaweb-glossary")
       ) {
         domains.push("permaweb-glossary");

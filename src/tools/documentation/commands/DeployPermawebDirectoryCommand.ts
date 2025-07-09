@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { PermawebDeployService } from "../../../services/PermawebDeployService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class DeployPermawebDirectoryCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "deployPermawebDirectory",
     description: `Deploy a directory to the Permaweb using permaweb-deploy CLI with ArNS and undername support.
     This tool handles wallet management, directory validation, and deployment execution.
     
@@ -18,6 +18,7 @@ export class DeployPermawebDirectoryCommand extends ToolCommand<any, any> {
     - permaweb-deploy CLI tool must be installed
     - Wallet must have Turbo credits for deployment
     - Wallet must have ownership/controller privileges for the ArNS name`,
+    name: "deployPermawebDirectory",
     openWorldHint: true,
     readOnlyHint: false,
     title: "Deploy Directory to Permaweb",

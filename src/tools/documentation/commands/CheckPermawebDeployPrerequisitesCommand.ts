@@ -1,10 +1,13 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { PermawebDeployService } from "../../../services/PermawebDeployService.js";
 
-export class CheckPermawebDeployPrerequisitesCommand extends ToolCommand<any, any> {
+import { PermawebDeployService } from "../../../services/PermawebDeployService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
+export class CheckPermawebDeployPrerequisitesCommand extends ToolCommand<
+  any,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "checkPermawebDeployPrerequisites",
     description: `Check all prerequisites for permaweb deployment without attempting to deploy.
     This tool validates:
     - permaweb-deploy CLI installation
@@ -13,6 +16,7 @@ export class CheckPermawebDeployPrerequisitesCommand extends ToolCommand<any, an
     
     Returns detailed status of each check with helpful solutions for any issues found.
     Use this tool to verify your setup before attempting deployment.`,
+    name: "checkPermawebDeployPrerequisites",
     openWorldHint: true,
     readOnlyHint: true,
     title: "Check Permaweb Deploy Prerequisites",

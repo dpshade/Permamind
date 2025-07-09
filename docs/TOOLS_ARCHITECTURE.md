@@ -95,13 +95,13 @@ export class MyToolFactory extends BaseToolFactory {
 // In server.ts
 function setupToolRegistry() {
   const context: ToolContext = { keyPair, publicKey, hubId };
-  
+
   const myFactory = new MyToolFactory({
     categoryName: "MyCategory",
     categoryDescription: "My category of tools",
     context,
   });
-  
+
   myFactory.registerTools(toolRegistry);
 }
 ```
@@ -109,14 +109,16 @@ function setupToolRegistry() {
 ## Migration Status
 
 ### ✅ Completed
+
 - **Core Infrastructure**: Base classes and utilities
 - **Memory Tools**: All 10 memory tools migrated
 - **Server Integration**: Registry integrated with FastMCP server
 - **Tests**: Unit and integration tests for the new architecture
 
 ### 📋 Pending (Lower Priority)
+
 - **Token Tools**: 14 token management tools
-- **Contact Tools**: 4 contact/address management tools  
+- **Contact Tools**: 4 contact/address management tools
 - **Process Tools**: 7 process communication tools
 - **Documentation Tools**: 4 Permaweb documentation tools
 - **System Tools**: 3 system/server tools
@@ -124,12 +126,14 @@ function setupToolRegistry() {
 ## Testing
 
 ### Unit Tests
+
 - `tests/unit/tools/memory/MemoryToolFactory.unit.test.ts`
 - Tool command parameter validation
 - Tool metadata verification
 - Tool factory instantiation
 
 ### Integration Tests
+
 - `tests/integration/tools/memory/memoryTools.integration.test.ts`
 - End-to-end tool execution
 - Service integration testing
@@ -145,6 +149,7 @@ function setupToolRegistry() {
 ## Future Extensions
 
 The architecture is designed to easily support:
+
 - Dynamic tool loading
 - Plugin-based tool extensions
 - Tool versioning and compatibility

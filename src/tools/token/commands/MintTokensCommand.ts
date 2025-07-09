@@ -1,6 +1,12 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
-import { resolveToken, resolveAddress } from "../utils/TokenResolver.js";
+
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
+import { resolveAddress, resolveToken } from "../utils/TokenResolver.js";
 
 interface MintTokensArgs {
   confirmed?: boolean;
@@ -10,10 +16,11 @@ interface MintTokensArgs {
   recipient: string;
 }
 
-export class MintTokensCommand extends ToolCommand<MintTokensArgs, any> {
+export class MintTokensCommand extends ToolCommand<MintTokensArgs, string> {
   protected metadata: ToolMetadata = {
+    description:
+      "Create new tokens (owner only). Supports token names/tickers and contact names from registry.",
     name: "mintTokens",
-    description: "Create new tokens (owner only). Supports token names/tickers and contact names from registry.",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Mint Tokens",
@@ -26,13 +33,13 @@ export class MintTokensCommand extends ToolCommand<MintTokensArgs, any> {
       .describe("Set to true to confirm resolved tokens/addresses"),
     processId: z.string().describe("The AO token process ID, name, or ticker"),
     quantity: CommonSchemas.quantity.describe(
-      "Amount of tokens to mint (will be converted based on token denomination unless rawAmount is true)"
+      "Amount of tokens to mint (will be converted based on token denomination unless rawAmount is true)",
     ),
     rawAmount: z
       .boolean()
       .optional()
       .describe(
-        "Set to true to mint exact amount without denomination conversion"
+        "Set to true to mint exact amount without denomination conversion",
       ),
     recipient: z
       .string()
@@ -43,13 +50,16 @@ export class MintTokensCommand extends ToolCommand<MintTokensArgs, any> {
     super();
   }
 
-  async execute(args: MintTokensArgs): Promise<any> {
+  async execute(args: MintTokensArgs): Promise<string> {
     try {
       // Dynamic import to avoid circular dependencies
       const { read, send } = await import("../../../process.js");
 
       // Resolve token processId if needed
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
@@ -74,7 +84,10 @@ export class MintTokensCommand extends ToolCommand<MintTokensArgs, any> {
       const processId = tokenResolution.value!;
 
       // Resolve recipient address if needed
-      const addressResolution = await resolveAddress(args.recipient, this.context.hubId);
+      const addressResolution = await resolveAddress(
+        args.recipient,
+        this.context.hubId,
+      );
       if (!addressResolution.resolved) {
         return JSON.stringify({
           error: "Recipient resolution failed",
@@ -146,7 +159,9 @@ export class MintTokensCommand extends ToolCommand<MintTokensArgs, any> {
         success: true,
       });
     } catch (error) {
-      throw new Error(`Failed to mint tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to mint tokens: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

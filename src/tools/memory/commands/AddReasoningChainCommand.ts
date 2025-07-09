@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { aiMemoryService } from "../../../services/aiMemoryService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface AddReasoningChainArgs {
   chainId: string;
@@ -9,11 +10,14 @@ interface AddReasoningChainArgs {
   steps: string;
 }
 
-export class AddReasoningChainCommand extends ToolCommand<AddReasoningChainArgs, any> {
+export class AddReasoningChainCommand extends ToolCommand<
+  AddReasoningChainArgs,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "addReasoningChain",
     description: `Store AI reasoning steps and decision pathways. Useful for tracking chain-of-thought processes, 
       debugging AI decisions, and building reasoning history.`,
+    name: "addReasoningChain",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Add Reasoning Chain",
@@ -23,7 +27,9 @@ export class AddReasoningChainCommand extends ToolCommand<AddReasoningChainArgs,
     chainId: z.string().describe("Unique identifier for the reasoning chain"),
     outcome: z.string().describe("The final outcome or conclusion"),
     p: z.string().describe("The public key of the participant"),
-    steps: z.string().describe("JSON string containing array of reasoning steps"),
+    steps: z
+      .string()
+      .describe("JSON string containing array of reasoning steps"),
   });
 
   constructor(private context: ToolContext) {
@@ -46,7 +52,9 @@ export class AddReasoningChainCommand extends ToolCommand<AddReasoningChainArgs,
       );
       return result;
     } catch (error) {
-      throw new Error(`Failed to add reasoning chain: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to add reasoning chain: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

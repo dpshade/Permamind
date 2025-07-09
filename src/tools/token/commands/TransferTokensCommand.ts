@@ -1,6 +1,12 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
-import { resolveToken, resolveAddress } from "../utils/TokenResolver.js";
+
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
+import { resolveAddress, resolveToken } from "../utils/TokenResolver.js";
 
 interface TransferTokensArgs {
   confirmed?: boolean;
@@ -10,10 +16,14 @@ interface TransferTokensArgs {
   recipient: string;
 }
 
-export class TransferTokensCommand extends ToolCommand<TransferTokensArgs, any> {
+export class TransferTokensCommand extends ToolCommand<
+  TransferTokensArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Transfer tokens from your account to another address. Supports token names/tickers and contact names from registry.",
     name: "transferTokens",
-    description: "Transfer tokens from your account to another address. Supports token names/tickers and contact names from registry.",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Transfer Tokens",
@@ -26,13 +36,13 @@ export class TransferTokensCommand extends ToolCommand<TransferTokensArgs, any> 
       .describe("Set to true to confirm resolved tokens/addresses"),
     processId: z.string().describe("The AO token process ID, name, or ticker"),
     quantity: CommonSchemas.quantity.describe(
-      "Amount of tokens to transfer (will be converted based on token denomination unless rawAmount is true)"
+      "Amount of tokens to transfer (will be converted based on token denomination unless rawAmount is true)",
     ),
     rawAmount: z
       .boolean()
       .optional()
       .describe(
-        "Set to true to send exact amount without denomination conversion"
+        "Set to true to send exact amount without denomination conversion",
       ),
     recipient: z.string().describe("Address or contact name to send tokens to"),
   });
@@ -41,13 +51,16 @@ export class TransferTokensCommand extends ToolCommand<TransferTokensArgs, any> 
     super();
   }
 
-  async execute(args: TransferTokensArgs): Promise<any> {
+  async execute(args: TransferTokensArgs): Promise<string> {
     try {
       // Dynamic import to avoid circular dependencies
       const { read, send } = await import("../../../process.js");
 
       // Resolve token processId if needed
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
@@ -72,7 +85,10 @@ export class TransferTokensCommand extends ToolCommand<TransferTokensArgs, any> 
       const processId = tokenResolution.value!;
 
       // Resolve recipient address if needed
-      const addressResolution = await resolveAddress(args.recipient, this.context.hubId);
+      const addressResolution = await resolveAddress(
+        args.recipient,
+        this.context.hubId,
+      );
       if (!addressResolution.resolved) {
         return JSON.stringify({
           error: "Recipient resolution failed",
@@ -151,7 +167,9 @@ export class TransferTokensCommand extends ToolCommand<TransferTokensArgs, any> 
         },
       });
     } catch (error) {
-      throw new Error(`Failed to transfer tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to transfer tokens: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

@@ -1,5 +1,5 @@
-import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
 import { fetchEvents } from "../../../relay.js";
+import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
 
 export interface ResolutionResult<T> {
   matches?: T[];
@@ -22,15 +22,10 @@ interface TokenMatch {
   ticker?: string;
 }
 
-// Check if input looks like a processId (43-character base64-like string)
-function looksLikeProcessId(input: string): boolean {
-  return /^[A-Za-z0-9_-]{43}$/.test(input);
-}
-
 // Resolve contact name to address using memories
 export async function resolveAddress(
   input: string,
-  hubId: string
+  hubId: string,
 ): Promise<ResolutionResult<string>> {
   if (looksLikeProcessId(input)) {
     return { requiresVerification: false, resolved: true, value: input };
@@ -117,7 +112,7 @@ export async function resolveAddress(
 // Resolve token name/ticker to processId using memories
 export async function resolveToken(
   input: string,
-  hubId: string
+  hubId: string,
 ): Promise<ResolutionResult<string>> {
   if (looksLikeProcessId(input)) {
     return { requiresVerification: false, resolved: true, value: input };
@@ -204,7 +199,7 @@ export async function resolveToken(
       verificationMessage: `Multiple tokens found for "${input}": ${tokenMatches
         .map(
           (m) =>
-            `${m.name || m.ticker || "Unknown"} (${m.processId.slice(0, 8)}...)`
+            `${m.name || m.ticker || "Unknown"} (${m.processId.slice(0, 8)}...)`,
         )
         .join(", ")}. Please specify which one to use.`,
     };
@@ -215,4 +210,9 @@ export async function resolveToken(
       verificationMessage: `Error resolving token "${input}": ${error instanceof Error ? error.message : "Unknown error"}`,
     };
   }
+}
+
+// Check if input looks like a processId (43-character base64-like string)
+function looksLikeProcessId(input: string): boolean {
+  return /^[A-Za-z0-9_-]{43}$/.test(input);
 }

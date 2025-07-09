@@ -1,12 +1,14 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import type { PermawebDomain } from "../../../services/PermawebDocs.js";
+
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class ManagePermawebDocsCacheCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "managePermawebDocsCache",
     description: `Manage the Permaweb documentation cache. Check cache status, preload documentation, 
     or clear cached content for specific domains. Useful for ensuring fresh documentation or optimizing performance.`,
+    name: "managePermawebDocsCache",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Manage Permaweb Docs Cache",
@@ -32,7 +34,9 @@ export class ManagePermawebDocsCacheCommand extends ToolCommand<any, any> {
 
   async execute(args: any): Promise<any> {
     try {
-      const { permawebDocs } = await import("../../../services/PermawebDocs.js");
+      const { permawebDocs } = await import(
+        "../../../services/PermawebDocs.js"
+      );
 
       if (args.action === "status") {
         const status = permawebDocs.getCacheStatus();
@@ -45,7 +49,9 @@ export class ManagePermawebDocsCacheCommand extends ToolCommand<any, any> {
 
       if (args.action === "preload") {
         const domains = args.domains
-          ? (args.domains.split(",").map((d: string) => d.trim()) as PermawebDomain[])
+          ? (args.domains
+              .split(",")
+              .map((d: string) => d.trim()) as PermawebDomain[])
           : undefined;
         await permawebDocs.preload(domains);
         return JSON.stringify({

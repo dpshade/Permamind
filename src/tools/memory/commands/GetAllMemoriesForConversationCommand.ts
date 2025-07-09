@@ -1,17 +1,21 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { hubService } from "../../../services/hub.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface GetAllMemoriesForConversationArgs {
   user: string;
 }
 
-export class GetAllMemoriesForConversationCommand extends ToolCommand<GetAllMemoriesForConversationArgs, any> {
+export class GetAllMemoriesForConversationCommand extends ToolCommand<
+  GetAllMemoriesForConversationArgs,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "getAllMemoriesForConversation",
     description: `Retrieve all stored Memories from the hubId for the given p arg. Call this tool when you need 
       complete context of all previously stored Memories for the given p arg.
       Results are returned in JSON format with metadata.`,
+    name: "getAllMemoriesForConversation",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Get All Memories For a Conversation",
@@ -31,11 +35,13 @@ export class GetAllMemoriesForConversationCommand extends ToolCommand<GetAllMemo
     try {
       const memories = await hubService.fetchByUser(
         this.context.hubId,
-        args.user
+        args.user,
       );
       return JSON.stringify(memories);
     } catch (error) {
-      throw new Error(`Failed to get memories for conversation: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to get memories for conversation: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

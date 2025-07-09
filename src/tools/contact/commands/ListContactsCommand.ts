@@ -1,12 +1,13 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+
 import { fetchEvents } from "../../../relay.js";
+import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class ListContactsCommand extends ToolCommand<{}, any> {
   protected metadata: ToolMetadata = {
-    name: "listContacts",
     description: "List all saved contact mappings from the address book",
+    name: "listContacts",
     openWorldHint: false,
     readOnlyHint: true,
     title: "List Saved Contacts",
