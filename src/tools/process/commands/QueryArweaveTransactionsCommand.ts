@@ -1,11 +1,16 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
+import type {
+  SortOrder,
+  TagOperator,
+  TransactionQuery,
+} from "../../../models/ArweaveGraphQL.js";
+
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
-import type { TransactionQuery, SortOrder, TagOperator } from "../../../models/ArweaveGraphQL.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "queryArweaveTransactions",
     description: `Query Arweave transactions using GraphQL with comprehensive filtering options. 
     Supports filtering by owners, recipients, tags, blocks, and more. Uses Goldsky primary endpoint 
     with arweave.net fallback. Includes pagination support for large result sets.
@@ -32,6 +37,7 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
     - ALWAYS show App and Action if found in transaction tags
     - Show data size in human-readable format (MB, KB)
     - Use clean markdown formatting for clarity`,
+    name: "queryArweaveTransactions",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Query Arweave Transactions",

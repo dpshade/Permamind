@@ -1,17 +1,26 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
-import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+
 import { event } from "../../../relay.js";
+import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
 
 interface SaveAddressMappingArgs {
   address: string;
   name: string;
 }
 
-export class SaveAddressMappingCommand extends ToolCommand<SaveAddressMappingArgs, any> {
+export class SaveAddressMappingCommand extends ToolCommand<
+  SaveAddressMappingArgs,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "saveAddressMapping",
     description: "Save a contact name to address mapping for future use",
+    name: "saveAddressMapping",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Save Address Mapping",
@@ -41,7 +50,11 @@ export class SaveAddressMappingCommand extends ToolCommand<SaveAddressMappingArg
         { name: "domain", value: "address-book" },
       ];
 
-      const result = await event(this.context.keyPair, this.context.hubId, tags);
+      const result = await event(
+        this.context.keyPair,
+        this.context.hubId,
+        tags,
+      );
 
       return JSON.stringify({
         mapping: {

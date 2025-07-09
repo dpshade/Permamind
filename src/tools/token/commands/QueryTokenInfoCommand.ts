@@ -1,10 +1,19 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class QueryTokenInfoCommand extends ToolCommand<any, any> {
+interface QueryTokenInfoArgs {
+  processId: string;
+}
+
+export class QueryTokenInfoCommand extends ToolCommand<
+  QueryTokenInfoArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Query detailed token information from a deployed token process.",
     name: "queryTokenInfo",
-    description: "Query detailed token information from a deployed token process.",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Query Token Info",
@@ -18,8 +27,10 @@ export class QueryTokenInfoCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(_args: QueryTokenInfoArgs): Promise<string> {
     // Implementation would be moved from server.ts
-    throw new Error("QueryTokenInfoCommand implementation pending migration from server.ts");
+    throw new Error(
+      "QueryTokenInfoCommand implementation pending migration from server.ts",
+    );
   }
 }

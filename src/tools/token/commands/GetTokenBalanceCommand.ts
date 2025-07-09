@@ -1,6 +1,7 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { resolveToken, resolveAddress } from "../utils/TokenResolver.js";
+import { resolveAddress, resolveToken } from "../utils/TokenResolver.js";
 
 interface GetTokenBalanceArgs {
   confirmed?: boolean;
@@ -8,10 +9,14 @@ interface GetTokenBalanceArgs {
   target?: string;
 }
 
-export class GetTokenBalanceCommand extends ToolCommand<GetTokenBalanceArgs, any> {
+export class GetTokenBalanceCommand extends ToolCommand<
+  GetTokenBalanceArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Get token balance for a specific address. Supports token names/tickers and contact names from registry.",
     name: "getTokenBalance",
-    description: "Get token balance for a specific address. Supports token names/tickers and contact names from registry.",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Get Token Balance",
@@ -27,7 +32,7 @@ export class GetTokenBalanceCommand extends ToolCommand<GetTokenBalanceArgs, any
       .string()
       .optional()
       .describe(
-        "Address or contact name to check balance for (optional, defaults to your wallet address)"
+        "Address or contact name to check balance for (optional, defaults to your wallet address)",
       ),
   });
 
@@ -35,13 +40,16 @@ export class GetTokenBalanceCommand extends ToolCommand<GetTokenBalanceArgs, any
     super();
   }
 
-  async execute(args: GetTokenBalanceArgs): Promise<any> {
+  async execute(args: GetTokenBalanceArgs): Promise<string> {
     try {
       // Dynamic import to avoid circular dependencies
       const { read } = await import("../../../process.js");
 
       // Resolve token processId if needed
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
@@ -70,7 +78,10 @@ export class GetTokenBalanceCommand extends ToolCommand<GetTokenBalanceArgs, any
 
       if (args.target) {
         // Resolve target address if provided
-        const addressResolution = await resolveAddress(args.target, this.context.hubId);
+        const addressResolution = await resolveAddress(
+          args.target,
+          this.context.hubId,
+        );
         if (!addressResolution.resolved) {
           return JSON.stringify({
             error: "Target address resolution failed",

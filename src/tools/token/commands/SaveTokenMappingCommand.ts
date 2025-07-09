@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
-import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+
 import { event } from "../../../relay.js";
+import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
 
 interface SaveTokenMappingArgs {
   name: string;
@@ -9,10 +15,13 @@ interface SaveTokenMappingArgs {
   ticker: string;
 }
 
-export class SaveTokenMappingCommand extends ToolCommand<SaveTokenMappingArgs, any> {
+export class SaveTokenMappingCommand extends ToolCommand<
+  SaveTokenMappingArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
-    name: "saveTokenMapping",
     description: "Save a token name/ticker to processId mapping for future use",
+    name: "saveTokenMapping",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Save Token Mapping",
@@ -28,7 +37,7 @@ export class SaveTokenMappingCommand extends ToolCommand<SaveTokenMappingArgs, a
     super();
   }
 
-  async execute(args: SaveTokenMappingArgs): Promise<any> {
+  async execute(args: SaveTokenMappingArgs): Promise<string> {
     try {
       // Use dedicated token mapping kind for better filtering
       const tags = [
@@ -44,7 +53,11 @@ export class SaveTokenMappingCommand extends ToolCommand<SaveTokenMappingArgs, a
         { name: "domain", value: "token-registry" },
       ];
 
-      const result = await event(this.context.keyPair, this.context.hubId, tags);
+      const result = await event(
+        this.context.keyPair,
+        this.context.hubId,
+        tags,
+      );
 
       return JSON.stringify({
         mapping: {

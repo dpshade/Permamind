@@ -1,10 +1,20 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class GenerateTokenLuaCommand extends ToolCommand<any, any> {
+interface GenerateTokenLuaArgs {
+  // Parameters would be added here based on the original implementation
+  [key: string]: unknown;
+}
+
+export class GenerateTokenLuaCommand extends ToolCommand<
+  GenerateTokenLuaArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Generate Lua code for a token contract with specified configuration.",
     name: "generateTokenLua",
-    description: "Generate Lua code for a token contract with specified configuration.",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Generate Token Lua",
@@ -18,8 +28,10 @@ export class GenerateTokenLuaCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(_args: GenerateTokenLuaArgs): Promise<string> {
     // Implementation would be moved from server.ts
-    throw new Error("GenerateTokenLuaCommand implementation pending migration from server.ts");
+    throw new Error(
+      "GenerateTokenLuaCommand implementation pending migration from server.ts",
+    );
   }
 }

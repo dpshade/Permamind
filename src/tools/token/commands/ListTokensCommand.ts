@@ -1,12 +1,16 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
-import { fetchEvents } from "../../../relay.js";
 
-export class ListTokensCommand extends ToolCommand<{}, any> {
+import { fetchEvents } from "../../../relay.js";
+import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
+export class ListTokensCommand extends ToolCommand<
+  Record<string, never>,
+  string
+> {
   protected metadata: ToolMetadata = {
-    name: "listTokens",
     description: "List all saved token mappings from the registry",
+    name: "listTokens",
     openWorldHint: false,
     readOnlyHint: true,
     title: "List Saved Tokens",
@@ -18,7 +22,7 @@ export class ListTokensCommand extends ToolCommand<{}, any> {
     super();
   }
 
-  async execute(): Promise<any> {
+  async execute(): Promise<string> {
     try {
       // Use dedicated kind for efficient filtering
       const filter = {

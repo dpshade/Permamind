@@ -2,8 +2,8 @@ import { ToolCommand, ToolContext } from "./ToolCommand.js";
 import { ToolRegistry } from "./ToolRegistry.js";
 
 export interface ToolFactoryConfig {
-  categoryName: string;
   categoryDescription: string;
+  categoryName: string;
   context: ToolContext;
 }
 
@@ -17,23 +17,16 @@ export abstract class ToolFactory {
 
   abstract createTools(): ToolCommand[];
 
-  registerTools(registry: ToolRegistry): void {
-    if (this.tools.length === 0) {
-      this.tools = this.createTools();
-    }
-
-    registry.registerCategory(
-      this.config.categoryName,
-      this.config.categoryDescription,
-      this.tools
-    );
+  getCategoryDescription(): string {
+    return this.config.categoryDescription;
   }
 
-  getTools(): ToolCommand[] {
-    if (this.tools.length === 0) {
-      this.tools = this.createTools();
-    }
-    return this.tools;
+  getCategoryName(): string {
+    return this.config.categoryName;
+  }
+
+  getContext(): ToolContext {
+    return this.config.context;
   }
 
   getToolByName(name: string): ToolCommand | undefined {
@@ -44,24 +37,33 @@ export abstract class ToolFactory {
     return this.getTools().length;
   }
 
-  getCategoryName(): string {
-    return this.config.categoryName;
+  getTools(): ToolCommand[] {
+    if (this.tools.length === 0) {
+      this.tools = this.createTools();
+    }
+    return this.tools;
   }
 
-  getCategoryDescription(): string {
-    return this.config.categoryDescription;
-  }
+  registerTools(registry: ToolRegistry): void {
+    if (this.tools.length === 0) {
+      this.tools = this.createTools();
+    }
 
-  getContext(): ToolContext {
-    return this.config.context;
+    registry.registerCategory(
+      this.config.categoryName,
+      this.config.categoryDescription,
+      this.tools,
+    );
   }
 }
 
 export abstract class BaseToolFactory extends ToolFactory {
-  protected abstract getToolClasses(): Array<new (context: ToolContext) => ToolCommand>;
-
   createTools(): ToolCommand[] {
     const ToolClasses = this.getToolClasses();
     return ToolClasses.map((ToolClass) => new ToolClass(this.config.context));
   }
+
+  protected abstract getToolClasses(): Array<
+    new (context: ToolContext) => ToolCommand
+  >;
 }

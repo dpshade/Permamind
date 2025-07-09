@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { TokenToolFactory } from "../../../../src/tools/token/TokenToolFactory.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { ToolContext } from "../../../../src/tools/core/ToolCommand.js";
 import { ToolRegistry } from "../../../../src/tools/core/ToolRegistry.js";
+import { TokenToolFactory } from "../../../../src/tools/token/TokenToolFactory.js";
 
 // Mock the services
 vi.mock("../../../../src/relay.js", () => ({
@@ -27,28 +28,28 @@ describe("TokenToolFactory", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     context = {
-      keyPair: {} as any,
-      publicKey: "test-public-key",
       hubId: "test-hub-id",
+      keyPair: {} as unknown as CryptoKeyPair,
+      publicKey: "test-public-key",
     };
 
     registry = new ToolRegistry();
-    
+
     factory = new TokenToolFactory({
-      categoryName: "Token",
       categoryDescription: "Token management tools",
+      categoryName: "Token",
       context,
     });
   });
 
   it("should create token tools", () => {
     const tools = factory.createTools();
-    
+
     expect(tools).toHaveLength(16);
-    
-    const toolNames = tools.map(tool => tool.getMetadata().name);
+
+    const toolNames = tools.map((tool) => tool.getMetadata().name);
     expect(toolNames).toContain("saveTokenMapping");
     expect(toolNames).toContain("listTokens");
     expect(toolNames).toContain("transferTokens");
@@ -69,7 +70,7 @@ describe("TokenToolFactory", () => {
 
   it("should register tools with registry", () => {
     factory.registerTools(registry);
-    
+
     expect(registry.getToolCount()).toBe(16);
     expect(registry.hasCategory("Token")).toBe(true);
     expect(registry.getToolsByCategory("Token")).toHaveLength(16);
@@ -77,13 +78,17 @@ describe("TokenToolFactory", () => {
 
   it("should have correct tool metadata", () => {
     const tools = factory.createTools();
-    
-    const saveTokenTool = tools.find(tool => tool.getMetadata().name === "saveTokenMapping");
+
+    const saveTokenTool = tools.find(
+      (tool) => tool.getMetadata().name === "saveTokenMapping",
+    );
     expect(saveTokenTool).toBeDefined();
     expect(saveTokenTool!.getMetadata().title).toBe("Save Token Mapping");
     expect(saveTokenTool!.getMetadata().readOnlyHint).toBe(false);
-    
-    const listTokensTool = tools.find(tool => tool.getMetadata().name === "listTokens");
+
+    const listTokensTool = tools.find(
+      (tool) => tool.getMetadata().name === "listTokens",
+    );
     expect(listTokensTool).toBeDefined();
     expect(listTokensTool!.getMetadata().title).toBe("List Saved Tokens");
     expect(listTokensTool!.getMetadata().readOnlyHint).toBe(true);
@@ -91,26 +96,28 @@ describe("TokenToolFactory", () => {
 
   it("should create tools with correct parameter schemas", () => {
     const tools = factory.createTools();
-    
-    const saveTokenTool = tools.find(tool => tool.getMetadata().name === "saveTokenMapping");
+
+    const saveTokenTool = tools.find(
+      (tool) => tool.getMetadata().name === "saveTokenMapping",
+    );
     const schema = saveTokenTool!.getParametersSchema();
-    
+
     // Test that the schema validates correctly
     const validArgs = {
       name: "Test Token",
       processId: "abcdefghijklmnopqrstuvwxyz1234567890abcdefg", // Exactly 43 characters
       ticker: "TEST",
     };
-    
+
     const result = schema.safeParse(validArgs);
     expect(result.success).toBe(true);
-    
+
     // Test that invalid args are rejected
     const invalidArgs = {
       name: "Test Token",
       // Missing required fields
     };
-    
+
     const invalidResult = schema.safeParse(invalidArgs);
     expect(invalidResult.success).toBe(false);
   });

@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
-import { aiMemoryService } from "../../../services/aiMemoryService.js";
+
 import { MemoryType } from "../../../models/AIMemory.js";
+import { aiMemoryService } from "../../../services/aiMemoryService.js";
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
 
 interface AddMemoryEnhancedArgs {
   content: string;
@@ -16,12 +22,15 @@ interface AddMemoryEnhancedArgs {
   topic?: string;
 }
 
-export class AddMemoryEnhancedCommand extends ToolCommand<AddMemoryEnhancedArgs, any> {
+export class AddMemoryEnhancedCommand extends ToolCommand<
+  AddMemoryEnhancedArgs,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "addMemoryEnhanced",
     description: `PREFERRED: Use this enhanced tool to store ALL conversations with rich AI metadata including importance scoring, 
       memory type categorization, and contextual information. This should be your primary choice for storing memories.
       Automatically categorize conversations by type (conversation/reasoning/knowledge/procedure) and set appropriate importance scores.`,
+    name: "addMemoryEnhanced",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Add Enhanced Memory",
@@ -84,7 +93,9 @@ export class AddMemoryEnhancedCommand extends ToolCommand<AddMemoryEnhancedArgs,
       );
       return result;
     } catch (error) {
-      throw new Error(`Failed to add enhanced memory: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to add enhanced memory: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

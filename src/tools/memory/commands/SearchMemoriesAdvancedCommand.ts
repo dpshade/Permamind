@@ -1,8 +1,18 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata, CommonSchemas } from "../../core/index.js";
+
+import type {
+  PermawebDocsResult,
+  PermawebDomain,
+} from "../../../services/PermawebDocs.js";
+
 import { aiMemoryService } from "../../../services/aiMemoryService.js";
 import { PermawebDocs } from "../../../services/PermawebDocs.js";
-import type { PermawebDocsResult, PermawebDomain } from "../../../services/PermawebDocs.js";
+import {
+  CommonSchemas,
+  ToolCommand,
+  ToolContext,
+  ToolMetadata,
+} from "../../core/index.js";
 
 interface SearchMemoriesAdvancedArgs {
   domain?: string;
@@ -15,12 +25,15 @@ interface SearchMemoriesAdvancedArgs {
   startDate?: string;
 }
 
-export class SearchMemoriesAdvancedCommand extends ToolCommand<SearchMemoriesAdvancedArgs, any> {
+export class SearchMemoriesAdvancedCommand extends ToolCommand<
+  SearchMemoriesAdvancedArgs,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "searchMemoriesAdvanced",
     description: `Search memories with advanced filtering options including memory type, importance threshold, 
       time range, and contextual filters. Returns results ranked by relevance and importance. Can also include 
       live Permaweb documentation results for comprehensive answers.`,
+    name: "searchMemoriesAdvanced",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Advanced Memory Search",
@@ -62,11 +75,8 @@ export class SearchMemoriesAdvancedCommand extends ToolCommand<SearchMemoriesAdv
       if (args.includePermawebDocs !== false) {
         try {
           const permawebDocsService = new PermawebDocs();
-          const docsResult: PermawebDocsResult[] = await permawebDocsService.query(
-            args.query,
-            undefined,
-            10
-          );
+          const docsResult: PermawebDocsResult[] =
+            await permawebDocsService.query(args.query, undefined, 10);
           permawebResults = docsResult || [];
         } catch (error) {
           // Continue without Permaweb docs if there's an error
@@ -75,18 +85,19 @@ export class SearchMemoriesAdvancedCommand extends ToolCommand<SearchMemoriesAdv
 
       // Build filters for AI memory search
       const filters: any = {};
-      
+
       if (args.memoryType) filters.memoryType = args.memoryType;
       if (args.domain) filters.domain = args.domain;
       if (args.sessionId) filters.sessionId = args.sessionId;
-      if (args.importanceThreshold) filters.importanceThreshold = args.importanceThreshold;
+      if (args.importanceThreshold)
+        filters.importanceThreshold = args.importanceThreshold;
       if (args.startDate) filters.startDate = args.startDate;
       if (args.endDate) filters.endDate = args.endDate;
 
       const memories = await aiMemoryService.searchAdvanced(
         this.context.hubId,
         args.query,
-        filters
+        filters,
       );
 
       const response = {
@@ -101,7 +112,9 @@ export class SearchMemoriesAdvancedCommand extends ToolCommand<SearchMemoriesAdv
 
       return JSON.stringify(response);
     } catch (error) {
-      throw new Error(`Failed to perform advanced memory search: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to perform advanced memory search: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

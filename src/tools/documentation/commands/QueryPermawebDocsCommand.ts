@@ -1,14 +1,16 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import type { PermawebDocsResult } from "../../../services/PermawebDocs.js";
+
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class QueryPermawebDocsCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "queryPermawebDocs",
     description: `Query comprehensive Permaweb ecosystem documentation with intelligent domain detection. 
     Automatically searches through Arweave, AO, AR.IO, HyperBEAM, and Permaweb glossary based on your query. 
     Returns relevant documentation sections with high accuracy scoring. Includes automatic backoff 
     mechanism to reduce results if response size approaches context limits.`,
+    name: "queryPermawebDocs",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Query Permaweb Documentation",
@@ -40,7 +42,9 @@ export class QueryPermawebDocsCommand extends ToolCommand<any, any> {
 
   async execute(args: any): Promise<any> {
     try {
-      const { permawebDocs } = await import("../../../services/PermawebDocs.js");
+      const { permawebDocs } = await import(
+        "../../../services/PermawebDocs.js"
+      );
 
       // Progressive backoff strategy for context limit management
       const backoffLevels = [

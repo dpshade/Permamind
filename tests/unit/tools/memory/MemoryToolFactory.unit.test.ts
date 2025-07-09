@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { MemoryToolFactory } from "../../../../src/tools/memory/MemoryToolFactory.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
 import { ToolContext } from "../../../../src/tools/core/ToolCommand.js";
 import { ToolRegistry } from "../../../../src/tools/core/ToolRegistry.js";
+import { MemoryToolFactory } from "../../../../src/tools/memory/MemoryToolFactory.js";
 
 // Mock the services
 vi.mock("../../../../src/services/hub.js", () => ({
@@ -31,28 +32,28 @@ describe("MemoryToolFactory", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     context = {
-      keyPair: {} as any,
-      publicKey: "test-public-key",
       hubId: "test-hub-id",
+      keyPair: {} as unknown as CryptoKeyPair,
+      publicKey: "test-public-key",
     };
 
     registry = new ToolRegistry();
-    
+
     factory = new MemoryToolFactory({
-      categoryName: "Memory",
       categoryDescription: "Memory management tools",
+      categoryName: "Memory",
       context,
     });
   });
 
   it("should create memory tools", () => {
     const tools = factory.createTools();
-    
+
     expect(tools).toHaveLength(10);
-    
-    const toolNames = tools.map(tool => tool.getMetadata().name);
+
+    const toolNames = tools.map((tool) => tool.getMetadata().name);
     expect(toolNames).toContain("addMemory");
     expect(toolNames).toContain("addMemoryEnhanced");
     expect(toolNames).toContain("addMemoriesBatch");
@@ -67,7 +68,7 @@ describe("MemoryToolFactory", () => {
 
   it("should register tools with registry", () => {
     factory.registerTools(registry);
-    
+
     expect(registry.getToolCount()).toBe(10);
     expect(registry.hasCategory("Memory")).toBe(true);
     expect(registry.getToolsByCategory("Memory")).toHaveLength(10);
@@ -75,13 +76,17 @@ describe("MemoryToolFactory", () => {
 
   it("should have correct tool metadata", () => {
     const tools = factory.createTools();
-    
-    const addMemoryTool = tools.find(tool => tool.getMetadata().name === "addMemory");
+
+    const addMemoryTool = tools.find(
+      (tool) => tool.getMetadata().name === "addMemory",
+    );
     expect(addMemoryTool).toBeDefined();
     expect(addMemoryTool!.getMetadata().title).toBe("Add Memory");
     expect(addMemoryTool!.getMetadata().readOnlyHint).toBe(false);
-    
-    const searchMemoriesTool = tools.find(tool => tool.getMetadata().name === "searchMemories");
+
+    const searchMemoriesTool = tools.find(
+      (tool) => tool.getMetadata().name === "searchMemories",
+    );
     expect(searchMemoriesTool).toBeDefined();
     expect(searchMemoriesTool!.getMetadata().title).toBe("Search Memories");
     expect(searchMemoriesTool!.getMetadata().readOnlyHint).toBe(true);
@@ -89,36 +94,40 @@ describe("MemoryToolFactory", () => {
 
   it("should create tools with correct parameter schemas", () => {
     const tools = factory.createTools();
-    
-    const addMemoryTool = tools.find(tool => tool.getMetadata().name === "addMemory");
+
+    const addMemoryTool = tools.find(
+      (tool) => tool.getMetadata().name === "addMemory",
+    );
     const schema = addMemoryTool!.getParametersSchema();
-    
+
     // Test that the schema validates correctly
     const validArgs = {
       content: "Test memory content",
       p: "test-public-key",
       role: "user",
     };
-    
+
     const result = schema.safeParse(validArgs);
     expect(result.success).toBe(true);
-    
+
     // Test that invalid args are rejected
     const invalidArgs = {
       content: "Test memory content",
       // Missing required fields
     };
-    
+
     const invalidResult = schema.safeParse(invalidArgs);
     expect(invalidResult.success).toBe(false);
   });
 
   it("should create tool definitions", () => {
     const tools = factory.createTools();
-    const addMemoryTool = tools.find(tool => tool.getMetadata().name === "addMemory");
-    
+    const addMemoryTool = tools.find(
+      (tool) => tool.getMetadata().name === "addMemory",
+    );
+
     const definition = addMemoryTool!.toToolDefinition();
-    
+
     expect(definition.name).toBe("addMemory");
     expect(definition.description).toBe("Add a memory to the hub");
     expect(definition.parameters).toBeDefined();

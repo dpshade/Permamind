@@ -1,16 +1,20 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { aiMemoryService } from "../../../services/aiMemoryService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface GetMemoryAnalyticsArgs {
   p?: string;
 }
 
-export class GetMemoryAnalyticsCommand extends ToolCommand<GetMemoryAnalyticsArgs, any> {
+export class GetMemoryAnalyticsCommand extends ToolCommand<
+  GetMemoryAnalyticsArgs,
+  any
+> {
   protected metadata: ToolMetadata = {
-    name: "getMemoryAnalytics",
     description: `Get detailed analytics about memory usage, patterns, and insights. Provides metrics about 
       memory types, importance distributions, access patterns, and relationship networks.`,
+    name: "getMemoryAnalytics",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Get Memory Analytics",
@@ -31,11 +35,13 @@ export class GetMemoryAnalyticsCommand extends ToolCommand<GetMemoryAnalyticsArg
     try {
       const analytics = await aiMemoryService.getMemoryAnalytics(
         this.context.hubId,
-        args.p
+        args.p,
       );
       return JSON.stringify(analytics);
     } catch (error) {
-      throw new Error(`Failed to get memory analytics: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to get memory analytics: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

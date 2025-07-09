@@ -1,4 +1,4 @@
-import { BaseToolFactory, ToolContext, ToolCommand } from "../core/index.js";
+import { BaseToolFactory, ToolCommand, ToolContext } from "../core/index.js";
 
 export class SystemToolFactory extends BaseToolFactory {
   protected getToolClasses(): Array<new (context: ToolContext) => ToolCommand> {

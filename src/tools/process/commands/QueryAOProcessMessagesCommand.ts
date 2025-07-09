@@ -1,11 +1,15 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
+import type {
+  AOProcessQuery,
+  SortOrder,
+} from "../../../models/ArweaveGraphQL.js";
+
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
-import type { AOProcessQuery, SortOrder } from "../../../models/ArweaveGraphQL.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "queryAOProcessMessages",
     description: `Query AO (Autonomous Objects) process messages and interactions. 
     Filter by process IDs, message references, actions, and other AO-specific parameters. 
     Useful for tracking process communications and state changes.
@@ -32,6 +36,7 @@ export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
     - ALWAYS show App and Action if found in transaction tags
     - Show process communication flow (From → To)
     - Include message references when available`,
+    name: "queryAOProcessMessages",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Query AO Process Messages",

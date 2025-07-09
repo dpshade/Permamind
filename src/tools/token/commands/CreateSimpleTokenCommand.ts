@@ -1,9 +1,13 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { generateSimpleTokenLua, type SimpleTokenConfig } from "../../../services/simpleToken.js";
-import { tokenService } from "../../../services/tokenservice.js";
+
 import { event } from "../../../relay.js";
 import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
+import {
+  generateSimpleTokenLua,
+  type SimpleTokenConfig,
+} from "../../../services/simpleToken.js";
+import { tokenService } from "../../../services/tokenservice.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface CreateSimpleTokenArgs {
   denomination?: number;
@@ -12,10 +16,14 @@ interface CreateSimpleTokenArgs {
   totalSupply: string;
 }
 
-export class CreateSimpleTokenCommand extends ToolCommand<CreateSimpleTokenArgs, any> {
+export class CreateSimpleTokenCommand extends ToolCommand<
+  CreateSimpleTokenArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Create a simple token with basic transfer functionality. No minting, burning, or advanced features.",
     name: "createSimpleToken",
-    description: "Create a simple token with basic transfer functionality. No minting, burning, or advanced features.",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Create Simple Token",
@@ -35,7 +43,7 @@ export class CreateSimpleTokenCommand extends ToolCommand<CreateSimpleTokenArgs,
     super();
   }
 
-  async execute(args: CreateSimpleTokenArgs): Promise<any> {
+  async execute(args: CreateSimpleTokenArgs): Promise<string> {
     try {
       const config: SimpleTokenConfig = {
         denomination: args.denomination || 12,
@@ -48,7 +56,10 @@ export class CreateSimpleTokenCommand extends ToolCommand<CreateSimpleTokenArgs,
       const tokenLua = generateSimpleTokenLua(config);
 
       // Create the process
-      const processId = await tokenService.create(this.context.keyPair, tokenLua);
+      const processId = await tokenService.create(
+        this.context.keyPair,
+        tokenLua,
+      );
 
       // Save token mapping for future reference
       const tags = [
@@ -78,7 +89,9 @@ export class CreateSimpleTokenCommand extends ToolCommand<CreateSimpleTokenArgs,
         success: true,
       });
     } catch (error) {
-      throw new Error(`Failed to create simple token: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to create simple token: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

@@ -1,11 +1,12 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
+
 import type { BlockQuery, SortOrder } from "../../../models/ArweaveGraphQL.js";
+
+import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class QueryBlockInfoCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "queryBlockInfo",
     description: `Query Arweave block information with filtering by height ranges or specific block IDs. 
     Includes pagination support for querying multiple blocks efficiently.
     
@@ -28,6 +29,7 @@ export class QueryBlockInfoCommand extends ToolCommand<any, any> {
     - Always show block height prominently
     - Show previous block relationship when available
     - Use clean markdown formatting for clarity`,
+    name: "queryBlockInfo",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Query Block Information",

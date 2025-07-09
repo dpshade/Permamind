@@ -1,10 +1,20 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class CreateConfigurableTokenCommand extends ToolCommand<any, any> {
+interface CreateConfigurableTokenArgs {
+  name: string;
+  ticker: string;
+}
+
+export class CreateConfigurableTokenCommand extends ToolCommand<
+  CreateConfigurableTokenArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Create a configurable token with advanced features like minting, burning, and ownership controls.",
     name: "createConfigurableToken",
-    description: "Create a configurable token with advanced features like minting, burning, and ownership controls.",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Create Configurable Token",
@@ -20,8 +30,10 @@ export class CreateConfigurableTokenCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(_args: CreateConfigurableTokenArgs): Promise<string> {
     // Implementation would be moved from server.ts
-    throw new Error("CreateConfigurableTokenCommand implementation pending migration from server.ts");
+    throw new Error(
+      "CreateConfigurableTokenCommand implementation pending migration from server.ts",
+    );
   }
 }

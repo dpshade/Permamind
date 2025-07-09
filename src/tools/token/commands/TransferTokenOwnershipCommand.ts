@@ -1,17 +1,22 @@
 import { z } from "zod";
+
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
-import { resolveToken, resolveAddress } from "../utils/TokenResolver.js";
+import { resolveAddress, resolveToken } from "../utils/TokenResolver.js";
 
 interface TransferTokenOwnershipArgs {
   confirmed?: boolean;
-  processId: string;
   newOwner: string;
+  processId: string;
 }
 
-export class TransferTokenOwnershipCommand extends ToolCommand<TransferTokenOwnershipArgs, any> {
+export class TransferTokenOwnershipCommand extends ToolCommand<
+  TransferTokenOwnershipArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
+    description:
+      "Transfer token ownership to another address (current owner only). Supports token names/tickers and contact names from registry.",
     name: "transferTokenOwnership",
-    description: "Transfer token ownership to another address (current owner only). Supports token names/tickers and contact names from registry.",
     openWorldHint: false,
     readOnlyHint: false,
     title: "Transfer Token Ownership",
@@ -22,33 +27,38 @@ export class TransferTokenOwnershipCommand extends ToolCommand<TransferTokenOwne
       .boolean()
       .optional()
       .describe("Set to true to confirm resolved token/address"),
-    processId: z.string().describe("The AO token process ID, name, or ticker"),
     newOwner: z.string().describe("Address or contact name of the new owner"),
+    processId: z.string().describe("The AO token process ID, name, or ticker"),
   });
 
   constructor(private context: ToolContext) {
     super();
   }
 
-  async execute(args: TransferTokenOwnershipArgs): Promise<any> {
+  async execute(args: TransferTokenOwnershipArgs): Promise<string> {
     try {
       // Dynamic import to avoid circular dependencies
       const { send } = await import("../../../process.js");
 
       // Resolve token processId if needed
-      const tokenResolution = await resolveToken(args.processId, this.context.hubId);
+      const tokenResolution = await resolveToken(
+        args.processId,
+        this.context.hubId,
+      );
       if (!tokenResolution.resolved) {
         return JSON.stringify({
           error: "Token resolution failed",
           message: tokenResolution.verificationMessage,
           success: false,
-          suggestion: "Use saveTokenMapping to register this token or provide a valid processId",
+          suggestion:
+            "Use saveTokenMapping to register this token or provide a valid processId",
         });
       }
 
       if (tokenResolution.requiresVerification && !args.confirmed) {
         return JSON.stringify({
-          instruction: "Add 'confirmed: true' to your request to proceed with this token",
+          instruction:
+            "Add 'confirmed: true' to your request to proceed with this token",
           message: tokenResolution.verificationMessage,
           requiresConfirmation: true,
           resolvedToken: tokenResolution.value,
@@ -59,19 +69,24 @@ export class TransferTokenOwnershipCommand extends ToolCommand<TransferTokenOwne
       const processId = tokenResolution.value!;
 
       // Resolve new owner address if needed
-      const addressResolution = await resolveAddress(args.newOwner, this.context.hubId);
+      const addressResolution = await resolveAddress(
+        args.newOwner,
+        this.context.hubId,
+      );
       if (!addressResolution.resolved) {
         return JSON.stringify({
           error: "New owner address resolution failed",
           message: addressResolution.verificationMessage,
           success: false,
-          suggestion: "Use saveAddressMapping to register this contact or provide a valid address",
+          suggestion:
+            "Use saveAddressMapping to register this contact or provide a valid address",
         });
       }
 
       if (addressResolution.requiresVerification && !args.confirmed) {
         return JSON.stringify({
-          instruction: "Add 'confirmed: true' to your request to proceed with this new owner",
+          instruction:
+            "Add 'confirmed: true' to your request to proceed with this new owner",
           message: addressResolution.verificationMessage,
           requiresConfirmation: true,
           resolvedNewOwner: addressResolution.value,
@@ -99,7 +114,9 @@ export class TransferTokenOwnershipCommand extends ToolCommand<TransferTokenOwne
         success: true,
       });
     } catch (error) {
-      throw new Error(`Failed to transfer token ownership: ${error instanceof Error ? error.message : "Unknown error"}`);
+      throw new Error(
+        `Failed to transfer token ownership: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }

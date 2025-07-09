@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class ExecuteGraphQLQueryCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "executeGraphQLQuery",
     description: `Execute a custom GraphQL query against Arweave's GraphQL API. 
     Supports full GraphQL syntax with variables. Use this for advanced queries 
     not covered by the specialized tools. Includes automatic endpoint fallback.
@@ -31,6 +31,7 @@ export class ExecuteGraphQLQueryCommand extends ToolCommand<any, any> {
     - ALWAYS show App and Action if found in transaction tags
     - Present data in structured, readable format
     - Group related information logically`,
+    name: "executeGraphQLQuery",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Execute Custom GraphQL Query",

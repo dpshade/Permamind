@@ -1,10 +1,10 @@
 import { z } from "zod";
-import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
+
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
+import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class GetTransactionDetailsCommand extends ToolCommand<any, any> {
   protected metadata: ToolMetadata = {
-    name: "getTransactionDetails",
     description: `Get detailed information for a specific Arweave transaction by ID. 
     Returns comprehensive transaction data including tags, block information, 
     data size, and bundle information if applicable.
@@ -28,6 +28,7 @@ export class GetTransactionDetailsCommand extends ToolCommand<any, any> {
     - Display all relevant tags in a readable format
     - Show parent transaction if available
     - Include comprehensive transaction metadata`,
+    name: "getTransactionDetails",
     openWorldHint: false,
     readOnlyHint: true,
     title: "Get Transaction Details",
