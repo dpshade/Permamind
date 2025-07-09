@@ -3,10 +3,10 @@ import { z } from "zod";
 import type {
   PermawebDocsResult,
   PermawebDomain,
-} from "../../../services/PermawebDocs.js";
+} from "../../../services/PermawebDocsService.js";
 
-import { aiMemoryService } from "../../../services/aiMemoryService.js";
-import { PermawebDocs } from "../../../services/PermawebDocs.js";
+import { aiMemoryService } from "../../../services/AIMemoryService.js";
+import { PermawebDocs } from "../../../services/PermawebDocsService.js";
 import {
   CommonSchemas,
   ToolCommand,

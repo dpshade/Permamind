@@ -10,7 +10,7 @@ import { getKeyFromMnemonic } from "./mnemonic.js";
 // MemoryType is now imported via the tools module
 import { ProfileCreateData } from "./models/Profile.js";
 import { defaultProcessService } from "./services/DefaultProcessService.js";
-import { hubRegistryService } from "./services/registry.js";
+import { hubRegistryService } from "./services/RegistryService.js";
 import { ContactToolFactory } from "./tools/contact/ContactToolFactory.js";
 import { DocumentationToolFactory } from "./tools/documentation/DocumentationToolFactory.js";
 import { ToolContext, toolRegistry } from "./tools/index.js";
@@ -170,14 +170,14 @@ function registerToolsFromRegistry() {
 
 // Initialize in background (silent for stdio transport)
 init()
-.then(() => {
-  // After initialization, set up the tool registry
-  setupToolRegistry();
-  registerToolsFromRegistry();
-  server.start({
-    transportType: "stdio",
+  .then(() => {
+    // After initialization, set up the tool registry
+    setupToolRegistry();
+    registerToolsFromRegistry();
+    server.start({
+      transportType: "stdio",
+    });
+  })
+  .catch(() => {
+    // Silent error handling for stdio transport compatibility
   });
-})
-.catch(() => {
-  // Silent error handling for stdio transport compatibility
-});

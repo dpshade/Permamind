@@ -6,7 +6,7 @@ import {
   getDefaultTokenProcess,
   isTokenProcess,
   TOKEN_DETECTION_PATTERNS,
-} from "../templates/defaultTokenProcess.js";
+} from "../templates/DefaultTokenProcess.js";
 
 /**
  * Default Process Service

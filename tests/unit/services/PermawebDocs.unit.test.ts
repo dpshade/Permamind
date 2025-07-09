@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import {
   PermawebDocs,
   type PermawebDomain,
-} from "../../../src/services/PermawebDocs.js";
+} from "../../../src/services/PermawebDocsService.js";
 
 // Mock fetch globally
 global.fetch = vi.fn();

@@ -7,9 +7,9 @@ import {
   vi,
 } from "vitest";
 
-import { generateSimpleTokenLua } from "../../src/services/simpleToken.js";
-import { generateTokenLua } from "../../src/services/token_lua.js";
-import { tokenService } from "../../src/services/tokenservice.js";
+import { generateSimpleTokenLua } from "../../src/services/SimpleTokenService.js";
+import { generateTokenLua } from "../../src/services/TokenLuaService.js";
+import { tokenService } from "../../src/services/TokenService.js";
 import { mockKeyPair } from "../mocks/aoConnect.js";
 
 // Mock dependencies

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { hubService } from "../../../services/hub.js";
+import { hubService } from "../../../services/HubService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 export class GetAllMemoriesCommand extends ToolCommand<{}, any> {

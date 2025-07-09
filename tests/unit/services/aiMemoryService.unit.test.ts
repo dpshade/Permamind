@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { aiMemoryService } from "../../../src/services/aiMemoryService.js";
+import { aiMemoryService } from "../../../src/services/AIMemoryService.js";
 import {
   basicMemory,
   batchMemories,

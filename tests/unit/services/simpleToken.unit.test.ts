@@ -4,7 +4,7 @@ import {
   generateSimpleTokenLua,
   type SimpleTokenConfig,
   validateSimpleTokenConfig,
-} from "../../../src/services/simpleToken.js";
+} from "../../../src/services/SimpleTokenService.js";
 
 describe("SimpleToken Service", () => {
   describe("validateSimpleTokenConfig", () => {
