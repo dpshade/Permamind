@@ -324,7 +324,7 @@ export class PermawebDocs {
       domains = this.detectRelevantDomains(query);
       // Always include glossary for definition/what is queries
       if (
-        /\bwhat is\b|\bdefine\b|\bdefinition\b|\bglossary\b|\bmeaning\b|\bexplain\b/i.test(
+        /what is|define|definition|glossary|meaning|explain/i.test(
           query,
         ) &&
         !domains.includes("permaweb-glossary")
@@ -605,7 +605,6 @@ export class PermawebDocs {
         if (attempt < maxRetries && !isTimeout) {
           const delayMs = Math.pow(2, attempt) * 1000;
           if (this.debugMode) {
-            console.log(`[PermawebDocs] Retrying ${domain} in ${delayMs}ms...`);
           }
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         } else {

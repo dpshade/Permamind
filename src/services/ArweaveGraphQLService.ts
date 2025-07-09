@@ -509,8 +509,6 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
       `;
 
       if (this.debugMode) {
-        console.log("[ArweaveGraphQL] Query:", query);
-        console.log("[ArweaveGraphQL] Variables:", variables);
       }
 
       const response = await this.executeGraphQLRequest<{
@@ -572,7 +570,6 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
           );
 
           if (this.debugMode) {
-            console.log(`[ArweaveGraphQL] Success with ${endpoint.name}`);
           }
 
           return response;
