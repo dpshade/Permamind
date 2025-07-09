@@ -56,3 +56,4 @@ export class LinkMemoriesCommand extends ToolCommand<LinkMemoriesArgs, any> {
       throw new Error(`Failed to link memories: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

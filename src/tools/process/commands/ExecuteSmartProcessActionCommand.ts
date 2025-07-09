@@ -46,3 +46,4 @@ export class ExecuteSmartProcessActionCommand extends ToolCommand<any, any> {
       });
     }
   }
+}

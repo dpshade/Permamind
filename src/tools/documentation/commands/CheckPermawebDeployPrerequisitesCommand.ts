@@ -70,3 +70,4 @@ export class CheckPermawebDeployPrerequisitesCommand extends ToolCommand<any, an
       });
     }
   }
+}

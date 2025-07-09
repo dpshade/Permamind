@@ -58,3 +58,4 @@ export class AddMemoryCommand extends ToolCommand<AddMemoryArgs, any> {
       throw new Error(`Failed to add memory: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

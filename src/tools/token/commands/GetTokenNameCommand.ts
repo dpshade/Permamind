@@ -63,3 +63,4 @@ export class GetTokenNameCommand extends ToolCommand<GetTokenNameArgs, any> {
       throw new Error(`Failed to get token name: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

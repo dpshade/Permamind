@@ -35,3 +35,4 @@ export class SearchMemoriesCommand extends ToolCommand<SearchMemoriesArgs, any> 
       throw new Error(`Failed to search memories: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

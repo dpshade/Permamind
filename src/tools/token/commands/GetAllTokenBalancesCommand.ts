@@ -62,3 +62,4 @@ export class GetAllTokenBalancesCommand extends ToolCommand<GetAllTokenBalancesA
       throw new Error(`Failed to get all token balances: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

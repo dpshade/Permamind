@@ -109,3 +109,4 @@ export abstract class ToolCommand<TArgs = any, TResult = any> {
       },
     };
   }
+}

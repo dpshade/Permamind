@@ -49,3 +49,4 @@ export class AddReasoningChainCommand extends ToolCommand<AddReasoningChainArgs,
       throw new Error(`Failed to add reasoning chain: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

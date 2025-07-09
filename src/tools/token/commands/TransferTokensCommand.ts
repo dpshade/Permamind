@@ -154,3 +154,4 @@ export class TransferTokensCommand extends ToolCommand<TransferTokensArgs, any> 
       throw new Error(`Failed to transfer tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

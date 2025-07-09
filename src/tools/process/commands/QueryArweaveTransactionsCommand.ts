@@ -163,3 +163,4 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
       });
     }
   }
+}

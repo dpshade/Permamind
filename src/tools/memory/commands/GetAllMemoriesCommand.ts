@@ -27,3 +27,4 @@ export class GetAllMemoriesCommand extends ToolCommand<{}, any> {
       throw new Error(`Failed to get all memories: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

@@ -22,3 +22,4 @@ export class QueryTokenInfoCommand extends ToolCommand<any, any> {
     // Implementation would be moved from server.ts
     throw new Error("QueryTokenInfoCommand implementation pending migration from server.ts");
   }
+}

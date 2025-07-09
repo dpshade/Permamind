@@ -38,3 +38,4 @@ export class GetAllMemoriesForConversationCommand extends ToolCommand<GetAllMemo
       throw new Error(`Failed to get memories for conversation: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

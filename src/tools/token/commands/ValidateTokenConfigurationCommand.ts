@@ -22,3 +22,4 @@ export class ValidateTokenConfigurationCommand extends ToolCommand<any, any> {
     // Implementation would be moved from server.ts
     throw new Error("ValidateTokenConfigurationCommand implementation pending migration from server.ts");
   }
+}

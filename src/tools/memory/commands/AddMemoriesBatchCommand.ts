@@ -40,3 +40,4 @@ export class AddMemoriesBatchCommand extends ToolCommand<AddMemoriesBatchArgs, a
       throw new Error(`Failed to add memories batch: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

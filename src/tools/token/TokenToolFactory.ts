@@ -37,3 +37,4 @@ export class TokenToolFactory extends BaseToolFactory {
       QueryTokenInfoCommand,
     ];
   }
+}

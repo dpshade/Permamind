@@ -59,3 +59,4 @@ export class SaveAddressMappingCommand extends ToolCommand<SaveAddressMappingArg
       });
     }
   }
+}

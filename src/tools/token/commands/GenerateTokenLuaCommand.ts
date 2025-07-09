@@ -22,3 +22,4 @@ export class GenerateTokenLuaCommand extends ToolCommand<any, any> {
     // Implementation would be moved from server.ts
     throw new Error("GenerateTokenLuaCommand implementation pending migration from server.ts");
   }
+}

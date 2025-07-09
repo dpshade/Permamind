@@ -120,3 +120,4 @@ export class GetTokenBalanceCommand extends ToolCommand<GetTokenBalanceArgs, any
       });
     }
   }
+}

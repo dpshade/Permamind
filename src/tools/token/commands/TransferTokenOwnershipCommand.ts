@@ -102,3 +102,4 @@ export class TransferTokenOwnershipCommand extends ToolCommand<TransferTokenOwne
       throw new Error(`Failed to transfer token ownership: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}

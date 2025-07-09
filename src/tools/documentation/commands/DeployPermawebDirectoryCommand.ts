@@ -77,3 +77,4 @@ export class DeployPermawebDirectoryCommand extends ToolCommand<any, any> {
       });
     }
   }
+}

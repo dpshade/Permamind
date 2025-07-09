@@ -104,3 +104,4 @@ export class SearchMemoriesAdvancedCommand extends ToolCommand<SearchMemoriesAdv
       throw new Error(`Failed to perform advanced memory search: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }
+}
