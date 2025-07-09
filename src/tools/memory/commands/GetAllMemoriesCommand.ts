@@ -3,7 +3,10 @@ import { z } from "zod";
 import { hubService } from "../../../services/hub.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class GetAllMemoriesCommand extends ToolCommand<{}, any> {
+export class GetAllMemoriesCommand extends ToolCommand<
+  Record<string, never>,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Retrieve all stored Memories for the hubId. Call this tool when you need 
       complete context of all previously stored Memories.
@@ -20,7 +23,7 @@ export class GetAllMemoriesCommand extends ToolCommand<{}, any> {
     super();
   }
 
-  async execute(): Promise<any> {
+  async execute(): Promise<string> {
     try {
       const memories = await hubService.fetch(this.context.hubId);
       return JSON.stringify(memories);

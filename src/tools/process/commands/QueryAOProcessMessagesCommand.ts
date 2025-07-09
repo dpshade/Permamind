@@ -1,14 +1,28 @@
 import { z } from "zod";
 
-import type {
-  AOProcessQuery,
-  SortOrder,
-} from "../../../models/ArweaveGraphQL.js";
-
+import { AOProcessQuery, SortOrder } from "../../../models/ArweaveGraphQL.js";
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
+interface QueryAOProcessMessagesArgs {
+  action?: string;
+  after?: string;
+  before?: string;
+  first?: number;
+  fromProcessId?: string;
+  last?: number;
+  msgRefs?: string[];
+  processId?: string;
+  reference?: string;
+  sort?: SortOrder;
+  sortOrder?: SortOrder;
+  toProcessId?: string;
+}
+
+export class QueryAOProcessMessagesCommand extends ToolCommand<
+  QueryAOProcessMessagesArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Query AO (Autonomous Objects) process messages and interactions. 
     Filter by process IDs, message references, actions, and other AO-specific parameters. 
@@ -48,6 +62,7 @@ export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
       .optional()
       .describe("Filter by action type (e.g., 'Transfer', 'Mint')"),
     after: z.string().optional().describe("Cursor for pagination"),
+    before: z.string().optional().describe("Cursor for pagination"),
     first: z
       .number()
       .min(1)
@@ -58,17 +73,24 @@ export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
       .string()
       .optional()
       .describe("Filter by sender process ID"),
+    last: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of results to return from the end"),
     msgRefs: z
       .array(z.string())
       .optional()
       .describe("Array of message reference IDs"),
+    processId: z.string().optional().describe("Filter by process ID"),
+    reference: z.string().optional().describe("Filter by message reference"),
     sort: z
-      .enum([
-        "HEIGHT_ASC",
-        "HEIGHT_DESC",
-        "INGESTED_AT_ASC",
-        "INGESTED_AT_DESC",
-      ])
+      .nativeEnum(SortOrder)
+      .optional()
+      .describe("Sort order (default: INGESTED_AT_DESC)"),
+    sortOrder: z
+      .nativeEnum(SortOrder)
       .optional()
       .describe("Sort order (default: INGESTED_AT_DESC)"),
     toProcessId: z
@@ -81,7 +103,7 @@ export class QueryAOProcessMessagesCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: QueryAOProcessMessagesArgs): Promise<string> {
     try {
       const query: AOProcessQuery = {
         first: args.first || 10,

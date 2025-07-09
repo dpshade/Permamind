@@ -27,8 +27,13 @@ export class ValidateTokenConfigurationCommand extends ToolCommand<
     super();
   }
 
-  async execute(_args: ValidateTokenConfigurationArgs): Promise<string> {
+  async execute(
+    _args: ValidateTokenConfigurationArgs,
+    _context: ToolContext,
+  ): Promise<string> {
     // Implementation would be moved from server.ts
+    void _args; // Explicitly mark as unused
+    void _context; // Explicitly mark as unused
     throw new Error(
       "ValidateTokenConfigurationCommand implementation pending migration from server.ts",
     );

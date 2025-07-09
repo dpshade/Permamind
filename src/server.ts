@@ -170,14 +170,14 @@ function registerToolsFromRegistry() {
 
 // Initialize in background (silent for stdio transport)
 init()
-.then(() => {
-  // After initialization, set up the tool registry
-  setupToolRegistry();
-  registerToolsFromRegistry();
-  server.start({
-    transportType: "stdio",
+  .then(() => {
+    // After initialization, set up the tool registry
+    setupToolRegistry();
+    registerToolsFromRegistry();
+    server.start({
+      transportType: "stdio",
+    });
+  })
+  .catch(() => {
+    // Silent error handling for stdio transport compatibility
   });
-})
-.catch(() => {
-  // Silent error handling for stdio transport compatibility
-});

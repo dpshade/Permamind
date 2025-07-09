@@ -14,16 +14,16 @@ export interface ToolDefinition {
     title?: string;
   };
   description: string;
-  execute: (args: any) => Promise<any>;
+  execute: (args: unknown) => Promise<string>;
   name: string;
-  parameters: z.ZodSchema<any>;
+  parameters: z.ZodSchema<unknown>;
 }
 
 export interface ToolExecutionResult {
-  data?: any;
+  data?: unknown;
   error?: {
     code: string;
-    details?: any;
+    details?: unknown;
     message: string;
   };
   success: boolean;
@@ -37,7 +37,7 @@ export interface ToolMetadata {
   title?: string;
 }
 
-export abstract class ToolCommand<TArgs = any, TResult = any> {
+export abstract class ToolCommand<TArgs = unknown, TResult = unknown> {
   protected abstract metadata: ToolMetadata;
   protected abstract parametersSchema: z.ZodSchema<TArgs>;
 
@@ -59,10 +59,10 @@ export abstract class ToolCommand<TArgs = any, TResult = any> {
         title: this.metadata.title ?? this.metadata.name,
       },
       description: this.metadata.description,
-      execute: async (args: any) => {
-        const result = await this.safeExecute(args, context);
+      execute: async (args: unknown) => {
+        const result = await this.safeExecute(args as TArgs, context);
         if (result.success) {
-          return result.data;
+          return result.data as string;
         } else {
           throw new Error(result.error?.message || "Tool execution failed");
         }
@@ -75,7 +75,7 @@ export abstract class ToolCommand<TArgs = any, TResult = any> {
   protected createErrorResult(
     code: string,
     message: string,
-    details?: any,
+    details?: unknown,
   ): ToolExecutionResult {
     return {
       error: {

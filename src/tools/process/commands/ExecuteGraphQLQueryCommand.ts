@@ -3,7 +3,15 @@ import { z } from "zod";
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class ExecuteGraphQLQueryCommand extends ToolCommand<any, any> {
+interface ExecuteGraphQLQueryArgs {
+  query: string;
+  variables?: string;
+}
+
+export class ExecuteGraphQLQueryCommand extends ToolCommand<
+  ExecuteGraphQLQueryArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Execute a custom GraphQL query against Arweave's GraphQL API. 
     Supports full GraphQL syntax with variables. Use this for advanced queries 
@@ -49,7 +57,7 @@ export class ExecuteGraphQLQueryCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: ExecuteGraphQLQueryArgs): Promise<string> {
     try {
       const variables = args.variables ? JSON.parse(args.variables) : undefined;
       const result = await arweaveGraphQLService.executeCustomQuery(

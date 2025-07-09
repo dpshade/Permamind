@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-import type {
-  PermawebDocsResult,
-  PermawebDomain,
-} from "../../../services/PermawebDocs.js";
+import type { PermawebDocsResult } from "../../../services/PermawebDocs.js";
 
 import { aiMemoryService } from "../../../services/aiMemoryService.js";
 import { PermawebDocs } from "../../../services/PermawebDocs.js";
@@ -27,7 +24,7 @@ interface SearchMemoriesAdvancedArgs {
 
 export class SearchMemoriesAdvancedCommand extends ToolCommand<
   SearchMemoriesAdvancedArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Search memories with advanced filtering options including memory type, importance threshold, 
@@ -67,7 +64,7 @@ export class SearchMemoriesAdvancedCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: SearchMemoriesAdvancedArgs): Promise<any> {
+  async execute(args: SearchMemoriesAdvancedArgs): Promise<string> {
     try {
       let permawebResults: PermawebDocsResult[] = [];
 
@@ -78,13 +75,13 @@ export class SearchMemoriesAdvancedCommand extends ToolCommand<
           const docsResult: PermawebDocsResult[] =
             await permawebDocsService.query(args.query, undefined, 10);
           permawebResults = docsResult || [];
-        } catch (error) {
+        } catch {
           // Continue without Permaweb docs if there's an error
         }
       }
 
       // Build filters for AI memory search
-      const filters: any = {};
+      const filters: Record<string, unknown> = {};
 
       if (args.memoryType) filters.memoryType = args.memoryType;
       if (args.domain) filters.domain = args.domain;

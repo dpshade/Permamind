@@ -12,7 +12,7 @@ interface AddReasoningChainArgs {
 
 export class AddReasoningChainCommand extends ToolCommand<
   AddReasoningChainArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Store AI reasoning steps and decision pathways. Useful for tracking chain-of-thought processes, 
@@ -36,7 +36,7 @@ export class AddReasoningChainCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: AddReasoningChainArgs): Promise<any> {
+  async execute(args: AddReasoningChainArgs): Promise<string> {
     try {
       const reasoning = {
         chainId: args.chainId,

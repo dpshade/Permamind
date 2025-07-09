@@ -3,7 +3,7 @@ import { z } from "zod";
 export class ToolValidationError extends Error {
   constructor(
     public field: string,
-    public value: any,
+    public value: unknown,
     public expectedType: string,
     message?: string,
   ) {
@@ -17,9 +17,9 @@ export class ToolValidationError extends Error {
 
 export class ToolValidator {
   static validateArray<T>(
-    value: any,
+    value: unknown,
     fieldName: string,
-    itemValidator?: (item: any, index: number) => T,
+    itemValidator?: (item: unknown, index: number) => T,
   ): T[] {
     if (!Array.isArray(value)) {
       throw new ToolValidationError(fieldName, value, "array");
@@ -46,7 +46,7 @@ export class ToolValidator {
     return value;
   }
 
-  static validateBoolean(value: any, fieldName: string): boolean {
+  static validateBoolean(value: unknown, fieldName: string): boolean {
     if (typeof value !== "boolean") {
       throw new ToolValidationError(fieldName, value, "boolean");
     }
@@ -54,7 +54,7 @@ export class ToolValidator {
   }
 
   static validateEnum<T extends string>(
-    value: any,
+    value: unknown,
     fieldName: string,
     allowedValues: readonly T[],
   ): T {
@@ -70,7 +70,7 @@ export class ToolValidator {
   }
 
   static validateNumber(
-    value: any,
+    value: unknown,
     fieldName: string,
     options?: {
       integer?: boolean;
@@ -108,7 +108,7 @@ export class ToolValidator {
   }
 
   static validateObject<T>(
-    value: any,
+    value: unknown,
     fieldName: string,
     schema: z.ZodSchema<T>,
   ): T {
@@ -135,9 +135,9 @@ export class ToolValidator {
   }
 
   static validateOptional<T>(
-    value: any,
+    value: unknown,
     fieldName: string,
-    validator: (value: any, fieldName: string) => T,
+    validator: (value: unknown, fieldName: string) => T,
   ): T | undefined {
     if (value === undefined || value === null) {
       return undefined;
@@ -156,7 +156,7 @@ export class ToolValidator {
   }
 
   static validateString(
-    value: any,
+    value: unknown,
     fieldName: string,
     options?: {
       maxLength?: number;

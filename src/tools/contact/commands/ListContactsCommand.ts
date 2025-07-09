@@ -4,7 +4,10 @@ import { fetchEvents } from "../../../relay.js";
 import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class ListContactsCommand extends ToolCommand<{}, any> {
+export class ListContactsCommand extends ToolCommand<
+  Record<string, never>,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: "List all saved contact mappings from the address book",
     name: "listContacts",
@@ -19,7 +22,7 @@ export class ListContactsCommand extends ToolCommand<{}, any> {
     super();
   }
 
-  async execute(): Promise<any> {
+  async execute(): Promise<string> {
     try {
       // Use dedicated kind for efficient filtering
       const filter = {

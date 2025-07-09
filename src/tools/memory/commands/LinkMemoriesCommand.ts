@@ -15,7 +15,7 @@ interface LinkMemoriesArgs {
   targetMemoryId: string;
 }
 
-export class LinkMemoriesCommand extends ToolCommand<LinkMemoriesArgs, any> {
+export class LinkMemoriesCommand extends ToolCommand<LinkMemoriesArgs, string> {
   protected metadata: ToolMetadata = {
     description: `Create relationships between memories to build knowledge graphs and reasoning chains. 
       Useful for connecting related concepts, cause-effect relationships, and building contextual understanding.`,
@@ -42,7 +42,7 @@ export class LinkMemoriesCommand extends ToolCommand<LinkMemoriesArgs, any> {
     super();
   }
 
-  async execute(args: LinkMemoriesArgs): Promise<any> {
+  async execute(args: LinkMemoriesArgs): Promise<string> {
     try {
       const relationship = {
         strength: args.strength,

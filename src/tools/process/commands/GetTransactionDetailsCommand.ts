@@ -3,7 +3,14 @@ import { z } from "zod";
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class GetTransactionDetailsCommand extends ToolCommand<any, any> {
+interface GetTransactionDetailsArgs {
+  transactionId: string;
+}
+
+export class GetTransactionDetailsCommand extends ToolCommand<
+  GetTransactionDetailsArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Get detailed information for a specific Arweave transaction by ID. 
     Returns comprehensive transaction data including tags, block information, 
@@ -42,7 +49,7 @@ export class GetTransactionDetailsCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: GetTransactionDetailsArgs): Promise<string> {
     try {
       const transaction = await arweaveGraphQLService.getTransactionData(
         args.transactionId,
