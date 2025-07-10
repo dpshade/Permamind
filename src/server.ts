@@ -88,7 +88,6 @@ function setupToolRegistry() {
     publicKey,
   };
 
-
   // Register Memory tools
   const memoryFactory = new MemoryToolFactory({
     categoryDescription:
@@ -160,24 +159,26 @@ function registerBasicTools() {
   // Create a minimal tool context with placeholders
   const basicContext: ToolContext = {
     hubId: "initializing",
-    keyPair: {} as any, // Will be replaced after init
+    keyPair: {} as JWKInterface, // Will be replaced after init
     publicKey: "initializing",
   };
 
   // Setup tool registry with basic context
   toolRegistry.clear();
-  
+
   // Register Memory tools
   const memoryFactory = new MemoryToolFactory({
-    categoryDescription: "AI Memory management tools for persistent storage and retrieval",
-    categoryName: "Memory", 
+    categoryDescription:
+      "AI Memory management tools for persistent storage and retrieval",
+    categoryName: "Memory",
     context: basicContext,
   });
   memoryFactory.registerTools(toolRegistry);
 
   // Register Token tools
   const tokenFactory = new TokenToolFactory({
-    categoryDescription: "Token management tools for creating, transferring, and querying tokens",
+    categoryDescription:
+      "Token management tools for creating, transferring, and querying tokens",
     categoryName: "Token",
     context: basicContext,
   });
@@ -214,7 +215,7 @@ function registerBasicTools() {
     context: basicContext,
   });
   systemFactory.registerTools(toolRegistry);
-  
+
   // Get tool definitions and register them
   const toolDefinitions = toolRegistry.getToolDefinitions(basicContext);
   for (const toolDefinition of toolDefinitions) {
