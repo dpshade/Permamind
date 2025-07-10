@@ -603,6 +603,7 @@ export class PermawebDocs {
         if (attempt < maxRetries && !isTimeout) {
           const delayMs = Math.pow(2, attempt) * 1000;
           if (this.debugMode) {
+            console.log(`[PermawebDocs] Retrying ${domain} in ${delayMs}ms...`);
           }
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         } else {
