@@ -150,33 +150,93 @@ const server = new FastMCP({
   version: "1.0.0",
 });
 
-// Register tools from the tool registry
-function registerToolsFromRegistry() {
-  const context: ToolContext = {
-    hubId,
-    keyPair,
-    publicKey,
+// All tools are now registered via the tool registry
+// Start server with stdio transport (matches Claude Desktop expectation)
+
+// Register basic tools immediately to ensure MCP server has tools available
+// while initialization happens in background
+function registerBasicTools() {
+  // Create a minimal tool context with placeholders
+  const basicContext: ToolContext = {
+    hubId: "initializing",
+    keyPair: {} as JWKInterface, // Will be replaced after init
+    publicKey: "initializing",
   };
 
-  const toolDefinitions = toolRegistry.getToolDefinitions(context);
+  // Setup tool registry with basic context
+  toolRegistry.clear();
 
+  // Register Memory tools
+  const memoryFactory = new MemoryToolFactory({
+    categoryDescription:
+      "AI Memory management tools for persistent storage and retrieval",
+    categoryName: "Memory",
+    context: basicContext,
+  });
+  memoryFactory.registerTools(toolRegistry);
+
+  // Register Token tools
+  const tokenFactory = new TokenToolFactory({
+    categoryDescription:
+      "Token management tools for creating, transferring, and querying tokens",
+    categoryName: "Token",
+    context: basicContext,
+  });
+  tokenFactory.registerTools(toolRegistry);
+
+  // Register Contact tools
+  const contactFactory = new ContactToolFactory({
+    categoryDescription: "Contact and address management tools",
+    categoryName: "Contact",
+    context: basicContext,
+  });
+  contactFactory.registerTools(toolRegistry);
+
+  // Register Process tools
+  const processFactory = new ProcessToolFactory({
+    categoryDescription: "AO process communication and blockchain query tools",
+    categoryName: "Process",
+    context: basicContext,
+  });
+  processFactory.registerTools(toolRegistry);
+
+  // Register Documentation tools
+  const documentationFactory = new DocumentationToolFactory({
+    categoryDescription: "Permaweb documentation and deployment tools",
+    categoryName: "Documentation",
+    context: basicContext,
+  });
+  documentationFactory.registerTools(toolRegistry);
+
+  // Register System tools
+  const systemFactory = new SystemToolFactory({
+    categoryDescription: "System information and utility tools",
+    categoryName: "System",
+    context: basicContext,
+  });
+  systemFactory.registerTools(toolRegistry);
+
+  // Get tool definitions and register them
+  const toolDefinitions = toolRegistry.getToolDefinitions(basicContext);
   for (const toolDefinition of toolDefinitions) {
     server.addTool(toolDefinition);
   }
 }
 
-// All tools are now registered via the tool registry (see setupToolRegistry and registerToolsFromRegistry)
-// Start server with stdio transport (matches Claude Desktop expectation)
+// Register basic tools immediately
+registerBasicTools();
 
-// Initialize in background (silent for stdio transport)
+// Start the server immediately with basic tools
+server.start({
+  transportType: "stdio",
+});
+
+// Initialize properly in background and update tools when ready
 init()
   .then(() => {
-    // After initialization, set up the tool registry
+    // After real initialization, update the tool registry with proper context
     setupToolRegistry();
-    registerToolsFromRegistry();
-    server.start({
-      transportType: "stdio",
-    });
+    // Note: We don't call registerToolsFromRegistry again as tools are already registered
   })
   .catch(() => {
     // Silent error handling for stdio transport compatibility

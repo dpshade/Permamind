@@ -509,7 +509,9 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
       `;
 
       if (this.debugMode) {
-        console.log(`[ArweaveGraphQL] Executing paginated query:`, query);
+        console.log(
+          `[ArweaveGraphQL] Executing transaction query with ${Object.keys(variables).length} variables`,
+        );
       }
 
       const response = await this.executeGraphQLRequest<{
