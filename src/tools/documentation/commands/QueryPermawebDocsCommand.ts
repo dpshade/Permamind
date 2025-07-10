@@ -4,7 +4,16 @@ import type { PermawebDocsResult } from "../../../services/PermawebDocsService.j
 
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class QueryPermawebDocsCommand extends ToolCommand<any, any> {
+interface QueryPermawebDocsArgs {
+  domains?: string;
+  maxResults?: number;
+  query: string;
+}
+
+export class QueryPermawebDocsCommand extends ToolCommand<
+  QueryPermawebDocsArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Query comprehensive Permaweb ecosystem documentation with intelligent domain detection. 
     Automatically searches through Arweave, AO, AR.IO, HyperBEAM, and Permaweb glossary based on your query. 
@@ -40,7 +49,7 @@ export class QueryPermawebDocsCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: QueryPermawebDocsArgs): Promise<string> {
     try {
       const { permawebDocs } = await import(
         "../../../services/PermawebDocsService.js"

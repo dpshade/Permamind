@@ -16,7 +16,7 @@ interface SaveAddressMappingArgs {
 
 export class SaveAddressMappingCommand extends ToolCommand<
   SaveAddressMappingArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: "Save a contact name to address mapping for future use",
@@ -35,7 +35,7 @@ export class SaveAddressMappingCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: SaveAddressMappingArgs): Promise<any> {
+  async execute(args: SaveAddressMappingArgs): Promise<string> {
     try {
       // Use dedicated contact mapping kind for better filtering
       const tags = [

@@ -30,8 +30,13 @@ export class CreateConfigurableTokenCommand extends ToolCommand<
     super();
   }
 
-  async execute(_args: CreateConfigurableTokenArgs): Promise<string> {
+  async execute(
+    _args: CreateConfigurableTokenArgs,
+    _context: ToolContext,
+  ): Promise<string> {
     // Implementation would be moved from server.ts
+    void _args; // Explicitly mark as unused
+    void _context; // Explicitly mark as unused
     throw new Error(
       "CreateConfigurableTokenCommand implementation pending migration from server.ts",
     );

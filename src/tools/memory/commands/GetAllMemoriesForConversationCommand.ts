@@ -9,7 +9,7 @@ interface GetAllMemoriesForConversationArgs {
 
 export class GetAllMemoriesForConversationCommand extends ToolCommand<
   GetAllMemoriesForConversationArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Retrieve all stored Memories from the hubId for the given p arg. Call this tool when you need 
@@ -31,7 +31,7 @@ export class GetAllMemoriesForConversationCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: GetAllMemoriesForConversationArgs): Promise<any> {
+  async execute(args: GetAllMemoriesForConversationArgs): Promise<string> {
     try {
       const memories = await hubService.fetchByUser(
         this.context.hubId,

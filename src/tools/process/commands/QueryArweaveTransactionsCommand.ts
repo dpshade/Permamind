@@ -1,15 +1,34 @@
 import { z } from "zod";
 
-import type {
+import {
   SortOrder,
   TagOperator,
   TransactionQuery,
 } from "../../../models/ArweaveGraphQL.js";
-
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
+interface QueryArweaveTransactionsArgs {
+  after?: string;
+  blockHeight?: { max?: number; min?: number };
+  bundledIn?: string;
+  dataSize?: { max?: number; min?: number };
+  fee?: { max?: number; min?: number };
+  first?: number;
+  ids?: string[];
+  ingestedAt?: { max?: number; min?: number };
+  last?: number;
+  owners?: string[];
+  recipients?: string[];
+  sort?: SortOrder;
+  sortOrder?: SortOrder;
+  tags?: Array<{ name: string; op?: TagOperator; values: string[] }>;
+}
+
+export class QueryArweaveTransactionsCommand extends ToolCommand<
+  QueryArweaveTransactionsArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Query Arweave transactions using GraphQL with comprehensive filtering options. 
     Supports filtering by owners, recipients, tags, blocks, and more. Uses Goldsky primary endpoint 
@@ -52,6 +71,24 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
       })
       .optional()
       .describe("Block height filter"),
+    bundledIn: z
+      .string()
+      .optional()
+      .describe("Filter by bundle transaction ID"),
+    dataSize: z
+      .object({
+        max: z.number().optional().describe("Maximum data size"),
+        min: z.number().optional().describe("Minimum data size"),
+      })
+      .optional()
+      .describe("Data size filter"),
+    fee: z
+      .object({
+        max: z.number().optional().describe("Maximum fee"),
+        min: z.number().optional().describe("Minimum fee"),
+      })
+      .optional()
+      .describe("Fee filter"),
     first: z
       .number()
       .min(1)
@@ -69,6 +106,12 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
       })
       .optional()
       .describe("Ingested at filter"),
+    last: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of results to return from the end"),
     owners: z
       .array(z.string())
       .optional()
@@ -78,12 +121,11 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
       .optional()
       .describe("Array of recipient wallet addresses"),
     sort: z
-      .enum([
-        "HEIGHT_ASC",
-        "HEIGHT_DESC",
-        "INGESTED_AT_ASC",
-        "INGESTED_AT_DESC",
-      ])
+      .nativeEnum(SortOrder)
+      .optional()
+      .describe("Sort order (default: HEIGHT_DESC)"),
+    sortOrder: z
+      .nativeEnum(SortOrder)
       .optional()
       .describe("Sort order (default: HEIGHT_DESC)"),
     tags: z
@@ -91,7 +133,7 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
         z.object({
           name: z.string().describe("Tag name"),
           op: z
-            .enum(["EQ", "NEQ"])
+            .nativeEnum(TagOperator)
             .optional()
             .describe("Tag operator (default: EQ)"),
           values: z.array(z.string()).describe("Array of tag values to match"),
@@ -105,7 +147,7 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: QueryArweaveTransactionsArgs): Promise<string> {
     try {
       const query: TransactionQuery = {
         first: args.first || 10,
@@ -125,7 +167,7 @@ export class QueryArweaveTransactionsCommand extends ToolCommand<any, any> {
       }
 
       if (args.tags) {
-        query.tags = args.tags.map((tag: any) => ({
+        query.tags = args.tags.map((tag) => ({
           name: tag.name,
           op: (tag.op as TagOperator) || "EQ",
           values: tag.values,

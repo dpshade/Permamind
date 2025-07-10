@@ -1,11 +1,24 @@
 import { z } from "zod";
 
-import type { BlockQuery, SortOrder } from "../../../models/ArweaveGraphQL.js";
-
+import { BlockQuery, SortOrder } from "../../../models/ArweaveGraphQL.js";
 import { arweaveGraphQLService } from "../../../services/ArweaveGraphQLService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class QueryBlockInfoCommand extends ToolCommand<any, any> {
+interface QueryBlockInfoArgs {
+  after?: string;
+  blockId?: string;
+  first?: number;
+  heightRange?: { max?: number; min?: number };
+  ids?: string[];
+  last?: number;
+  sort?: SortOrder;
+  sortOrder?: SortOrder;
+}
+
+export class QueryBlockInfoCommand extends ToolCommand<
+  QueryBlockInfoArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Query Arweave block information with filtering by height ranges or specific block IDs. 
     Includes pagination support for querying multiple blocks efficiently.
@@ -58,8 +71,18 @@ export class QueryBlockInfoCommand extends ToolCommand<any, any> {
       .array(z.string())
       .optional()
       .describe("Array of block IDs to query (for multiple blocks)"),
+    last: z
+      .number()
+      .min(1)
+      .max(100)
+      .optional()
+      .describe("Number of results to return from the end"),
     sort: z
-      .enum(["HEIGHT_ASC", "HEIGHT_DESC"])
+      .nativeEnum(SortOrder)
+      .optional()
+      .describe("Sort order (default: HEIGHT_DESC)"),
+    sortOrder: z
+      .nativeEnum(SortOrder)
       .optional()
       .describe("Sort order (default: HEIGHT_DESC)"),
   });
@@ -68,7 +91,7 @@ export class QueryBlockInfoCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: QueryBlockInfoArgs): Promise<string> {
     try {
       if (args.blockId) {
         // Single block query

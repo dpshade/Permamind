@@ -30,8 +30,13 @@ export class GetTokenExamplesCommand extends ToolCommand<
     super();
   }
 
-  async execute(_args: GetTokenExamplesArgs): Promise<string> {
+  async execute(
+    _args: GetTokenExamplesArgs,
+    _context: ToolContext,
+  ): Promise<string> {
     // Implementation would be moved from server.ts
+    void _args; // Explicitly mark as unused
+    void _context; // Explicitly mark as unused
     throw new Error(
       "GetTokenExamplesCommand implementation pending migration from server.ts",
     );

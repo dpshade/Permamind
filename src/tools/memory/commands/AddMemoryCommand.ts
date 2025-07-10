@@ -10,7 +10,7 @@ interface AddMemoryArgs {
   role: string;
 }
 
-export class AddMemoryCommand extends ToolCommand<AddMemoryArgs, any> {
+export class AddMemoryCommand extends ToolCommand<AddMemoryArgs, string> {
   protected metadata: ToolMetadata = {
     description: "Add a memory to the hub",
     name: "addMemory",
@@ -29,7 +29,7 @@ export class AddMemoryCommand extends ToolCommand<AddMemoryArgs, any> {
     super();
   }
 
-  async execute(args: AddMemoryArgs): Promise<any> {
+  async execute(args: AddMemoryArgs): Promise<string> {
     const kind: Tag = {
       name: "Kind",
       value: "10",

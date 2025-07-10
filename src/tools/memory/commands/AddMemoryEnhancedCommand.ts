@@ -24,7 +24,7 @@ interface AddMemoryEnhancedArgs {
 
 export class AddMemoryEnhancedCommand extends ToolCommand<
   AddMemoryEnhancedArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `PREFERRED: Use this enhanced tool to store ALL conversations with rich AI metadata including importance scoring, 
@@ -63,7 +63,7 @@ export class AddMemoryEnhancedCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: AddMemoryEnhancedArgs): Promise<any> {
+  async execute(args: AddMemoryEnhancedArgs): Promise<string> {
     try {
       const aiMemory = {
         content: args.content,

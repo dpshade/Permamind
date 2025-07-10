@@ -3,7 +3,19 @@ import { z } from "zod";
 import { PermawebDeployService } from "../../../services/PermawebDeployService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class DeployPermawebDirectoryCommand extends ToolCommand<any, any> {
+interface DeployPermawebDirectoryArgs {
+  arnsName: string;
+  directoryPath: string;
+  network?: "mainnet" | "testnet";
+  undername?: string;
+  useCurrentWallet?: boolean;
+  walletPath?: string;
+}
+
+export class DeployPermawebDirectoryCommand extends ToolCommand<
+  DeployPermawebDirectoryArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Deploy a directory to the Permaweb using permaweb-deploy CLI with ArNS and undername support.
     This tool handles wallet management, directory validation, and deployment execution.
@@ -53,7 +65,7 @@ export class DeployPermawebDirectoryCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: DeployPermawebDirectoryArgs): Promise<string> {
     try {
       const permawebDeployService = new PermawebDeployService();
       const result = await permawebDeployService.deployDirectory({

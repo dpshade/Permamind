@@ -10,7 +10,7 @@ interface AddMemoriesBatchArgs {
 
 export class AddMemoriesBatchCommand extends ToolCommand<
   AddMemoriesBatchArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Add multiple memories in a single operation for efficiency. Useful for bulk memory imports 
@@ -32,7 +32,7 @@ export class AddMemoriesBatchCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: AddMemoriesBatchArgs): Promise<any> {
+  async execute(args: AddMemoriesBatchArgs): Promise<string> {
     try {
       const memories = JSON.parse(args.memories);
       const results = await aiMemoryService.addMemoriesBatch(

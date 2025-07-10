@@ -3,9 +3,18 @@ import { z } from "zod";
 import { PermawebDeployService } from "../../../services/PermawebDeployService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
+interface CheckPermawebDeployPrerequisitesArgs {
+  arnsName: string;
+  directoryPath: string;
+  network?: "mainnet" | "testnet";
+  undername?: string;
+  useCurrentWallet?: boolean;
+  walletPath?: string;
+}
+
 export class CheckPermawebDeployPrerequisitesCommand extends ToolCommand<
-  any,
-  any
+  CheckPermawebDeployPrerequisitesArgs,
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Check all prerequisites for permaweb deployment without attempting to deploy.
@@ -48,7 +57,7 @@ export class CheckPermawebDeployPrerequisitesCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: CheckPermawebDeployPrerequisitesArgs): Promise<string> {
     try {
       const permawebDeployService = new PermawebDeployService();
       const result = await permawebDeployService.checkPrerequisites({

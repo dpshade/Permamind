@@ -9,7 +9,7 @@ interface SearchMemoriesArgs {
 
 export class SearchMemoriesCommand extends ToolCommand<
   SearchMemoriesArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description:
@@ -28,7 +28,7 @@ export class SearchMemoriesCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: SearchMemoriesArgs): Promise<any> {
+  async execute(args: SearchMemoriesArgs): Promise<string> {
     try {
       const memories = await hubService.search(
         this.context.hubId,

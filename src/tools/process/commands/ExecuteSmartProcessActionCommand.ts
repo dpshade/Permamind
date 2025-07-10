@@ -8,7 +8,16 @@ import {
   ToolMetadata,
 } from "../../core/index.js";
 
-export class ExecuteSmartProcessActionCommand extends ToolCommand<any, any> {
+interface ExecuteSmartProcessActionArgs {
+  processId: string;
+  processMarkdown?: string;
+  request: string;
+}
+
+export class ExecuteSmartProcessActionCommand extends ToolCommand<
+  ExecuteSmartProcessActionArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Intelligent process execution that automatically detects process types and uses appropriate templates. Falls back to 
     traditional documentation-based approach if auto-detection fails. Supports token operations out of the box, with extensibility 
@@ -38,7 +47,7 @@ export class ExecuteSmartProcessActionCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: ExecuteSmartProcessActionArgs): Promise<string> {
     try {
       const result = await processCommunicationService.executeSmartRequest(
         args.processId,

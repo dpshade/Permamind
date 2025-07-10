@@ -9,7 +9,7 @@ interface GetMemoryAnalyticsArgs {
 
 export class GetMemoryAnalyticsCommand extends ToolCommand<
   GetMemoryAnalyticsArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Get detailed analytics about memory usage, patterns, and insights. Provides metrics about 
@@ -31,7 +31,7 @@ export class GetMemoryAnalyticsCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: GetMemoryAnalyticsArgs): Promise<any> {
+  async execute(args: GetMemoryAnalyticsArgs): Promise<string> {
     try {
       const analytics = await aiMemoryService.getMemoryAnalytics(
         this.context.hubId,

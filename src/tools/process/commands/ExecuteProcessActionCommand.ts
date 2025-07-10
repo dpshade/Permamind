@@ -16,7 +16,7 @@ interface ExecuteProcessActionArgs {
 
 export class ExecuteProcessActionCommand extends ToolCommand<
   ExecuteProcessActionArgs,
-  any
+  string
 > {
   protected metadata: ToolMetadata = {
     description: `Execute an action on any AO process using natural language. Process developers can provide a markdown description 
@@ -49,7 +49,7 @@ export class ExecuteProcessActionCommand extends ToolCommand<
     super();
   }
 
-  async execute(args: ExecuteProcessActionArgs): Promise<any> {
+  async execute(args: ExecuteProcessActionArgs): Promise<string> {
     try {
       const result = await processCommunicationService.executeProcessRequest(
         args.processMarkdown,

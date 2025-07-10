@@ -4,7 +4,15 @@ import type { PermawebDomain } from "../../../services/PermawebDocsService.js";
 
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
-export class ManagePermawebDocsCacheCommand extends ToolCommand<any, any> {
+interface ManagePermawebDocsCacheArgs {
+  action: "clear" | "preload" | "status";
+  domains?: string;
+}
+
+export class ManagePermawebDocsCacheCommand extends ToolCommand<
+  ManagePermawebDocsCacheArgs,
+  string
+> {
   protected metadata: ToolMetadata = {
     description: `Manage the Permaweb documentation cache. Check cache status, preload documentation, 
     or clear cached content for specific domains. Useful for ensuring fresh documentation or optimizing performance.`,
@@ -32,7 +40,7 @@ export class ManagePermawebDocsCacheCommand extends ToolCommand<any, any> {
     super();
   }
 
-  async execute(args: any): Promise<any> {
+  async execute(args: ManagePermawebDocsCacheArgs): Promise<string> {
     try {
       const { permawebDocs } = await import(
         "../../../services/PermawebDocsService.js"
