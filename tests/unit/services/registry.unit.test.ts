@@ -9,7 +9,7 @@ vi.mock("../../../src/process.js", () => ({
   createProfile: vi.fn(),
 }));
 
-vi.mock("../../../src/services/hub_lua.js", () => ({
+vi.mock("../../../src/services/HubLuaService.js", () => ({
   evaluateHub: vi.fn(),
   luaModule: "mock-lua-module",
 }));

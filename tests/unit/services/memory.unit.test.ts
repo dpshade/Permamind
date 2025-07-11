@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { hubService } from "../../../src/services/hub.js";
+import { hubService } from "../../../src/services/HubService.js";
 import { mockHubId } from "../../mocks/aoConnect.js";
 
 // Mock the relay functions
