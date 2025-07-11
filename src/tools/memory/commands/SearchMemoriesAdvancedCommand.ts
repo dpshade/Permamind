@@ -1,9 +1,12 @@
 import { z } from "zod";
 
-import type { PermawebDocsResult } from "../../../services/PermawebDocs.js";
+import type {
+  PermawebDocsResult,
+  PermawebDomain,
+} from "../../../services/PermawebDocsService.js";
 
-import { aiMemoryService } from "../../../services/aiMemoryService.js";
-import { PermawebDocs } from "../../../services/PermawebDocs.js";
+import { aiMemoryService } from "../../../services/AIMemoryService.js";
+import { PermawebDocs } from "../../../services/PermawebDocsService.js";
 import {
   CommonSchemas,
   ToolCommand,

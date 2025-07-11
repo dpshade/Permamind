@@ -8,7 +8,7 @@ import {
   generateTokenLua,
   type TokenConfig,
   validateTokenConfig,
-} from "../../../src/services/token_lua.js";
+} from "../../../src/services/TokenLuaService.js";
 
 describe("Token Lua Service", () => {
   describe("validateTokenConfig", () => {

@@ -2,7 +2,7 @@ import { JWKInterface } from "arweave/node/lib/wallet.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Tag } from "../../../src/models/Tag.js";
-import { hubService } from "../../../src/services/hub.js";
+import { hubService } from "../../../src/services/HubService.js";
 
 // Mock external dependencies
 vi.mock("../../../src/relay.js", () => ({

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { hubRegistryService } from "../../../src/services/registry.js";
+import { hubRegistryService } from "../../../src/services/RegistryService.js";
 import { mockKeyPair } from "../../mocks/aoConnect.js";
 
 // Mock external dependencies

@@ -10,7 +10,7 @@ import { getKeyFromMnemonic } from "./mnemonic.js";
 // MemoryType is now imported via the tools module
 import { ProfileCreateData } from "./models/Profile.js";
 import { defaultProcessService } from "./services/DefaultProcessService.js";
-import { hubRegistryService } from "./services/registry.js";
+import { hubRegistryService } from "./services/RegistryService.js";
 import { ContactToolFactory } from "./tools/contact/ContactToolFactory.js";
 import { DocumentationToolFactory } from "./tools/documentation/DocumentationToolFactory.js";
 import { ToolContext, toolRegistry } from "./tools/index.js";

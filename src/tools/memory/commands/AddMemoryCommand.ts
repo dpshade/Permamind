@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { Tag } from "../../../models/Tag.js";
-import { hubService } from "../../../services/hub.js";
+import { hubService } from "../../../services/HubService.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
 interface AddMemoryArgs {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ProcessDefinition } from "../../../src/services/ProcessCommunicationService.js";
 
-import { DEFAULT_TOKEN_PROCESS } from "../../../src/templates/defaultTokenProcess.js";
+import { DEFAULT_TOKEN_PROCESS } from "../../../src/templates/DefaultTokenProcess.js";
 
 describe("DefaultTokenProcess", () => {
   describe("process definition structure", () => {

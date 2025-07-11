@@ -90,6 +90,7 @@ src/
 - **Models**: PascalCase (`AIMemory.ts`, `WorkflowDefinition.ts`)
 - **Tests**: `.unit.test.ts` or `.integration.test.ts` suffix
 - **Constants**: camelCase with descriptive names
+- **Always use the file naming standards as defined above**
 
 ## AO Ecosystem Integration
 

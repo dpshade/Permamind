@@ -7,7 +7,7 @@ import { ProfileCreateData } from "../models/Profile.js";
 import { Tag } from "../models/Tag.js";
 import { createProcess } from "../process.js";
 import { evalProcess, event, getZone, register } from "../relay.js";
-import { luaModule } from "./hub_lua.js";
+import { luaModule } from "./HubLuaService.js";
 
 export interface HubRegistryService {
   create: (
