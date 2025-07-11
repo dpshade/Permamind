@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { hubRegistryService } from "../../../src/services/registry.js";
+import { hubRegistryService } from "../../../src/services/RegistryService.js";
 import { mockKeyPair } from "../../mocks/aoConnect.js";
 
 // Mock external dependencies
@@ -9,7 +9,7 @@ vi.mock("../../../src/process.js", () => ({
   createProfile: vi.fn(),
 }));
 
-vi.mock("../../../src/services/hub_lua.js", () => ({
+vi.mock("../../../src/services/HubLuaService.js", () => ({
   evaluateHub: vi.fn(),
   luaModule: "mock-lua-module",
 }));

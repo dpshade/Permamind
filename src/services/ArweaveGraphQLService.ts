@@ -508,12 +508,6 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
         }
       `;
 
-      if (this.debugMode) {
-        console.log(
-          `[ArweaveGraphQL] Executing transaction query with ${Object.keys(variables).length} variables`,
-        );
-      }
-
       const response = await this.executeGraphQLRequest<{
         transactions: {
           edges: Array<{ cursor: string; node: Transaction }>;
@@ -560,31 +554,15 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
     )) {
       for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
         try {
-          if (this.debugMode) {
-            console.log(
-              `[ArweaveGraphQL] Attempting ${endpoint.name} (${endpoint.url}) - attempt ${attempt + 1}/${this.maxRetries + 1}`,
-            );
-          }
-
           const response = await this.executeRequest<T>(
             endpoint.url,
             query,
             variables,
           );
 
-          if (this.debugMode) {
-            console.log(`[ArweaveGraphQL] ${endpoint.name} request successful`);
-          }
-
           return response;
         } catch (error) {
           lastError = error instanceof Error ? error : new Error(String(error));
-
-          if (this.debugMode) {
-            console.log(
-              `[ArweaveGraphQL] ${endpoint.name} attempt ${attempt + 1} failed: ${lastError.message}`,
-            );
-          }
 
           // Don't retry on timeout errors or GraphQL errors - they're likely to fail again
           const isTimeout =
@@ -593,21 +571,11 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
           const isGraphQLError = lastError.message.includes("GraphQL errors");
 
           if (isTimeout || isGraphQLError) {
-            if (this.debugMode) {
-              console.log(
-                `[ArweaveGraphQL] Skipping retry for ${endpoint.name} due to ${isTimeout ? "timeout" : "GraphQL error"}`,
-              );
-            }
             break; // Try next endpoint
           }
 
           if (attempt < this.maxRetries) {
             const delayMs = Math.pow(2, attempt) * 1000;
-            if (this.debugMode) {
-              console.log(
-                `[ArweaveGraphQL] Retrying ${endpoint.name} in ${delayMs}ms...`,
-              );
-            }
             await new Promise((resolve) => setTimeout(resolve, delayMs));
           }
         }
@@ -656,14 +624,7 @@ export class ArweaveGraphQLService implements ArweaveGraphQLServiceInterface {
       const result = (await response.json()) as GraphQLResponse<T>;
 
       // Check for GraphQL errors but don't throw immediately - let caller handle
-      if (result.errors && result.errors.length > 0) {
-        if (this.debugMode) {
-          console.log(
-            `[ArweaveGraphQL] GraphQL errors received:`,
-            result.errors,
-          );
-        }
-      }
+      // GraphQL errors are handled by the caller
 
       return result;
     } catch (error) {

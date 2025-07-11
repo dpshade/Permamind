@@ -5,7 +5,7 @@ import { MEMORY_KINDS } from "../../../services/aiMemoryService.js";
 import {
   generateSimpleTokenLua,
   type SimpleTokenConfig,
-} from "../../../services/simpleToken.js";
+} from "../../../services/SimpleTokenService.js";
 import { tokenService } from "../../../services/tokenservice.js";
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 

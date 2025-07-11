@@ -527,12 +527,6 @@ export class PermawebDocs {
     }, this.fetchTimeoutMs);
 
     try {
-      if (this.debugMode) {
-        console.log(
-          `[PermawebDocs] Fetching ${domain} documentation from ${source.url}`,
-        );
-      }
-
       const response = await fetch(source.url, {
         signal: abortController.signal,
       });
@@ -550,12 +544,6 @@ export class PermawebDocs {
         content,
         fetchedAt: new Date(),
       });
-
-      if (this.debugMode) {
-        console.log(
-          `[PermawebDocs] Successfully loaded ${domain} documentation (${content.length} chars)`,
-        );
-      }
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         throw new Error(
@@ -586,25 +574,11 @@ export class PermawebDocs {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        if (this.debugMode) {
-          console.log(
-            `[PermawebDocs] Attempt ${attempt + 1}/${maxRetries + 1} failed for ${domain}: ${lastError.message}`,
-          );
-        }
-
         // Don't retry on timeout errors - they're likely to timeout again
         const isTimeout = lastError.message.includes("timed out after");
-        if (isTimeout && this.debugMode) {
-          console.log(
-            `[PermawebDocs] Skipping retry for ${domain} due to timeout`,
-          );
-        }
 
         if (attempt < maxRetries && !isTimeout) {
           const delayMs = Math.pow(2, attempt) * 1000;
-          if (this.debugMode) {
-            console.log(`[PermawebDocs] Retrying ${domain} in ${delayMs}ms...`);
-          }
           await new Promise((resolve) => setTimeout(resolve, delayMs));
         } else {
           break;

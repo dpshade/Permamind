@@ -5,7 +5,7 @@ import { ToolRegistry } from "../../../../src/tools/core/ToolRegistry.js";
 import { MemoryToolFactory } from "../../../../src/tools/memory/MemoryToolFactory.js";
 
 // Mock the services
-vi.mock("../../../../src/services/hub.js", () => ({
+vi.mock("../../../../src/services/HubService.js", () => ({
   hubService: {
     createEvent: vi.fn(),
     fetch: vi.fn(),

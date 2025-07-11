@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { luaModule } from "../../../src/services/hub_lua.js";
+import { luaModule } from "../../../src/services/HubLuaService.js";
 
 describe("Hub Lua Module", () => {
   describe("luaModule content", () => {

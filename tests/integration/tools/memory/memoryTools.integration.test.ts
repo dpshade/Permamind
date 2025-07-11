@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { aiMemoryService } from "../../../../src/services/aiMemoryService.js";
-import { hubService } from "../../../../src/services/hub.js";
+import { hubService } from "../../../../src/services/HubService.js";
 import { ToolContext } from "../../../../src/tools/core/ToolCommand.js";
 import { ToolRegistry } from "../../../../src/tools/core/ToolRegistry.js";
 import { MemoryToolFactory } from "../../../../src/tools/memory/MemoryToolFactory.js";
 
 // Mock the services with more detailed mocks
-vi.mock("../../../../src/services/hub.js", () => ({
+vi.mock("../../../../src/services/HubService.js", () => ({
   hubService: {
     createEvent: vi.fn(),
     fetch: vi.fn(),

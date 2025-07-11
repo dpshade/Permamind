@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { PermawebDocsResult } from "../../../services/PermawebDocs.js";
+import type { PermawebDocsResult } from "../../../services/PermawebDocsService.js";
 
 import { ToolCommand, ToolContext, ToolMetadata } from "../../core/index.js";
 
@@ -52,7 +52,7 @@ export class QueryPermawebDocsCommand extends ToolCommand<
   async execute(args: QueryPermawebDocsArgs): Promise<string> {
     try {
       const { permawebDocs } = await import(
-        "../../../services/PermawebDocs.js"
+        "../../../services/PermawebDocsService.js"
       );
 
       // Progressive backoff strategy for context limit management
