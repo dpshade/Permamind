@@ -5,7 +5,7 @@ import type {
   PermawebDomain,
 } from "../../../services/PermawebDocsService.js";
 
-import { aiMemoryService } from "../../../services/AIMemoryService.js";
+import { aiMemoryService } from "../../../services/aiMemoryService.js";
 import { PermawebDocs } from "../../../services/PermawebDocsService.js";
 import {
   CommonSchemas,
