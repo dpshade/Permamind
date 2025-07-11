@@ -19,7 +19,7 @@ import {
   isProperlysorted,
   processVIP01Results,
   sortByTimestamp,
-} from "../../../src/utils/VIP01Processing.js";
+} from "../../../src/utils/vip01Processing.js";
 
 describe("VIP01Processing", () => {
   // Sample test events with timestamps

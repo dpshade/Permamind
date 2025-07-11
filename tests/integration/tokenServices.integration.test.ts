@@ -9,7 +9,7 @@ import {
 
 import { generateSimpleTokenLua } from "../../src/services/SimpleTokenService.js";
 import { generateTokenLua } from "../../src/services/TokenLuaService.js";
-import { tokenService } from "../../src/services/TokenService.js";
+import { tokenService } from "../../src/services/tokenservice.js";
 import { mockKeyPair } from "../mocks/aoConnect.js";
 
 // Mock dependencies
