@@ -210,6 +210,18 @@ describe("ServiceName", () => {
 - **Natural Language Service**: Intelligent parameter extraction
 - **Process Integration**: Dynamic AO process interaction
 
+## Development Philosophy and Decision Making
+
+### Tool vs NLS (Natural Language Service) Design Considerations
+
+- When deciding between creating a new tool or defining a Natural Language Service (NLS):
+  - In general, most features are ideally implementable without a specific tool
+  - Prefer defining an NLS on top of existing protocols when possible
+  - Create a new tool only when:
+    - The functionality requires a fundamentally new interaction protocol
+    - Existing protocols cannot efficiently or semantically support the desired functionality
+    - There's a clear need for a standardized, reusable computational unit
+
 ## Security Considerations
 
 ### Key Management

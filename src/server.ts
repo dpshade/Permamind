@@ -13,6 +13,7 @@ import { defaultProcessService } from "./services/DefaultProcessService.js";
 import { hubRegistryService } from "./services/RegistryService.js";
 import { ContactToolFactory } from "./tools/contact/ContactToolFactory.js";
 import { DocumentationToolFactory } from "./tools/documentation/DocumentationToolFactory.js";
+import { HTTPToolFactory } from "./tools/http/HTTPToolFactory.js";
 import { ToolContext, toolRegistry } from "./tools/index.js";
 import { MemoryToolFactory } from "./tools/memory/MemoryToolFactory.js";
 import { ProcessToolFactory } from "./tools/process/ProcessToolFactory.js";
@@ -143,6 +144,15 @@ function setupToolRegistry() {
   });
 
   systemFactory.registerTools(toolRegistry);
+
+  // Register HTTP tools
+  const httpFactory = new HTTPToolFactory({
+    categoryDescription: "HTTP request tools with natural language processing for Permaweb documentation",
+    categoryName: "HTTP",
+    context,
+  });
+
+  httpFactory.registerTools(toolRegistry);
 }
 
 const server = new FastMCP({
@@ -215,6 +225,14 @@ function registerBasicTools() {
     context: basicContext,
   });
   systemFactory.registerTools(toolRegistry);
+
+  // Register HTTP tools
+  const httpFactory = new HTTPToolFactory({
+    categoryDescription: "HTTP request tools with natural language processing for Permaweb documentation",
+    categoryName: "HTTP",
+    context: basicContext,
+  });
+  httpFactory.registerTools(toolRegistry);
 
   // Get tool definitions and register them
   const toolDefinitions = toolRegistry.getToolDefinitions(basicContext);

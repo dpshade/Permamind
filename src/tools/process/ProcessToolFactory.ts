@@ -1,5 +1,5 @@
 import { BaseToolFactory, ToolCommand, ToolContext } from "../core/index.js";
-import { ExecuteGraphQLQueryCommand } from "./commands/ExecuteGraphQLQueryCommand.js";
+// import { ExecuteGraphQLQueryCommand } from "./commands/ExecuteGraphQLQueryCommand.js";
 import { ExecuteProcessActionCommand } from "./commands/ExecuteProcessActionCommand.js";
 import { ExecuteSmartProcessActionCommand } from "./commands/ExecuteSmartProcessActionCommand.js";
 import { GetTransactionDetailsCommand } from "./commands/GetTransactionDetailsCommand.js";
@@ -16,7 +16,7 @@ export class ProcessToolFactory extends BaseToolFactory {
       QueryAOProcessMessagesCommand,
       GetTransactionDetailsCommand,
       QueryBlockInfoCommand,
-      ExecuteGraphQLQueryCommand,
+      // ExecuteGraphQLQueryCommand, // Replaced by HTTP tool with GraphQL NLS capability
     ];
   }
 }
